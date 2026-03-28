@@ -1,187 +1,165 @@
-# 셔틀버스 앱 프로젝트 플랜 (최종안)
+# Push Frame 프로젝트 플랜 (최종)
 
 작성일: 2026-03-28  
-기준: 기존 서버 스캐폴드 + LINE Messaging API + LIFF(`/line`) 통합
+범위: **LINE LIFF 전용 앱 + 셔틀 스캔 이벤트 서버**
 
 ---
 
-## 1) 프로젝트 목표
+## 1) 이번 최종 결정사항
 
-기존 도메인 파이프라인(정류장 QR 스캔 → 대상 계산 → 알림 큐)은 유지하고, 사용자 채널을 LINE 중심으로 확장한다.
+아래 항목을 프로젝트의 최종 원칙으로 확정합니다.
 
-핵심 목표:
-- 사용자가 LINE 채팅/LIFF에서 본인 탑승 정류장을 등록한다.
-- 정류장 QR 스캔 이벤트가 발생하면 현재 정류장 기준 다음 2개 정류장 탑승 예정자에게 알림을 보낸다.
-- 알림은 채널별로 분기 가능(`LINE`, `FCM`, `APNS`)하도록 서버에서 통합 관리한다.
-- `/line` 상세 화면에서 정류장/알림 설정/이력을 확인할 수 있게 한다.
+- **Firebase Cloud Messaging(FCM) 미사용**
+- **Apple Push Notification Service(APNs) 미사용**
+- **일반 푸시 노티피케이션 자체를 범위에서 제외**
+- 앱은 **LINE LIFF 전용**으로 개발
+- QR 스캔 및 사용자 정보 획득은 **LIFF 프레임워크 제공 기능 우선 사용**
 
----
-
-## 2) 제품 컨셉 (MVP)
-
-### 사용자 시나리오
-1. 사용자가 LINE 채팅에서 메뉴/링크를 눌러 `/line` LIFF 화면에 진입한다.
-2. 사용자 계정을 LINE 계정과 연동하고, 탑승 정류장/알림 조건(이전 1개/2개)을 저장한다.
-3. 운행 중 QR 스캔 이벤트가 서버로 들어온다.
-4. 서버가 기존 규칙으로 대상자를 계산해 알림 큐를 생성한다.
-5. 디스패처가 LINE Push(또는 기존 FCM/APNS)로 알림을 발송한다.
-6. 사용자는 메시지에서 상세 링크를 눌러 `/line/history`에서 확인한다.
-
-### 핵심 기능(MVP)
-- 정류장 QR 스캔 이벤트 수신 (`POST /api/v1/scan-events`)
-- 다음 2개 정류장 대상자 계산 로직
-- 알림 큐 생성 및 채널별 디스패치
-- LINE webhook 자동응답(도움말/정류장 등록 안내/상태조회)
-- LIFF `/line` 화면(홈/정류장/알림/이력)
+즉, 본 프로젝트는 “멀티 푸시 채널 통합”이 아니라 **LIFF 기반 사용자 경험 + 서버 이벤트 처리**에 집중합니다.
 
 ---
 
-## 3) 시스템 아키텍처
+## 2) 프로젝트 목표
 
-### 3.1 서버 컴포넌트
-1. **Domain API Server (기존 확장)**
-   - 스캔 이벤트 수신
-   - 대상자 계산
-   - 정류장/알림 설정 CRUD
-2. **LINE Webhook/Bot Handler**
-   - Messaging API webhook 수신
-   - 자동응답 및 LIFF 딥링크 안내
-3. **Notification Dispatcher**
-   - `notification_deliveries` 큐 소비
-   - 채널별 발송기 분기(`LINE`, `FCM`, `APNS`)
-4. **DB**
-   - 운행/정류장/탑승 선언/스캔/알림 이력 저장
-
-### 3.2 프론트 컴포넌트
-- LIFF Web App (`/line`)
-  - `/line` : 홈/연동 상태
-  - `/line/stops` : 탑승 정류장 등록
-  - `/line/alerts` : 알림 조건 설정
-  - `/line/history` : 최근 알림/스캔 이력
+1. 사용자가 LIFF 앱에서 본인 정보를 확인하고(프로필/식별자), 필요한 서비스 설정을 완료할 수 있게 한다.
+2. 정류장 QR 스캔 이벤트를 서버가 수신하고, 도메인 규칙(다음 정류장 계산/대상 조회)을 안정적으로 처리한다.
+3. 사용자 커뮤니케이션은 LIFF 화면 내 상태/이력 중심으로 제공한다.
+4. 운영 측면에서 스캔 이벤트 처리 상태와 실패 원인을 추적 가능하게 만든다.
 
 ---
 
-## 4) API 설계 (단순화 버전)
+## 3) 범위 정의 (In / Out)
 
-### 4.1 기존 유지 API
+### In Scope (포함)
+- LIFF 앱 진입/초기화
+- LIFF 기반 사용자 컨텍스트 획득(예: 프로필, 식별 정보)
+- LIFF QR 스캔 기능 연동
+- `POST /api/v1/scan-events` 기반 서버 이벤트 처리
+- 이벤트/처리 결과 로그 및 이력 조회
+
+### Out of Scope (제외)
+- FCM 연동
+- APNs 연동
+- 웹/앱 OS 푸시 알림 시스템 구현
+- 멀티 플랫폼(예: Grab 등) 분기 전략
+
+---
+
+## 4) 사용자 흐름 (MVP)
+
+1. 사용자가 LINE에서 LIFF 앱에 진입한다.
+2. LIFF SDK 초기화 후 사용자 컨텍스트를 획득한다.
+3. 사용자가 LIFF QR 스캔으로 정류장 코드를 읽는다.
+4. LIFF 앱이 스캔 결과를 서버 API로 전달한다.
+5. 서버는 운행/정류장 기준 도메인 로직을 실행하고 결과를 저장한다.
+6. 사용자는 LIFF 화면에서 처리 결과/이력을 확인한다.
+
+---
+
+## 5) 시스템 아키텍처
+
+### 5.1 클라이언트 (LIFF App)
+- LIFF 초기화 및 로그인 상태 확인
+- LIFF 프로필/사용자 정보 조회
+- LIFF QR 스캔 호출
+- 서버 API 호출 및 결과 렌더링
+
+### 5.2 서버 (Domain API)
+- 스캔 이벤트 유효성 검증
+- 현재 정류장 기준 다음 정류장 계산
+- 대상 사용자/이벤트 처리 기록 저장
+- 운영 로그/오류 로그 적재
+
+### 5.3 데이터 저장소
+- 운행/정류장/스캔/처리 이력 저장
+- 사용자-라인 식별자 매핑 정보 저장(필요 시)
+
+---
+
+## 6) API 계획
+
+### 6.1 핵심 API
 - `POST /api/v1/scan-events`
+  - 정류장 QR 스캔 이벤트 수신
+  - 기본 검증 + 도메인 처리 + 이력 저장
 
-입력 예시:
+요청 예시:
+
 ```json
 {
   "shuttleRunId": "run_123",
   "stopId": "stop_001",
-  "scannedByUserId": "driver_123",
-  "scannedAt": "2026-03-27T08:30:00.000Z"
+  "scannedByUserId": "line_user_123",
+  "scannedAt": "2026-03-28T08:30:00.000Z"
 }
 ```
 
-처리:
-1. 스캔 정류장 유효성 검증
-2. 다음 2개 정류장 도출
-3. 탑승 선언자 조회
-4. 알림 큐 생성
-
-### 4.2 LINE 연동 추가 API
-- `POST /api/v1/line/webhook`
-- `POST /api/v1/line/link`
-- `GET /api/v1/line/me/stops`
-- `POST /api/v1/line/me/stops`
+### 6.2 운영/진단 API (권장)
+- `GET /api/health`
+- `GET /api/v1/scan-events/:id` (처리 결과 조회)
 
 ---
 
-## 5) 데이터 설계 (확정 초안)
+## 7) 데이터 모델 방향
 
-### 기존 핵심 테이블
+핵심 테이블(기존 스캐폴드 기준):
 - `users`
 - `routes`, `stops`, `route_stops`, `shuttle_runs`
 - `boarding_declarations`
 - `scan_events`
-- `notification_deliveries`
+- `notification_deliveries` *(명칭은 유지 가능하나, 현재는 “푸시 발송”이 아니라 “이벤트 처리 결과/액션 큐” 의미로 제한 사용)*
 
-### 추가 필드 제안 (LINE 연동)
+권장 추가 필드:
 - `users.line_user_id`
 - `users.line_linked_at`
-- `notification_deliveries.channel`
-- `notification_deliveries.provider_message_id`
-- `notification_deliveries.template_code`
-
-### 멱등성 키 권장
-- `(user_id, shuttle_run_id, target_stop_id, trigger_stop_id, channel)`
+- 이벤트 처리 상태 코드/실패 사유 필드
 
 ---
 
-## 6) 메시징 정책 및 권한 체크리스트
+## 8) 개발 로드맵
 
-- Messaging API 채널과 LIFF 채널을 동일 provider로 구성
-- LIFF scopes: `openid`, `profile`, (필요 시) `chat_message.write`
-- QR 사용 시 LIFF Scan QR 사용 가능 설정
-- webhook 시그니처 검증 및 redelivery/중복 처리
-- 서비스 메시지 사용 시 LINE MINI App 정책/검수 기준 준수
+### Phase 1 — LIFF 연동 고정
+- LIFF 초기화/컨텍스트 획득/QR 스캔 흐름 확정
+- 앱 권한/실패 UX 정리
 
----
+### Phase 2 — 서버 처리 완성
+- `POST /api/v1/scan-events` 검증/처리 강화
+- 실패 케이스 분류 및 재처리 기준 정의
 
-## 7) 개발 단계 로드맵
-
-### Phase 1. 서버 확장 (백엔드 우선)
-- `POST /api/v1/line/webhook` 구현
-- LINE 계정 연동 API 구현
-- 디스패처 LINE sender 추가
-- 알림 멱등성/재시도 기초 구현
-
-### Phase 2. LIFF 화면 구현
-- `/line`, `/line/stops`, `/line/alerts`, `/line/history` 구현
-- 정류장/알림 설정 UX 완성
-- 메시지 ↔ 화면 딥링크 연결
-
-### Phase 3. 안정화/운영
-- 실패 재시도/백오프/DLQ
-- 모니터링(전송률/지연/실패 사유)
-- 템플릿 버전/감사 로그 관리
+### Phase 3 — 운영 가시성
+- 이벤트 처리 로그 대시보드(또는 조회 화면) 구축
+- 주요 지표(성공률, 실패율, 평균 처리시간) 점검
 
 ---
 
-## 8) 비기능 요구사항
+## 9) 비기능 요구사항
 
-- 모바일 퍼스트
-- 개인정보 최소 수집
-- 장애 시 graceful degradation (LINE 발송 실패 시 재시도 큐)
-- 운영 로그 및 추적성 확보
-
----
-
-## 9) 리스크 및 대응
-
-1. LINE userId 미연동 사용자
-   - 대응: 연동 유도 메시지 + LIFF 진입 가이드
-2. 중복 발송
-   - 대응: 멱등키 + dispatch 상태 머신
-3. 채널별 전송 실패 편차
-   - 대응: 채널별 재시도 정책 분리
+- **신뢰성**: 중복 스캔/재전송에 대한 멱등 처리
+- **보안**: LINE 컨텍스트 검증 및 최소 권한 원칙
+- **성능**: 모바일 환경에서 스캔 후 결과 확인까지 지연 최소화
+- **관측성**: 실패 사유를 운영자가 즉시 식별 가능해야 함
 
 ---
 
-## 10) 즉시 결정 필요 항목
+## 10) 리스크 및 대응
 
-1. 알림 채널 운영정책: LINE only vs LINE+FCM/APNS 병행
-2. LIFF 화면 우선순위: `/line/stops` 우선 여부
-3. 정류장 등록 UX: 단일 정류장 vs 다중 정류장
-4. 자동응답 범위: 1차 명령 세트 확정
-
----
-
-## 11) 공식 문서 참고
-
-- Messaging API overview: https://developers.line.biz/en/docs/messaging-api/overview/
-- Sending messages: https://developers.line.biz/en/docs/messaging-api/sending-messages/
-- Receiving messages (webhook): https://developers.line.biz/en/docs/messaging-api/receiving-messages/
-- LIFF overview: https://developers.line.biz/en/docs/liff/overview/
-- LIFF developing guide: https://developers.line.biz/en/docs/liff/developing-liff-apps/
-- LIFF reference: https://developers.line.biz/en/reference/liff/
-- LINE MINI App overview: https://developers.line.biz/en/docs/line-mini-app/develop/develop-overview/
+1. LIFF 컨텍스트 획득 실패
+   - 대응: 재시도 유도 + 오류 코드 표준화
+2. QR 스캔 실패/기기 호환성 이슈
+   - 대응: 수동 입력 보조 플로우(백업) 검토
+3. 이벤트 중복 수신
+   - 대응: 멱등키/중복 방지 로직 적용
 
 ---
 
-## 12) 최종 한 줄 요약
+## 11) 문서 운영 원칙 (정리 반영)
 
-**기존 서버 도메인 파이프라인은 유지하고, 라우팅/엔드포인트를 LINE Messaging API + LIFF 중심으로 단순화해 증분 통합한다.**
+- 기획/범위 기준 문서는 **본 `PROJECT_PLAN.md` 단일 문서**로 유지
+- 과거 전략 문서는 제거하거나 README에서 링크 제외
+- 서버 구현 세부는 `server/README.md`에서만 관리
+
+---
+
+## 12) 한 줄 결론
+
+**Push Frame은 푸시 알림 연동 없이, LINE LIFF 기능(프로필/QR)과 서버 이벤트 처리에 집중하는 단일 전략으로 진행한다.**

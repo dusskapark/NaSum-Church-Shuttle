@@ -1,53 +1,34 @@
-import { useMemo } from "react";
+import { useEffect } from "react";
 import tw from "tailwind-styled-components";
-import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
+import mapboxgl from "mapbox-gl";
 
-const defaultCenter = { lat: 37.7749, lng: -122.4194 };
-const containerStyle = { width: "100%", height: "100%" };
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
 
 const Map = ({ pickupCoordinate, dropoffCoordinate }) => {
-  const { isLoaded } = useJsApiLoader({
-    id: "google-map-script",
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-  });
+  useEffect(() => {
+    const map = new mapboxgl.Map({
+      container: "map",
+      style: "mapbox://styles/mapbox/streets-v11",
+      center: [-96, 37.8],
+      zoom: 3,
+    });
 
-  const bounds = useMemo(() => {
-    if (!pickupCoordinate || !dropoffCoordinate) return null;
+    if (pickupCoordinate && dropoffCoordinate) {
+      const marker1 = new mapboxgl.Marker().setLngLat(pickupCoordinate).addTo(map);
+      const marker2 = new mapboxgl.Marker().setLngLat(dropoffCoordinate).addTo(map);
+      map.fitBounds([pickupCoordinate, dropoffCoordinate], { padding: 100 });
 
-    return {
-      south: Math.min(pickupCoordinate[1], dropoffCoordinate[1]),
-      west: Math.min(pickupCoordinate[0], dropoffCoordinate[0]),
-      north: Math.max(pickupCoordinate[1], dropoffCoordinate[1]),
-      east: Math.max(pickupCoordinate[0], dropoffCoordinate[0]),
-    };
+      return () => {
+        marker1.remove();
+        marker2.remove();
+        map.remove();
+      };
+    }
+
+    return () => map.remove();
   }, [pickupCoordinate, dropoffCoordinate]);
 
-  if (!isLoaded) {
-    return <Wrapper>지도를 불러오는 중...</Wrapper>;
-  }
-
-  return (
-    <Wrapper>
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={defaultCenter}
-        zoom={11}
-        onLoad={(map) => {
-          if (bounds) {
-            map.fitBounds(bounds);
-          }
-        }}
-        options={{ disableDefaultUI: true }}
-      >
-        {pickupCoordinate && (
-          <MarkerF position={{ lat: pickupCoordinate[1], lng: pickupCoordinate[0] }} />
-        )}
-        {dropoffCoordinate && (
-          <MarkerF position={{ lat: dropoffCoordinate[1], lng: dropoffCoordinate[0] }} />
-        )}
-      </GoogleMap>
-    </Wrapper>
-  );
+  return <Wrapper id="map" />;
 };
 
 export default Map;

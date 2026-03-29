@@ -5,8 +5,8 @@
 ## 변경 포인트
 
 - 페이지 구조를 Uber-Clone 스타일(`index → search → confirm`)로 재구성
-- `Mapbox` 대신 `Google Maps JavaScript API` 기반 지도 컴포넌트로 교체
-- 요금/도착시간 계산은 외부 라우팅 API 의존 없이 프론트에서 거리 기반 추정으로 단순화
+- 지도/지오코딩/경로 시간 계산은 **원본 프로젝트 기준(Mapbox)** 으로 유지
+- Mapbox Directions API 응답 기반으로 예상 소요시간/요금을 계산
 
 ## 실행 방법
 
@@ -22,11 +22,5 @@ npm run dev
 `.env.local`에 아래 값을 설정하세요.
 
 ```bash
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_key
+NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_token
 ```
-
-## Google Maps 비용 메모
-
-- Maps JavaScript API는 `Dynamic Maps` SKU로 과금됩니다.
-- 현재 가격표 기준 `Dynamic Maps`는 월 `10,000`건까지 free cap이 있고, 그 이후부터 사용량 기반 과금입니다.
-- 즉 **앱 트래픽이 매우 낮은 초기 단계**라면 실비가 거의 0원일 가능성이 높지만, **과금 계정 연결은 필수**입니다.

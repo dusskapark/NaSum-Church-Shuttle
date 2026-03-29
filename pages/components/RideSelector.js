@@ -1,30 +1,33 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import tw from "tailwind-styled-components";
 import { carList } from "../../data/carList";
 
 const RideSelector = ({ pickupCoordinate, dropoffCoordinate }) => {
-  const distanceKm = useMemo(() => {
-    if (!pickupCoordinate || !dropoffCoordinate) return 0;
+  const [rideDuration, setRideDuration] = useState(0);
 
-    const toRad = (value) => (value * Math.PI) / 180;
-    const [lng1, lat1] = pickupCoordinate;
-    const [lng2, lat2] = dropoffCoordinate;
+  useEffect(() => {
+    const fetchDuration = async () => {
+      if (!pickupCoordinate || !dropoffCoordinate) return;
 
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+      if (!token) return;
 
-    return 6371 * c;
+      const response = await fetch(
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${pickupCoordinate[0]},${pickupCoordinate[1]};${dropoffCoordinate[0]},${dropoffCoordinate[1]}?` +
+          new URLSearchParams({
+            access_token: token,
+          })
+      );
+
+      const data = await response.json();
+      const duration = data?.routes?.[0]?.duration;
+      if (duration) {
+        setRideDuration(duration);
+      }
+    };
+
+    fetchDuration();
   }, [pickupCoordinate, dropoffCoordinate]);
-
-  const rideDuration = useMemo(() => {
-    if (!distanceKm) return 0;
-    const averageSpeedKmPerHour = 30;
-    return Math.round((distanceKm / averageSpeedKmPerHour) * 3600);
-  }, [distanceKm]);
 
   return (
     <Wrapper>
@@ -35,12 +38,9 @@ const RideSelector = ({ pickupCoordinate, dropoffCoordinate }) => {
             <CarImage src={car.imgUrl} />
             <CarDetails>
               <Service>{car.service}</Service>
-              <Time>{rideDuration / 100} min away</Time>
+              <Time>{(rideDuration / 60).toFixed(0)} min away</Time>
             </CarDetails>
-            <Price>
-              ${" "}
-              {(rideDuration * car.multiplier).toFixed(2)}
-            </Price>
+            <Price>$ {(rideDuration * car.multiplier).toFixed(2)}</Price>
           </Car>
         ))}
       </CarList>

@@ -11,22 +11,23 @@ const Confirm = () => {
   const [pickupCoordinate, setPickupCoordinate] = useState([-77.052256, 38.924735]);
   const [dropoffCoordinate, setDropoffCoordinate] = useState([-77.1703, 38.8407]);
 
-  const geocodeLocation = async (address, setter) => {
-    if (!address || !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) return;
+  const geocodeLocation = async (location, setter) => {
+    if (!location) return;
 
-    const params = new URLSearchParams({
-      address,
-      key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-    });
+    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+    if (!token) return;
 
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${location}.json?` +
+        new URLSearchParams({
+          access_token: token,
+          limit: 1,
+        })
     );
-    const data = await response.json();
 
-    if (data?.results?.[0]?.geometry?.location) {
-      const { lng, lat } = data.results[0].geometry.location;
-      setter([lng, lat]);
+    const data = await response.json();
+    if (data?.features?.[0]?.center) {
+      setter(data.features[0].center);
     }
   };
 

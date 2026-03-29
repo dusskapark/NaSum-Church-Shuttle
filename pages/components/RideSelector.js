@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import tw from "tailwind-styled-components";
+import { Button, List, Typography } from "antd";
+import { CarOutlined, ClockCircleOutlined, DollarOutlined } from "@ant-design/icons";
 import { carList } from "../../data/carList";
 
 const RideSelector = ({ pickupCoordinate, dropoffCoordinate }) => {
@@ -31,20 +33,32 @@ const RideSelector = ({ pickupCoordinate, dropoffCoordinate }) => {
 
   return (
     <Wrapper>
-      <Title>Choose a ride, or swipe up for more</Title>
-      <CarList>
-        {carList.map((car, index) => (
-          <Car key={index}>
-            <CarImage src={car.imgUrl} />
-            <CarDetails>
-              <Service>{car.service}</Service>
-              <Time>{(rideDuration / 60).toFixed(0)} min away</Time>
-            </CarDetails>
-            <Price>$ {(rideDuration * car.multiplier).toFixed(2)}</Price>
-          </Car>
-        ))}
-      </CarList>
-      <ConfirmButton>Confirm {carList[0].service}</ConfirmButton>
+      <Title level={5}>Choose a ride, or swipe up for more</Title>
+      <List
+        itemLayout="horizontal"
+        dataSource={carList}
+        renderItem={(car) => (
+          <List.Item>
+            <CarRow>
+              <CarImage src={car.imgUrl} alt={car.service} />
+              <CarDetails>
+                <Typography.Text strong>
+                  <CarOutlined /> {car.service}
+                </Typography.Text>
+                <Typography.Text type="secondary">
+                  <ClockCircleOutlined /> {(rideDuration / 60).toFixed(0)} min away
+                </Typography.Text>
+              </CarDetails>
+              <Typography.Text>
+                <DollarOutlined /> {(rideDuration * car.multiplier).toFixed(2)}
+              </Typography.Text>
+            </CarRow>
+          </List.Item>
+        )}
+      />
+      <Button type="primary" size="large" block>
+        Confirm {carList[0].service}
+      </Button>
     </Wrapper>
   );
 };
@@ -52,41 +66,26 @@ const RideSelector = ({ pickupCoordinate, dropoffCoordinate }) => {
 export default RideSelector;
 
 const Wrapper = tw.div`
-flex-1 overflow-y-scroll flex flex-col
+p-4
 `;
 
-const Title = tw.div`
-text-center text-xs py-2 border-b
+const Title = tw(Typography.Title)`
+text-align: center;
+margin-bottom: 12px !important;
 `;
 
-const CarList = tw.div`
-overflow-y-scroll
-`;
-
-const Car = tw.div`
-flex p-4 items-center
+const CarRow = tw.div`
+flex items-center w-full
 `;
 
 const CarImage = tw.img`
-h-14 mr-4
+height: 56px;
+margin-right: 12px;
 `;
 
 const CarDetails = tw.div`
-flex-1
-`;
-
-const Service = tw.div`
-font-medium
-`;
-
-const Time = tw.div`
-text-xs text-blue-500
-`;
-
-const Price = tw.div`
-text-sm
-`;
-
-const ConfirmButton = tw.div`
-bg-black text-white m-4 py-4 text-center text-xl
+flex: 1;
+display: flex;
+flex-direction: column;
+gap: 4px;
 `;

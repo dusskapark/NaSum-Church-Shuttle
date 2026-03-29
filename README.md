@@ -1,42 +1,26 @@
-# NaSum Church Shuttle
+# NaSum Church Shuttle (Frontend Reboot)
 
-NaSum Church Shuttle is the fresh Next.js foundation for LIFF-based shuttle check-in, route visibility, operations tooling, and LINE Messaging API workflows.
+기존 프론트엔드를 걷어내고 [`YKizou/Uber-Clone`](https://github.com/YKizou/Uber-Clone) 흐름을 기준으로 다시 시작한 버전입니다.
 
-## Stack
+## 변경 포인트
 
-- Next.js App Router
-- React
-- Tailwind CSS
-- TypeScript
-- LINE LIFF + LINE Messaging API
-- Supabase
+- 페이지 구조를 Uber-Clone 스타일(`index → search → confirm`)로 재구성
+- 지도/지오코딩/경로 시간 계산은 **원본 프로젝트 기준(Mapbox)** 으로 유지
+- Mapbox Directions API 응답 기반으로 예상 소요시간/요금을 계산
 
-## Getting Started
-
-1. Copy `.env.example` values into your local `.env`.
-2. Install dependencies.
-3. Start the development server.
+## 실행 방법
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+브라우저에서 `http://localhost:3000` 접속.
 
-## Starter Routes
+## 환경 변수
 
-- `GET /api/health`
-- `GET /api/ready`
-- `POST /api/webhooks/line`
-- `POST /api/internal/notifications/line/push`
+`.env.local`에 아래 값을 설정하세요.
 
-## Environment Notes
-
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is the preferred key name.
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` is still accepted as a legacy alias for compatibility with existing local `.env` files.
-- `MESSAGING_API_CHANNEL_ACCESS_TOKEN` is required before readiness and LINE push tests can pass.
-
-## Repository
-
-- GitHub: `https://github.com/dusskapark/NaSum-Church-Shuttle`
+```bash
+NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_token
+```

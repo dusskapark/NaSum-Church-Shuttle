@@ -12,7 +12,7 @@ export default function RouteStepper({
   myStationId = null,
 }: RouteStepperProps) {
   const router = useRouter()
-  const myIndex = stations.findIndex((station) => station.id === myStationId)
+  const myIndex = stations.findIndex(station => station.id === myStationId)
 
   return (
     <Steps

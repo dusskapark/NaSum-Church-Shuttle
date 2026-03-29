@@ -1,14 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
 import { Button, CheckList, NavBar, Skeleton, Toast } from 'antd-mobile'
 import type { CheckListValue } from 'antd-mobile/es/components/check-list'
-import dynamic from 'next/dynamic'
+import { useRoutes } from '../hooks/useRoutes'
 import { useLiff } from '../hooks/useLiff'
 import { useAppSettings } from '../lib/app-settings'
 import { getCopy } from '../lib/copy'
-import type { RoutesResponse, StopCandidate, UserRegistrationRequest } from '../lib/types'
+import {
+  getMatchingStops,
+  getSourceStop,
+  getStopCandidates,
+} from '../lib/routeSelectors'
+import type { StopCandidate, UserRegistrationRequest } from '../lib/types'
 
-const StopPreviewMap = dynamic(() => import('./components/StopPreviewMap'), { ssr: false })
+const StopPreviewMap = dynamic(() => import('../components/maps/StopPreviewMap'), { ssr: false })
 
 export default function StopDetailPage() {
   const router = useRouter()
@@ -16,48 +22,33 @@ export default function StopDetailPage() {
   const { user, loading: liffLoading } = useLiff()
   const { lang } = useAppSettings()
   const copy = getCopy(lang)
+  const { routes, loading: routesLoading } = useRoutes(copy.common.routeLoadError)
 
-  const [routes, setRoutes] = useState<RoutesResponse>([])
-  const [routesLoading, setRoutesLoading] = useState(true)
   const [selectedStopId, setSelectedStopId] = useState<CheckListValue[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    void fetch('/api/v1/routes')
-      .then(async (response) => (await response.json()) as RoutesResponse)
-      .then(setRoutes)
-      .catch(() => Toast.show({ content: copy.common.routeLoadError, icon: 'fail' }))
-      .finally(() => setRoutesLoading(false))
-  }, [copy.common.routeLoadError])
-
   const allStops = useMemo<StopCandidate[]>(
-    () =>
-      routes.flatMap((route) =>
-        route.stations.filter((station) => !station.is_terminal).map((station, index) => ({
-          ...station,
-          routeId: route.id,
-          routeLabel: `${route.line} LINE (${route.service})`,
-          stopOrder: index + 1,
-          google_maps_url: route.google_maps_url,
-        }))
-      ),
+    () => getStopCandidates(routes),
     [routes]
   )
 
   const sourceStop = useMemo<StopCandidate | null>(() => {
-    if (typeof stationId !== 'string') return null
-    return allStops.find((stop) => stop.id === stationId) ?? null
+    return getSourceStop(allStops, typeof stationId === 'string' ? stationId : null)
   }, [allStops, stationId])
 
   const matchingStops = useMemo<StopCandidate[]>(
-    () => (sourceStop ? allStops.filter((stop) => stop.name === sourceStop.name) : []),
+    () => getMatchingStops(allStops, sourceStop),
     [allStops, sourceStop]
   )
 
   const selectedStop = useMemo<StopCandidate | null>(() => {
     const selectedId = selectedStopId[0]
-    if (typeof selectedId !== 'string') return null
-    return matchingStops.find((stop) => stop.id === selectedId) ?? null
+
+    if (typeof selectedId !== 'string') {
+      return null
+    }
+
+    return matchingStops.find(stop => stop.id === selectedId) ?? null
   }, [matchingStops, selectedStopId])
 
   async function handleRegister(): Promise<void> {
@@ -93,7 +84,13 @@ export default function StopDetailPage() {
 
   return (
     <div style={{ minHeight: '100dvh', paddingBottom: 88, background: 'var(--adm-color-background)' }}>
-      <NavBar onBack={() => router.back()}>{copy.stopDetail.title}</NavBar>
+      <NavBar
+        onBack={() => {
+          router.back()
+        }}
+      >
+        {copy.stopDetail.title}
+      </NavBar>
 
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--app-color-border)' }}>
         <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--app-color-title)' }}>
@@ -104,14 +101,14 @@ export default function StopDetailPage() {
         </div>
       </div>
 
-      {!routesLoading && sourceStop && (
+      {!routesLoading && sourceStop ? (
         <StopPreviewMap
           stop={selectedStop ?? sourceStop}
           previewLabel={copy.stopDetail.stopPreview}
           routeMapLabel={copy.stopDetail.routeMap}
           googleMapsLabel={copy.common.openInGoogleMaps}
         />
-      )}
+      ) : null}
 
       {routesLoading ? (
         <div style={{ padding: 16 }}>
@@ -131,7 +128,7 @@ export default function StopDetailPage() {
           </div>
 
           <CheckList value={selectedStopId} onChange={setSelectedStopId}>
-            {matchingStops.map((stop) => (
+            {matchingStops.map(stop => (
               <CheckList.Item key={`${stop.routeId}-${stop.id}`} value={stop.id}>
                 <div style={{ display: 'grid', gap: 6 }}>
                   <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--app-color-title)' }}>

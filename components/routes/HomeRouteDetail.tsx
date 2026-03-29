@@ -1,13 +1,13 @@
 import { NavBar } from 'antd-mobile'
 import { EnvironmentOutline } from 'antd-mobile-icons'
-import RouteStepper from './RouteStepper'
+import { getVisibleStations } from '../../lib/routeSelectors'
 import type { Nullable, RouteWithStations, Station } from '../../lib/types'
+import RouteStepper from './RouteStepper'
 
 interface HomeRouteDetailProps {
   route?: Nullable<RouteWithStations>
   title: string
   backLabel: string
-  hint: string
   routeMapLabel: string
   stopCountLabel: string
   myStation: Nullable<Station>
@@ -18,7 +18,6 @@ export default function HomeRouteDetail({
   route,
   title,
   backLabel,
-  hint,
   routeMapLabel,
   stopCountLabel,
   myStation,
@@ -26,7 +25,7 @@ export default function HomeRouteDetail({
 }: HomeRouteDetailProps) {
   if (!route) return null
 
-  const visibleStations = route.stations.filter(station => !station.is_terminal)
+  const visibleStations = getVisibleStations(route)
 
   return (
     <div style={{ background: 'var(--adm-color-background)' }}>
@@ -56,7 +55,7 @@ export default function HomeRouteDetail({
                   cursor: 'pointer',
                 }}
               >
-                <EnvironmentOutline style={{ color: 'var(--app-color-link)' }} />
+                <EnvironmentOutline />
                 <span>{routeMapLabel}</span>
               </span>
             ) : null
@@ -66,7 +65,6 @@ export default function HomeRouteDetail({
         </NavBar>
 
         <div style={{ padding: '0 16px' }}>
-          {/* <div style={{ fontSize: 13, color: 'var(--app-color-subtle-text)' }}>{hint}</div> */}
           <div style={{ fontSize: 13, color: 'var(--app-color-secondary-text)' }}>
             {visibleStations.length} {stopCountLabel}
           </div>

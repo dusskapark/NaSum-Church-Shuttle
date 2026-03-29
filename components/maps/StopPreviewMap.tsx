@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Button } from 'antd-mobile'
-import type { Map as MapLibreMap, Marker } from 'maplibre-gl'
-import { useAppSettings } from '../../lib/app-settings'
-import { getBaseMapStyle } from '../../lib/mapStyle'
+import type { Marker } from 'maplibre-gl'
+import { useMapLibre } from '../../hooks/useMapLibre'
 import { getThemeColor } from '../../lib/theme'
 import type { Nullable, StopCandidate } from '../../lib/types'
 
@@ -13,77 +12,61 @@ interface StopPreviewMapProps {
   googleMapsLabel?: string
 }
 
+const DEFAULT_CENTER: [number, number] = [103.8198, 1.3521]
+
 export default function StopPreviewMap({
   stop = null,
   previewLabel = 'Stop location preview',
   routeMapLabel = 'Route map',
   googleMapsLabel = 'Open in Google Maps',
 }: StopPreviewMapProps) {
-  const { isDark } = useAppSettings()
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<Nullable<MapLibreMap>>(null)
   const markerRef = useRef<Nullable<Marker>>(null)
-  const stopId = stop?.id
-  const stopLat = stop?.lat
-  const stopLng = stop?.lng
   const stopLocationHref = stop
     ? `https://www.google.com/maps/search/?api=1&query=${stop.lat},${stop.lng}`
     : null
   const routeMapHref = stop?.google_maps_url ?? stopLocationHref
+  const { containerRef, mapRef, mapLibRef, mapReady } = useMapLibre({
+    center: stop ? [stop.lng, stop.lat] : DEFAULT_CENTER,
+    zoom: 15,
+    mapOptions: {
+      dragPan: false,
+      scrollZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      dragRotate: false,
+      keyboard: false,
+      touchZoomRotate: false,
+    },
+  })
 
   useEffect(() => {
-    if (!containerRef.current || !stop || mapRef.current) return
+    if (!mapReady || !mapRef.current || !mapLibRef.current || !stop) {
+      return
+    }
 
-    let disposed = false
+    const map = mapRef.current
+    const maplibregl = mapLibRef.current
 
-    void import('maplibre-gl').then(({ default: maplibregl }) => {
-      if (disposed || !containerRef.current || !stop) return
-
-      const map = new maplibregl.Map({
-        container: containerRef.current,
-        style: getBaseMapStyle(isDark),
-        center: [stop.lng, stop.lat],
-        zoom: 15,
-        attributionControl: false,
-        dragPan: false,
-        scrollZoom: false,
-        doubleClickZoom: false,
-        boxZoom: false,
-        dragRotate: false,
-        keyboard: false,
-        touchZoomRotate: false,
+    if (!markerRef.current) {
+      markerRef.current = new maplibregl.Marker({
+        color: getThemeColor('--app-map-marker-primary'),
+        scale: 1.15,
       })
+        .setLngLat([stop.lng, stop.lat])
+        .addTo(map)
+    } else {
+      markerRef.current.setLngLat([stop.lng, stop.lat])
+    }
 
-      map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
+    map.jumpTo({ center: [stop.lng, stop.lat], zoom: 15 })
+  }, [mapReady, mapLibRef, mapRef, stop])
 
-      map.on('load', () => {
-        const marker = new maplibregl.Marker({
-          color: getThemeColor('--app-map-marker-primary'),
-          scale: 1.15,
-        })
-          .setLngLat([stop.lng, stop.lat])
-          .addTo(map)
-
-        markerRef.current = marker
-      })
-
-      mapRef.current = map
-    })
-
+  useEffect(() => {
     return () => {
-      disposed = true
       markerRef.current?.remove()
       markerRef.current = null
-      mapRef.current?.remove()
-      mapRef.current = null
     }
-  }, [isDark, stop, stopId, stopLat, stopLng])
-
-  useEffect(() => {
-    if (!mapRef.current || !stop) return
-    mapRef.current.jumpTo({ center: [stop.lng, stop.lat], zoom: 15 })
-    markerRef.current?.setLngLat([stop.lng, stop.lat])
-  }, [stop, stopId, stopLat, stopLng])
+  }, [])
 
   return (
     <div style={{ padding: 16, paddingBottom: 8 }}>
@@ -105,14 +88,7 @@ export default function StopPreviewMap({
           boxShadow: 'var(--app-shadow-raised)',
         }}
       >
-        <div
-          ref={containerRef}
-          style={{
-            width: '100%',
-            height: 220,
-            background: 'var(--app-color-surface-muted)',
-          }}
-        />
+        <div ref={containerRef} style={{ width: '100%', height: 220 }} />
         <div
           style={{
             display: 'flex',
@@ -127,7 +103,9 @@ export default function StopPreviewMap({
             fill='none'
             size='small'
             onClick={() => {
-              if (routeMapHref) window.open(routeMapHref, '_blank', 'noopener,noreferrer')
+              if (routeMapHref) {
+                window.open(routeMapHref, '_blank', 'noopener,noreferrer')
+              }
             }}
             style={{
               padding: 0,
@@ -142,7 +120,9 @@ export default function StopPreviewMap({
             fill='none'
             size='small'
             onClick={() => {
-              if (stopLocationHref) window.open(stopLocationHref, '_blank', 'noopener,noreferrer')
+              if (stopLocationHref) {
+                window.open(stopLocationHref, '_blank', 'noopener,noreferrer')
+              }
             }}
             style={{
               padding: 0,

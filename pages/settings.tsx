@@ -1,75 +1,55 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Avatar, List, NavBar, Picker, Skeleton, Switch, Toast } from 'antd-mobile'
+import { useState } from 'react'
+import { Avatar, List, NavBar, Picker, Skeleton, Switch } from 'antd-mobile'
 import { useRouter } from 'next/router'
 import packageJson from '../package.json'
+import TabPageLayout from '../components/layout/TabPageLayout'
+import { useHydrated } from '../hooks/useHydrated'
+import { useRegistration } from '../hooks/useRegistration'
 import { useLiff } from '../hooks/useLiff'
 import { useAppSettings, type AppLanguage } from '../lib/app-settings'
 import { getCopy } from '../lib/copy'
-import type { Nullable, RegisteredUserResponse, RegistrationWithRelations } from '../lib/types'
-import AppTabBar, { APP_TAB_BAR_SAFE_OFFSET } from './components/AppTabBar'
+import { getRouteLabel } from '../lib/routeSelectors'
 
 const PUSH_PREF_KEY = 'nasum:push-notifications-enabled'
 
-function getRouteLabel(registration: RegistrationWithRelations): string {
-  return `${registration.route.line} LINE (${registration.route.service})`
-}
-
 export default function SettingsPage() {
   const router = useRouter()
+  const hydrated = useHydrated()
   const { user, loading: liffLoading } = useLiff()
   const { lang, setLang, isDark, toggleTheme } = useAppSettings()
   const copy = getCopy(lang)
+  const { registration, loading: registrationLoading } = useRegistration(
+    user?.userId ?? null,
+    copy.common.serverError
+  )
 
-  const [registration, setRegistration] = useState<Nullable<RegistrationWithRelations>>(null)
-  const [registrationLoading, setRegistrationLoading] = useState(false)
-  const [pushEnabled, setPushEnabled] = useState(true)
+  const [pushEnabledOverride, setPushEnabledOverride] = useState<boolean | null>(null)
   const [pickerVisible, setPickerVisible] = useState(false)
 
   const langLabel = lang === 'ko' ? copy.settings.languageKorean : copy.settings.languageEnglish
-  const lineVersion = useMemo(() => {
-    if (typeof window === 'undefined') return 'Unknown'
-
-    const match = window.navigator.userAgent.match(/Line\/([\d.]+)/i)
-    return match?.[1] ?? 'Unknown'
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const storedValue = window.localStorage.getItem(PUSH_PREF_KEY)
-    setPushEnabled(storedValue === null ? true : storedValue === 'true')
-  }, [])
-
-  useEffect(() => {
-    if (!user) return
-
-    void (async () => {
-      setRegistrationLoading(true)
-
-      try {
-        const response = await fetch(
-          `/api/v1/user-registration?provider=line&provider_uid=${encodeURIComponent(user.userId)}`
-        )
-        const data = (await response.json()) as RegisteredUserResponse
-        setRegistration(data.registration ?? null)
-      } catch {
-        Toast.show({ content: copy.common.serverError, icon: 'fail' })
-      } finally {
-        setRegistrationLoading(false)
-      }
-    })()
-  }, [copy.common.serverError, user])
+  const pushEnabled =
+    pushEnabledOverride ??
+    (hydrated
+      ? (() => {
+          const storedValue = window.localStorage.getItem(PUSH_PREF_KEY)
+          return storedValue === null ? true : storedValue === 'true'
+        })()
+      : true)
+  const lineVersion = hydrated
+    ? window.navigator.userAgent.match(/Line\/([\d.]+)/i)?.[1] ?? 'Unknown'
+    : 'Unknown'
 
   const isLoading = liffLoading || registrationLoading
 
   return (
-    <div
-      style={{
-        minHeight: '100dvh',
-        paddingBottom: APP_TAB_BAR_SAFE_OFFSET,
-        background: 'var(--adm-color-background)',
-      }}
-    >
-      <NavBar onBack={() => router.back()}>{copy.settings.title}</NavBar>
+    <TabPageLayout>
+      <NavBar
+        onBack={() => {
+          void router.push('/')
+        }}
+      >
+        {copy.settings.title}
+      </NavBar>
 
       <List header={copy.settings.profileHeader}>
         <List.Item
@@ -114,7 +94,7 @@ export default function SettingsPage() {
             <List.Item
               extra={
                 <span style={{ color: 'var(--app-color-subtle-text)' }}>
-                  {registration ? getRouteLabel(registration) : copy.settings.noRouteSelected}
+                  {registration ? getRouteLabel(registration.route) : copy.settings.noRouteSelected}
                 </span>
               }
             >
@@ -146,8 +126,9 @@ export default function SettingsPage() {
           extra={
             <Switch
               checked={pushEnabled}
-              onChange={(checked) => {
-                setPushEnabled(checked)
+              onChange={checked => {
+                setPushEnabledOverride(checked)
+
                 if (typeof window !== 'undefined') {
                   window.localStorage.setItem(PUSH_PREF_KEY, String(checked))
                 }
@@ -173,7 +154,7 @@ export default function SettingsPage() {
           extra={
             <Switch
               checked={isDark}
-              onChange={(checked) => {
+              onChange={checked => {
                 if (checked !== isDark) {
                   toggleTheme()
                 }
@@ -229,8 +210,6 @@ export default function SettingsPage() {
           }
         }}
       />
-
-      <AppTabBar />
-    </div>
+    </TabPageLayout>
   )
 }

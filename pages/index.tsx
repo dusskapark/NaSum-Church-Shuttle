@@ -1,147 +1,95 @@
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/router";
-import dynamic from "next/dynamic";
-import {
-  Footer,
-  FloatingPanel,
-  List,
-  NavBar,
-  Skeleton,
-  Toast,
-} from "antd-mobile";
-import { CompassOutline } from "antd-mobile-icons";
-import { useLiff } from "../hooks/useLiff";
-import { useAppSettings } from "../lib/app-settings";
-import { getCopy } from "../lib/copy";
-import AppTabBar, {
-  APP_TAB_BAR_SAFE_OFFSET,
-} from "./components/AppTabBar";
-import type {
-  Nullable,
-  RegisteredUserResponse,
-  RegistrationWithRelations,
-  RouteWithStations,
-  RoutesResponse,
-  Station,
-} from "../lib/types";
+import { useEffect, useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
+import { Footer, FloatingPanel, List, NavBar, Skeleton } from 'antd-mobile'
+import { CompassOutline } from 'antd-mobile-icons'
+import TabPageLayout from '../components/layout/TabPageLayout'
+import { APP_TAB_BAR_SAFE_OFFSET } from '../components/navigation/AppTabBar'
+import { useRegistration } from '../hooks/useRegistration'
+import { useRoutes } from '../hooks/useRoutes'
+import { useLiff } from '../hooks/useLiff'
+import { useAppSettings } from '../lib/app-settings'
+import { getCopy } from '../lib/copy'
+import { getRouteLabel } from '../lib/routeSelectors'
+import type { Nullable, Station } from '../lib/types'
 
-const ShuttleMap = dynamic(() => import("./components/ShuttleMap"), {
+const ShuttleMap = dynamic(() => import('../components/maps/ShuttleMap'), {
   ssr: false,
-});
-const HomeRouteDetail = dynamic(() => import("./components/HomeRouteDetail"));
+})
+const HomeRouteDetail = dynamic(() => import('../components/routes/HomeRouteDetail'))
 
 function getAnchors(): number[] {
-  if (typeof window === "undefined") return [420, 620, 820];
+  if (typeof window === 'undefined') return [420, 620, 820]
+
   return [
     Math.round(window.innerHeight * 0.5),
     Math.round(window.innerHeight * 0.72),
     Math.round(window.innerHeight * 0.92),
-  ];
-}
-
-function getRouteLabel(route: RouteWithStations): string {
-  return `${route.line} LINE (${route.service})`;
+  ]
 }
 
 export default function ShuttleHome() {
-  const router = useRouter();
-  const { user, loading: liffLoading } = useLiff();
-  const { lang } = useAppSettings();
-  const copy = getCopy(lang);
+  const { user, loading: liffLoading } = useLiff()
+  const { lang } = useAppSettings()
+  const copy = getCopy(lang)
+  const { routes, loading: routesLoading } = useRoutes(copy.common.routeLoadError)
+  const { registration, loading: regLoading } = useRegistration(
+    user?.userId ?? null,
+    copy.common.serverError
+  )
 
-  const [regLoading, setRegLoading] = useState(false);
-  const [routesLoading, setRoutesLoading] = useState(true);
-  const [registration, setRegistration] =
-    useState<Nullable<RegistrationWithRelations>>(null);
-  const [routes, setRoutes] = useState<RoutesResponse>([]);
-  const [selectedRouteIdState, setSelectedRouteIdState] =
-    useState<Nullable<string>>(null);
-  const [panelRouteId, setPanelRouteId] = useState<Nullable<string>>(null);
-  const [anchors, setAnchors] = useState<number[]>([420, 620, 820]);
+  const [selectedRouteIdState, setSelectedRouteIdState] = useState<Nullable<string>>(null)
+  const [panelRouteId, setPanelRouteId] = useState<Nullable<string>>(null)
+  const [anchors, setAnchors] = useState<number[]>([420, 620, 820])
 
   useEffect(() => {
     const syncAnchors = () => {
-      setAnchors(getAnchors());
-    };
+      setAnchors(getAnchors())
+    }
 
-    const frameId = window.requestAnimationFrame(syncAnchors);
-    window.addEventListener("resize", syncAnchors);
+    const frameId = window.requestAnimationFrame(syncAnchors)
+    window.addEventListener('resize', syncAnchors)
 
     return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("resize", syncAnchors);
-    };
-  }, []);
+      window.cancelAnimationFrame(frameId)
+      window.removeEventListener('resize', syncAnchors)
+    }
+  }, [])
 
-  useEffect(() => {
-    void fetch("/api/v1/routes")
-      .then(async (response) => (await response.json()) as RoutesResponse)
-      .then((data) => {
-        setRoutes(data);
-      })
-      .catch(() =>
-        Toast.show({ content: copy.common.routeLoadError, icon: "fail" }),
-      )
-      .finally(() => setRoutesLoading(false));
-  }, [copy.common.routeLoadError]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    void (async () => {
-      setRegLoading(true);
-
-      try {
-        const response = await fetch(
-          `/api/v1/user-registration?provider=line&provider_uid=${encodeURIComponent(user.userId)}`,
-        );
-        const data = (await response.json()) as RegisteredUserResponse;
-        if (data.registered) {
-          setRegistration(data.registration ?? null);
-        } else {
-          setRegistration(null);
-        }
-      } catch {
-        Toast.show({ content: copy.common.serverError, icon: "fail" });
-      } finally {
-        setRegLoading(false);
-      }
-    })();
-  }, [copy.common.serverError, user]);
-
-  const isLoading = liffLoading || regLoading || routesLoading;
+  const isLoading = liffLoading || regLoading || routesLoading
   const selectedRouteId =
-    selectedRouteIdState ?? registration?.route?.id ?? routes[0]?.id ?? null;
+    selectedRouteIdState ?? registration?.route?.id ?? routes[0]?.id ?? null
   const selectedRoute = useMemo(
-    () => routes.find((route) => route.id === selectedRouteId) ?? null,
-    [routes, selectedRouteId],
-  );
+    () => routes.find(route => route.id === selectedRouteId) ?? null,
+    [routes, selectedRouteId]
+  )
   const panelRoute = useMemo(
-    () => routes.find((route) => route.id === panelRouteId) ?? null,
-    [panelRouteId, routes],
-  );
-  const selectedStations: Station[] = selectedRoute?.stations ?? [];
+    () => routes.find(route => route.id === panelRouteId) ?? null,
+    [panelRouteId, routes]
+  )
+  const selectedStations: Station[] = selectedRoute?.stations ?? []
   const myStation = useMemo<Nullable<Station>>(() => {
     if (
       !registration?.station ||
       !selectedRoute ||
       registration.route.id !== selectedRoute.id
     ) {
-      return null;
+      return null
     }
-    return registration.station;
-  }, [registration, selectedRoute]);
+
+    return registration.station
+  }, [registration, selectedRoute])
 
   return (
-    <div
+    <TabPageLayout
+      withSafeAreaPadding={false}
       style={{
-        position: "relative",
-        width: "100vw",
-        height: "100dvh",
-        overflow: "hidden",
+        position: 'relative',
+        width: '100vw',
+        height: '100dvh',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ position: "absolute", inset: 0 }}>
+      <div style={{ position: 'absolute', inset: 0 }}>
         <ShuttleMap
           stations={selectedStations}
           myStation={myStation}
@@ -152,11 +100,11 @@ export default function ShuttleHome() {
         />
       </div>
 
-      <FloatingPanel anchors={anchors} style={{ "--z-index": "20" }}>
+      <FloatingPanel anchors={anchors} style={{ '--z-index': '20' }}>
         <div
           style={{
             padding: 0,
-            background: "var(--adm-color-background)",
+            background: 'var(--adm-color-background)',
           }}
         >
           {isLoading ? (
@@ -170,14 +118,13 @@ export default function ShuttleHome() {
                 route={panelRoute}
                 title={getRouteLabel(panelRoute)}
                 backLabel={copy.home.routeDetailBack}
-                hint={copy.home.routeDetailHint}
                 routeMapLabel={copy.search.map}
                 stopCountLabel={copy.home.stopCount}
                 myStation={
                   registration?.route.id === panelRoute.id ? registration.station : null
                 }
                 onBack={() => {
-                  setPanelRouteId(null);
+                  setPanelRouteId(null)
                 }}
               />
 
@@ -191,39 +138,29 @@ export default function ShuttleHome() {
             <>
               <div
                 style={{
-                  paddingBottom: "12px",
-                  borderBottom: "1px solid var(--app-color-border)",
+                  paddingBottom: '12px',
+                  borderBottom: '1px solid var(--app-color-border)',
                 }}
               >
                 <NavBar backArrow={false}>{copy.home.panelTitle}</NavBar>
-                {/* <div style={{ padding: "0 16px" }}>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: "var(--app-color-subtle-text)",
-                    }}
-                  >
-                    {copy.home.panelHint}
-                  </div>
-                </div> */}
               </div>
 
               {registration ? (
                 <List
                   header={copy.home.myRouteHeader}
                   style={{
-                    "--border-top": "none",
-                    "--border-bottom": "none",
+                    '--border-top': 'none',
+                    '--border-bottom': 'none',
                     marginBottom: 12,
                   }}
                 >
                   <List.Item
                     prefix={<CompassOutline />}
-                    description={`${registration.station.name}${registration.station.pickup_time ? ` · ${copy.common.rideAt} ${registration.station.pickup_time}` : ""}`}
+                    description={`${registration.station.name}${registration.station.pickup_time ? ` · ${copy.common.rideAt} ${registration.station.pickup_time}` : ''}`}
                     extra={copy.home.selectedBadge}
                     onClick={() => {
-                      setSelectedRouteIdState(registration.route.id);
-                      setPanelRouteId(registration.route.id);
+                      setSelectedRouteIdState(registration.route.id)
+                      setPanelRouteId(registration.route.id)
                     }}
                   >
                     {getRouteLabel(registration.route)}
@@ -236,7 +173,7 @@ export default function ShuttleHome() {
                   <div
                     style={{
                       fontSize: 14,
-                      color: "var(--app-color-subtle-text)",
+                      color: 'var(--app-color-subtle-text)',
                     }}
                   >
                     {copy.home.noRoutes}
@@ -247,15 +184,15 @@ export default function ShuttleHome() {
                   <List
                     header={copy.home.routesHeader}
                     style={{
-                      "--border-top": "none",
-                      "--border-bottom": "none",
+                      '--border-top': 'none',
+                      '--border-bottom': 'none',
                       marginBottom: 12,
                     }}
                   >
-                    {routes.map((route) => {
+                    {routes.map(route => {
                       const stopCount = route.stations.filter(
-                        (station) => !station.is_terminal,
-                      ).length;
+                        station => !station.is_terminal
+                      ).length
 
                       return (
                         <List.Item
@@ -264,19 +201,19 @@ export default function ShuttleHome() {
                           prefix={<CompassOutline />}
                           extra={`${stopCount} ${copy.home.stopCount}`}
                           onClick={() => {
-                            setSelectedRouteIdState(route.id);
-                            setPanelRouteId(route.id);
+                            setSelectedRouteIdState(route.id)
+                            setPanelRouteId(route.id)
                           }}
                         >
                           {getRouteLabel(route)}
                         </List.Item>
-                      );
+                      )
                     })}
                   </List>
                 </div>
               )}
 
-              <div style={{ padding: "8px 12px 0" }}>
+              <div style={{ padding: '8px 12px 0' }}>
                 <Footer
                   label={copy.home.footerLabel}
                   content={copy.home.footerContent}
@@ -292,7 +229,6 @@ export default function ShuttleHome() {
           )}
         </div>
       </FloatingPanel>
-      <AppTabBar />
-    </div>
-  );
+    </TabPageLayout>
+  )
 }

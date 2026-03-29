@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useHydrated } from '../hooks/useHydrated'
 
 export type AppLanguage = 'en' | 'ko'
 
@@ -34,18 +35,15 @@ function getPreferredDarkMode(): boolean {
 }
 
 export function AppSettingsProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<AppLanguage>(() => getPreferredLanguage())
-  const [isDark, setIsDark] = useState(() => getPreferredDarkMode())
+  const hydrated = useHydrated()
+  const [langOverride, setLangOverride] = useState<AppLanguage | null>(null)
+  const [isDarkOverride, setIsDarkOverride] = useState<boolean | null>(null)
+
+  const lang = langOverride ?? (hydrated ? getPreferredLanguage() : 'en')
+  const isDark = isDarkOverride ?? (hydrated ? getPreferredDarkMode() : false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem(LANGUAGE_KEY, lang)
-  }, [lang])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    window.localStorage.setItem(DARK_MODE_KEY, String(isDark))
 
     if (isDark) {
       document.documentElement.setAttribute('data-prefers-color-scheme', 'dark')
@@ -58,10 +56,21 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppSettingsContextValue>(
     () => ({
       lang,
-      setLang,
+      setLang: (nextLang) => {
+        setLangOverride(nextLang)
+
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(LANGUAGE_KEY, nextLang)
+        }
+      },
       isDark,
       toggleTheme: () => {
-        setIsDark(previous => !previous)
+        const nextIsDark = !isDark
+        setIsDarkOverride(nextIsDark)
+
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(DARK_MODE_KEY, String(nextIsDark))
+        }
       },
     }),
     [isDark, lang]

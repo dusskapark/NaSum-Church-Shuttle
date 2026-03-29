@@ -1,8 +1,8 @@
 import { NavBar } from 'antd-mobile'
 import { useRouter } from 'next/router'
+import TabPageLayout from '../components/layout/TabPageLayout'
 import { useAppSettings } from '../lib/app-settings'
 import { getCopy } from '../lib/copy'
-import AppTabBar, { APP_TAB_BAR_SAFE_OFFSET } from './components/AppTabBar'
 
 export default function NotificationsPage() {
   const router = useRouter()
@@ -10,14 +10,14 @@ export default function NotificationsPage() {
   const copy = getCopy(lang)
 
   return (
-    <div
-      style={{
-        minHeight: '100dvh',
-        paddingBottom: APP_TAB_BAR_SAFE_OFFSET,
-        background: 'var(--adm-color-background)',
-      }}
-    >
-      <NavBar onBack={() => router.push('/')}>{copy.notifications.title}</NavBar>
+    <TabPageLayout>
+      <NavBar
+        onBack={() => {
+          void router.push('/')
+        }}
+      >
+        {copy.notifications.title}
+      </NavBar>
 
       <div
         style={{
@@ -45,8 +45,6 @@ export default function NotificationsPage() {
           </div>
         </div>
       </div>
-
-      <AppTabBar />
-    </div>
+    </TabPageLayout>
   )
 }

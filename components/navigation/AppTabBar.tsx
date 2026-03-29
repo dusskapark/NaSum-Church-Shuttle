@@ -1,13 +1,14 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { useMemo } from 'react'
 import { Badge, TabBar } from 'antd-mobile'
 import {
   BellOutline,
-  ScanCodeOutline,
+  CompassOutline,
+  SearchOutline,
   SetOutline,
-  UnorderedListOutline,
+  ScanningOutline,
 } from 'antd-mobile-icons'
 import { useRouter } from 'next/router'
-import { useMemo } from 'react'
 import { useAppSettings } from '../../lib/app-settings'
 import { getCopy } from '../../lib/copy'
 
@@ -22,27 +23,18 @@ type TabItem = {
 
 function HomeTabIcon({ active }: { active: boolean }) {
   return (
-    <div
+    <span
       style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         width: 22,
         height: 22,
-        borderRadius: 999,
-        border: `2px solid ${active ? 'var(--adm-color-primary)' : 'var(--app-color-subtle-text)'}`,
-        position: 'relative',
+        color: active ? 'var(--adm-color-primary)' : 'var(--app-color-title)',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          right: 4,
-          bottom: 3,
-          left: 4,
-          height: 8,
-          borderRadius: '8px 8px 4px 4px',
-          background: active ? 'var(--adm-color-primary)' : 'var(--app-color-subtle-text)',
-        }}
-      />
-    </div>
+      <CompassOutline fontSize={22} />
+    </span>
   )
 }
 
@@ -76,7 +68,7 @@ function ScanTabIcon({ active }: { active: boolean }) {
           color: active ? 'var(--adm-color-primary)' : 'var(--app-color-title)',
         }}
       >
-        <ScanCodeOutline fontSize={22} />
+        <ScanningOutline fontSize={22} />
       </span>
     </Badge>
   )
@@ -105,7 +97,7 @@ export default function AppTabBar() {
       {
         key: '/search',
         title: copy.tabs.stops,
-        icon: <UnorderedListOutline fontSize={22} />,
+        icon: <SearchOutline fontSize={22} />,
       },
       {
         key: '/scan',

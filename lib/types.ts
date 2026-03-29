@@ -20,6 +20,13 @@ export interface CopyDictionary {
     stopNumber: string
     line: string
   }
+  tabs: {
+    home: string
+    stops: string
+    scan: string
+    notifications: string
+    settings: string
+  }
   home: {
     noRegistration: string
     findStop: string
@@ -29,6 +36,8 @@ export interface CopyDictionary {
     changeStop: string
     panelTitle: string
     panelHint: string
+    routeDetailBack: string
+    routeDetailHint: string
     registeredRouteTitle: string
     registeredRouteHint: string
     selectedStopLabel: string
@@ -47,27 +56,45 @@ export interface CopyDictionary {
     footerLabel: string
     footerContent: string
     profileAriaLabel: string
+    zoomInAriaLabel: string
+    zoomOutAriaLabel: string
+    currentLocationAriaLabel: string
+    currentLocationUnavailable: string
+  }
+  scan: {
+    title: string
+    description: string
+  }
+  notifications: {
+    title: string
+    description: string
   }
   settings: {
     title: string
     profileHeader: string
     routeHeader: string
     preferencesHeader: string
-    aboutHeader: string
+    themeHeader: string
+    versionHeader: string
     displayName: string
     userId: string
-    email: string
-    phone: string
-    address: string
     currentRoute: string
     currentStop: string
     noRouteSelected: string
     changeRoute: string
     pushNotifications: string
     pushNotificationsHint: string
+    language: string
+    languageEnglish: string
+    languageKorean: string
+    darkMode: string
+    antdMobileVersion: string
+    liffSdkVersion: string
+    lineVersion: string
   }
   search: {
     title: string
+    list: string
     registerButton: string
     searchPlaceholder: string
     alphabetical: string

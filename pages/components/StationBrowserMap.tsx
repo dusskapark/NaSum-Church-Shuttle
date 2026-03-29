@@ -1,23 +1,40 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
+import { Toast } from 'antd-mobile'
+import { AddOutline, MinusOutline, TravelOutline } from 'antd-mobile-icons'
 import type { LngLatBoundsLike, Map as MapLibreMap, Marker } from 'maplibre-gl'
 import { baseMapStyle } from '../../lib/mapStyle'
+import { getThemeColor } from '../../lib/theme'
 import type { Station } from '../../lib/types'
 
 const DEFAULT_CENTER: [number, number] = [103.8198, 1.3521]
 const DEFAULT_ZOOM = 11
+const CURRENT_LOCATION_ZOOM = 15
 
 interface StationBrowserMapProps {
   stations?: Station[]
   onSelect?: (stationId: string) => void
+  zoomInAriaLabel?: string
+  zoomOutAriaLabel?: string
+  currentLocationAriaLabel?: string
+  currentLocationUnavailable?: string
 }
 
 export default function StationBrowserMap({
   stations = [],
   onSelect,
+  zoomInAriaLabel = 'Zoom in',
+  zoomOutAriaLabel = 'Zoom out',
+  currentLocationAriaLabel = 'Move to my current location',
+  currentLocationUnavailable = 'Unable to access your location.',
 }: StationBrowserMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
+  const mapLibRef = useRef<(typeof import('maplibre-gl')) | null>(null)
   const markersRef = useRef<Marker[]>([])
+  const currentLocationMarkerRef = useRef<Marker | null>(null)
+  const [mapReady, setMapReady] = useState(false)
+  const [locating, setLocating] = useState(false)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -27,6 +44,7 @@ export default function StationBrowserMap({
     void import('maplibre-gl').then(({ default: maplibregl }) => {
       if (disposed || !containerRef.current) return
 
+      mapLibRef.current = maplibregl
       const map = new maplibregl.Map({
         container: containerRef.current,
         style: baseMapStyle,
@@ -36,6 +54,9 @@ export default function StationBrowserMap({
       })
 
       map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
+      map.on('load', () => {
+        setMapReady(true)
+      })
       mapRef.current = map
     })
 
@@ -43,14 +64,18 @@ export default function StationBrowserMap({
       disposed = true
       for (const marker of markersRef.current) marker.remove()
       markersRef.current = []
+      currentLocationMarkerRef.current?.remove()
+      currentLocationMarkerRef.current = null
       mapRef.current?.remove()
       mapRef.current = null
+      mapLibRef.current = null
+      setMapReady(false)
     }
   }, [])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
 
     for (const marker of markersRef.current) marker.remove()
     markersRef.current = []
@@ -61,10 +86,11 @@ export default function StationBrowserMap({
     }
 
     void import('maplibre-gl').then(({ default: maplibregl }) => {
+      const markerColor = getThemeColor('--app-map-marker-primary')
       const bounds = new maplibregl.LngLatBounds()
 
       for (const station of stations) {
-        const marker = new maplibregl.Marker({ color: '#1677ff', scale: 0.95 })
+        const marker = new maplibregl.Marker({ color: markerColor, scale: 0.95 })
           .setLngLat([station.lng, station.lat])
           .setPopup(new maplibregl.Popup({ offset: 18 }).setText(station.name))
           .addTo(map)
@@ -90,7 +116,121 @@ export default function StationBrowserMap({
         duration: 0,
       })
     })
-  }, [onSelect, stations])
+  }, [mapReady, onSelect, stations])
 
-  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+  const moveToCurrentLocation = () => {
+    if (locating || typeof window === 'undefined') return
+    if (!mapReady || !mapRef.current || !mapLibRef.current) {
+      Toast.show({ content: currentLocationUnavailable, icon: 'fail' })
+      return
+    }
+    if (!('geolocation' in navigator)) {
+      Toast.show({ content: currentLocationUnavailable, icon: 'fail' })
+      return
+    }
+
+    setLocating(true)
+
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        try {
+          const map = mapRef.current
+          const maplibregl = mapLibRef.current
+
+          if (!map || !maplibregl) {
+            setLocating(false)
+            return
+          }
+
+          const lngLat: [number, number] = [position.coords.longitude, position.coords.latitude]
+
+          if (!currentLocationMarkerRef.current) {
+            const marker = new maplibregl.Marker({
+              color: getThemeColor('--app-map-marker-primary'),
+              scale: 1.1,
+            })
+            marker.setLngLat(lngLat)
+            marker.addTo(map)
+            currentLocationMarkerRef.current = marker
+          } else {
+            currentLocationMarkerRef.current.setLngLat(lngLat)
+          }
+
+          map.flyTo({ center: lngLat, zoom: CURRENT_LOCATION_ZOOM })
+        } catch {
+          Toast.show({ content: currentLocationUnavailable, icon: 'fail' })
+        } finally {
+          setLocating(false)
+        }
+      },
+      error => {
+        Toast.show({ content: error?.message || currentLocationUnavailable, icon: 'fail' })
+        setLocating(false)
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+    )
+  }
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+
+      <div
+        style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}
+      >
+        <button
+          type='button'
+          aria-label={zoomInAriaLabel}
+          onClick={() => {
+            mapRef.current?.zoomIn()
+          }}
+          style={mapControlButtonStyle}
+        >
+          <AddOutline fontSize={20} />
+        </button>
+        <button
+          type='button'
+          aria-label={zoomOutAriaLabel}
+          onClick={() => {
+            mapRef.current?.zoomOut()
+          }}
+          style={mapControlButtonStyle}
+        >
+          <MinusOutline fontSize={20} />
+        </button>
+        <button
+          type='button'
+          aria-label={currentLocationAriaLabel}
+          onClick={moveToCurrentLocation}
+          style={mapControlButtonStyle}
+        >
+          <TravelOutline fontSize={locating ? 18 : 20} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+const mapControlButtonStyle: CSSProperties = {
+  width: 42,
+  height: 42,
+  border: 'none',
+  borderRadius: 14,
+  background: 'var(--app-color-surface)',
+  color: 'var(--app-color-title)',
+  boxShadow: 'var(--app-shadow-raised)',
+  fontSize: 22,
+  fontWeight: 700,
+  lineHeight: 1,
+  display: 'grid',
+  placeItems: 'center',
+  cursor: 'pointer',
 }

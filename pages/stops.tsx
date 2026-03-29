@@ -4,6 +4,7 @@ import { Button, CheckList, NavBar, Skeleton, Toast } from 'antd-mobile'
 import type { CheckListValue } from 'antd-mobile/es/components/check-list'
 import dynamic from 'next/dynamic'
 import { useLiff } from '../hooks/useLiff'
+import { useAppSettings } from '../lib/app-settings'
 import { getCopy } from '../lib/copy'
 import type { RoutesResponse, StopCandidate, UserRegistrationRequest } from '../lib/types'
 
@@ -13,7 +14,8 @@ export default function StopDetailPage() {
   const router = useRouter()
   const { stationId } = router.query
   const { user, loading: liffLoading } = useLiff()
-  const copy = getCopy('en')
+  const { lang } = useAppSettings()
+  const copy = getCopy(lang)
 
   const [routes, setRoutes] = useState<RoutesResponse>([])
   const [routesLoading, setRoutesLoading] = useState(true)
@@ -90,14 +92,16 @@ export default function StopDetailPage() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', paddingBottom: 88, background: '#fff' }}>
+    <div style={{ minHeight: '100dvh', paddingBottom: 88, background: 'var(--adm-color-background)' }}>
       <NavBar onBack={() => router.back()}>{copy.stopDetail.title}</NavBar>
 
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
-        <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--app-color-border)' }}>
+        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--app-color-title)' }}>
           {sourceStop?.name ?? '...'}
         </div>
-        <div style={{ marginTop: 6, fontSize: 13, color: '#6b7280' }}>{copy.stopDetail.chooseRoute}</div>
+        <div style={{ marginTop: 6, fontSize: 13, color: 'var(--app-color-subtle-text)' }}>
+          {copy.stopDetail.chooseRoute}
+        </div>
       </div>
 
       {!routesLoading && sourceStop && (
@@ -115,23 +119,14 @@ export default function StopDetailPage() {
           <Skeleton.Paragraph lineCount={6} animated />
         </div>
       ) : matchingStops.length === 0 ? (
-        <div style={{ padding: 16, fontSize: 14, color: '#6b7280' }}>{copy.stopDetail.noResults}</div>
+        <div style={{ padding: 16, fontSize: 14, color: 'var(--app-color-subtle-text)' }}>
+          {copy.stopDetail.noResults}
+        </div>
       ) : (
         <>
-          <div
-            style={{
-              margin: '8px 16px 0',
-              padding: '12px 14px',
-              borderRadius: 14,
-              background: '#f8fafc',
-              border: '1px solid #e5e7eb',
-            }}
-          >
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>
+          <div style={{ padding: '10px 16px 8px' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--app-color-subtle-text)' }}>
               {copy.stopDetail.chooseRouteSectionTitle}
-            </div>
-            <div style={{ marginTop: 4, fontSize: 13, color: '#6b7280' }}>
-              {copy.stopDetail.chooseRouteSectionHint}
             </div>
           </div>
 
@@ -139,8 +134,10 @@ export default function StopDetailPage() {
             {matchingStops.map((stop) => (
               <CheckList.Item key={`${stop.routeId}-${stop.id}`} value={stop.id}>
                 <div style={{ display: 'grid', gap: 6 }}>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{stop.routeLabel}</div>
-                  <div style={{ fontSize: 13, color: '#4b5563' }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--app-color-title)' }}>
+                    {stop.routeLabel}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--app-color-secondary-text)' }}>
                     {copy.stopDetail.stopOrder} {stop.stopOrder}
                     {stop.pickup_time ? ` · ${copy.stopDetail.boardAt} ${stop.pickup_time}` : ''}
                   </div>
@@ -158,14 +155,15 @@ export default function StopDetailPage() {
           bottom: 0,
           left: 0,
           padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
-          background: '#f7f7f7',
-          borderTop: '1px solid #e5e5ea',
+          background: 'var(--app-color-surface)',
+          borderTop: '1px solid var(--app-color-border)',
         }}
       >
         <Button
           block
           size='large'
           color='primary'
+          style={{ borderRadius: 999 }}
           disabled={!selectedStop || liffLoading}
           loading={submitting}
           onClick={() => {

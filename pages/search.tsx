@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
-import { IndexBar, List, NavBar, SearchBar, Segmented, Skeleton, Toast, Button } from 'antd-mobile'
-import { TravelOutline } from 'antd-mobile-icons'
+import { IndexBar, List, NavBar, SearchBar, Segmented, Skeleton, Toast } from 'antd-mobile'
+import { EnvironmentOutline } from 'antd-mobile-icons'
+import { useAppSettings } from '../lib/app-settings'
 import { getCopy } from '../lib/copy'
 import type { Nullable, RoutesResponse, Station } from '../lib/types'
+import AppTabBar, {
+  APP_TAB_BAR_HEIGHT,
+  APP_TAB_BAR_SAFE_OFFSET,
+} from './components/AppTabBar'
 
 type SortMode = 'alphabetical' | 'distance'
 type Coordinates = { lat: number; lng: number }
@@ -31,7 +36,8 @@ function getDistanceInKm(from: Coordinates, to: Coordinates): number {
 
 export default function StationFinder() {
   const router = useRouter()
-  const copy = getCopy('en')
+  const { lang } = useAppSettings()
+  const copy = getCopy(lang)
 
   const [routes, setRoutes] = useState<RoutesResponse>([])
   const [routesLoading, setRoutesLoading] = useState(true)
@@ -143,17 +149,43 @@ export default function StationFinder() {
   const visibleStations = sortMode === 'distance' ? distanceSortedStations : filteredStations
 
   return (
-    <div style={{ minHeight: '100dvh', background: '#fff' }}>
-      <NavBar onBack={() => router.back()}>{copy.search.title}</NavBar>
+    <div
+      style={{
+        minHeight: '100dvh',
+        paddingBottom: APP_TAB_BAR_SAFE_OFFSET,
+        background: 'var(--adm-color-background)',
+      }}
+    >
+      <NavBar
+        onBack={() => router.back()}
+        right={
+          <span
+            onClick={() => {
+              void router.push('/search-map')
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              color: 'var(--app-color-link)',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            <EnvironmentOutline fontSize={16} />
+            <span>{copy.search.map}</span>
+          </span>
+        }
+      >
+        {copy.search.title}
+      </NavBar>
 
       <div
         style={{
-          display: 'flex',
-          gap: 10,
-          alignItems: 'center',
           padding: '8px 12px 10px',
-          background: '#f7f7f7',
-          borderBottom: '1px solid #e5e5ea',
+          background: 'var(--adm-color-background)',
+          borderBottom: '1px solid var(--app-color-border)',
         }}
       >
         <SearchBar
@@ -161,37 +193,17 @@ export default function StationFinder() {
           value={keyword}
           onChange={setKeyword}
           style={{
-            flex: 1,
-            '--background': '#ffffff',
+            '--background': 'var(--adm-color-background)',
             '--border-radius': '10px',
           }}
         />
-        <Button
-          aria-label={copy.search.map}
-          onClick={() => {
-            void router.push('/search-map')
-          }}
-          fill='none'
-          size='small'
-          style={{
-            minWidth: 36,
-            height: 36,
-            padding: 0,
-            borderRadius: 10,
-            border: '1px solid #e5e7eb',
-            background: '#ffffff',
-            color: '#1677ff',
-          }}
-        >
-          <TravelOutline fontSize={17} />
-        </Button>
       </div>
 
       <div
         style={{
           padding: '10px 12px',
-          background: '#fff',
-          borderBottom: '1px solid #f3f4f6',
+          background: 'var(--adm-color-background)',
+          borderBottom: '1px solid var(--app-color-border)',
         }}
       >
         <Segmented
@@ -209,7 +221,7 @@ export default function StationFinder() {
 
       <div>
         {routesLoading ? (
-          <div style={{ padding: '16px 12px', background: '#fff' }}>
+          <div style={{ padding: '16px 12px', background: 'var(--adm-color-background)' }}>
             <Skeleton.Paragraph lineCount={8} animated />
           </div>
         ) : sortMode === 'distance' ? (
@@ -236,7 +248,7 @@ export default function StationFinder() {
         ) : (
           <IndexBar
             style={{
-              height: 'calc(100dvh - 196px)',
+              height: `calc(100dvh - 196px - ${APP_TAB_BAR_HEIGHT}px - env(safe-area-inset-bottom))`,
               '--sticky-offset-top': '0px',
             }}
           >
@@ -262,6 +274,8 @@ export default function StationFinder() {
           </IndexBar>
         )}
       </div>
+
+      <AppTabBar />
     </div>
   )
 }

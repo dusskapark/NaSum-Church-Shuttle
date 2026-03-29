@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Button } from 'antd-mobile'
 import type { Map as MapLibreMap, Marker } from 'maplibre-gl'
 import { baseMapStyle } from '../../lib/mapStyle'
+import { getThemeColor } from '../../lib/theme'
 import type { Nullable, StopCandidate } from '../../lib/types'
 
 interface StopPreviewMapProps {
@@ -54,7 +55,10 @@ export default function StopPreviewMap({
       map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
 
       map.on('load', () => {
-        const marker = new maplibregl.Marker({ color: '#1677ff', scale: 1.15 })
+        const marker = new maplibregl.Marker({
+          color: getThemeColor('--app-map-marker-primary'),
+          scale: 1.15,
+        })
           .setLngLat([stop.lng, stop.lat])
           .addTo(map)
 
@@ -81,15 +85,22 @@ export default function StopPreviewMap({
 
   return (
     <div style={{ padding: 16, paddingBottom: 8 }}>
-      <div style={{ marginBottom: 10, fontSize: 13, fontWeight: 600, color: '#6b7280' }}>
+      <div
+        style={{
+          marginBottom: 10,
+          fontSize: 13,
+          fontWeight: 600,
+          color: 'var(--app-color-subtle-text)',
+        }}
+      >
         {previewLabel}
       </div>
       <div
         style={{
           overflow: 'hidden',
           borderRadius: 18,
-          background: '#f3f4f6',
-          boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)',
+          background: 'var(--app-color-surface)',
+          boxShadow: 'var(--app-shadow-raised)',
         }}
       >
         <div ref={containerRef} style={{ width: '100%', height: 220 }} />
@@ -99,8 +110,8 @@ export default function StopPreviewMap({
             gap: 16,
             flexWrap: 'wrap',
             padding: '12px 14px',
-            background: '#fff',
-            borderTop: '1px solid #f3f4f6',
+            background: 'var(--adm-color-background)',
+            borderTop: '1px solid var(--app-color-border)',
           }}
         >
           <Button
@@ -111,7 +122,7 @@ export default function StopPreviewMap({
             }}
             style={{
               padding: 0,
-              color: '#1677ff',
+              color: 'var(--app-color-link)',
               fontSize: 13,
               fontWeight: 500,
             }}
@@ -126,7 +137,7 @@ export default function StopPreviewMap({
             }}
             style={{
               padding: 0,
-              color: '#1677ff',
+              color: 'var(--app-color-link)',
               fontSize: 13,
               fontWeight: 500,
             }}

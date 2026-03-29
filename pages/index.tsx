@@ -2,22 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import {
-  Button,
   Footer,
   FloatingPanel,
   List,
+  NavBar,
   Skeleton,
-  Space,
   Toast,
 } from "antd-mobile";
-import {
-  CompassOutline,
-  EnvironmentOutline,
-  ScanCodeOutline,
-  SetOutline,
-} from "antd-mobile-icons";
+import { CompassOutline } from "antd-mobile-icons";
 import { useLiff } from "../hooks/useLiff";
+import { useAppSettings } from "../lib/app-settings";
 import { getCopy } from "../lib/copy";
+import AppTabBar, {
+  APP_TAB_BAR_SAFE_OFFSET,
+} from "./components/AppTabBar";
 import type {
   Nullable,
   RegisteredUserResponse,
@@ -30,6 +28,7 @@ import type {
 const ShuttleMap = dynamic(() => import("./components/ShuttleMap"), {
   ssr: false,
 });
+const HomeRouteDetail = dynamic(() => import("./components/HomeRouteDetail"));
 
 function getAnchors(): number[] {
   if (typeof window === "undefined") return [420, 620, 820];
@@ -47,7 +46,8 @@ function getRouteLabel(route: RouteWithStations): string {
 export default function ShuttleHome() {
   const router = useRouter();
   const { user, loading: liffLoading } = useLiff();
-  const copy = getCopy("en");
+  const { lang } = useAppSettings();
+  const copy = getCopy(lang);
 
   const [regLoading, setRegLoading] = useState(false);
   const [routesLoading, setRoutesLoading] = useState(true);
@@ -56,6 +56,7 @@ export default function ShuttleHome() {
   const [routes, setRoutes] = useState<RoutesResponse>([]);
   const [selectedRouteIdState, setSelectedRouteIdState] =
     useState<Nullable<string>>(null);
+  const [panelRouteId, setPanelRouteId] = useState<Nullable<string>>(null);
   const [anchors, setAnchors] = useState<number[]>([420, 620, 820]);
 
   useEffect(() => {
@@ -115,6 +116,10 @@ export default function ShuttleHome() {
     () => routes.find((route) => route.id === selectedRouteId) ?? null,
     [routes, selectedRouteId],
   );
+  const panelRoute = useMemo(
+    () => routes.find((route) => route.id === panelRouteId) ?? null,
+    [panelRouteId, routes],
+  );
   const selectedStations: Station[] = selectedRoute?.stations ?? [];
   const myStation = useMemo<Nullable<Station>>(() => {
     if (
@@ -137,7 +142,14 @@ export default function ShuttleHome() {
       }}
     >
       <div style={{ position: "absolute", inset: 0 }}>
-        <ShuttleMap stations={selectedStations} myStation={myStation} />
+        <ShuttleMap
+          stations={selectedStations}
+          myStation={myStation}
+          zoomInAriaLabel={copy.home.zoomInAriaLabel}
+          zoomOutAriaLabel={copy.home.zoomOutAriaLabel}
+          currentLocationAriaLabel={copy.home.currentLocationAriaLabel}
+          currentLocationUnavailable={copy.home.currentLocationUnavailable}
+        />
       </div>
 
       <FloatingPanel anchors={anchors} style={{ "--z-index": "20" }}>
@@ -147,22 +159,55 @@ export default function ShuttleHome() {
             background: "var(--adm-color-background)",
           }}
         >
-          <div style={{ padding: "0 12px 12px" }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>
-              {copy.home.panelTitle}
-            </div>
-            <div style={{ marginTop: 2, fontSize: 13, color: "#6b7280" }}>
-              {copy.home.panelHint}
-            </div>
-          </div>
-
           {isLoading ? (
             <>
               <Skeleton.Title animated />
               <Skeleton.Paragraph lineCount={7} animated />
             </>
+          ) : panelRoute ? (
+            <>
+              <HomeRouteDetail
+                route={panelRoute}
+                title={getRouteLabel(panelRoute)}
+                backLabel={copy.home.routeDetailBack}
+                hint={copy.home.routeDetailHint}
+                routeMapLabel={copy.search.map}
+                stopCountLabel={copy.home.stopCount}
+                myStation={
+                  registration?.route.id === panelRoute.id ? registration.station : null
+                }
+                onBack={() => {
+                  setPanelRouteId(null);
+                }}
+              />
+
+              <div
+                style={{
+                  height: `calc(${APP_TAB_BAR_SAFE_OFFSET} + 24px)`,
+                }}
+              />
+            </>
           ) : (
             <>
+              <div
+                style={{
+                  paddingBottom: "12px",
+                  borderBottom: "1px solid var(--app-color-border)",
+                }}
+              >
+                <NavBar backArrow={false}>{copy.home.panelTitle}</NavBar>
+                {/* <div style={{ padding: "0 16px" }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--app-color-subtle-text)",
+                    }}
+                  >
+                    {copy.home.panelHint}
+                  </div>
+                </div> */}
+              </div>
+
               {registration ? (
                 <List
                   header={copy.home.myRouteHeader}
@@ -177,64 +222,58 @@ export default function ShuttleHome() {
                     description={`${registration.station.name}${registration.station.pickup_time ? ` · ${copy.common.rideAt} ${registration.station.pickup_time}` : ""}`}
                     extra={copy.home.selectedBadge}
                     onClick={() => {
-                      void router.push({
-                        pathname: "/stops",
-                        query: { stationId: registration.station.id },
-                      });
+                      setSelectedRouteIdState(registration.route.id);
+                      setPanelRouteId(registration.route.id);
                     }}
                   >
                     {getRouteLabel(registration.route)}
-                  </List.Item>
-                  <List.Item
-                    prefix={<EnvironmentOutline />}
-                    onClick={() => {
-                      if (registration.route.google_maps_url) {
-                        window.open(
-                          registration.route.google_maps_url,
-                          "_blank",
-                          "noopener,noreferrer",
-                        );
-                      }
-                    }}
-                  >
-                    {copy.home.viewRouteMap}
                   </List.Item>
                 </List>
               ) : null}
 
               {routes.length === 0 ? (
-                <div style={{ fontSize: 14, color: "#6b7280" }}>
-                  {copy.home.noRoutes}
+                <div style={{ paddingTop: 8 }}>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: "var(--app-color-subtle-text)",
+                    }}
+                  >
+                    {copy.home.noRoutes}
+                  </div>
                 </div>
               ) : (
-                <List
-                  header={copy.home.routesHeader}
-                  style={{
-                    "--border-top": "none",
-                    "--border-bottom": "none",
-                    marginBottom: 12,
-                  }}
-                >
-                  {routes.map((route) => {
-                    const stopCount = route.stations.filter(
-                      (station) => !station.is_terminal,
-                    ).length;
+                <div style={{ paddingTop: 8 }}>
+                  <List
+                    header={copy.home.routesHeader}
+                    style={{
+                      "--border-top": "none",
+                      "--border-bottom": "none",
+                      marginBottom: 12,
+                    }}
+                  >
+                    {routes.map((route) => {
+                      const stopCount = route.stations.filter(
+                        (station) => !station.is_terminal,
+                      ).length;
 
-                    return (
-                      <List.Item
-                        key={route.id}
-                        clickable
-                        prefix={<CompassOutline />}
-                        extra={`${stopCount} ${copy.home.stopCount}`}
-                        onClick={() => {
-                          setSelectedRouteIdState(route.id);
-                        }}
-                      >
-                        {getRouteLabel(route)}
-                      </List.Item>
-                    );
-                  })}
-                </List>
+                      return (
+                        <List.Item
+                          key={route.id}
+                          clickable
+                          prefix={<CompassOutline />}
+                          extra={`${stopCount} ${copy.home.stopCount}`}
+                          onClick={() => {
+                            setSelectedRouteIdState(route.id);
+                            setPanelRouteId(route.id);
+                          }}
+                        >
+                          {getRouteLabel(route)}
+                        </List.Item>
+                      );
+                    })}
+                  </List>
+                </div>
               )}
 
               <div style={{ padding: "8px 12px 0" }}>
@@ -246,76 +285,14 @@ export default function ShuttleHome() {
 
               <div
                 style={{
-                  height: "calc(88px + env(safe-area-inset-bottom) + 24px)",
+                  height: `calc(${APP_TAB_BAR_SAFE_OFFSET} + 24px)`,
                 }}
               />
             </>
           )}
         </div>
       </FloatingPanel>
-
-      <div
-        style={{
-          position: "fixed",
-          right: 0,
-          bottom: 0,
-          left: 0,
-          zIndex: 40,
-          pointerEvents: "none",
-          padding: "12px 12px calc(env(safe-area-inset-bottom) + 12px)",
-          background: "var(--adm-color-background)",
-          boxShadow: "0 -8px 24px rgba(15, 23, 42, 0.12)",
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) auto",
-            alignItems: "center",
-            gap: 12,
-            pointerEvents: "auto",
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <Button
-              size="large"
-              color="primary"
-              style={{ width: "100%", height: 48, borderRadius: 999 }}
-              onClick={() => {
-                Toast.show({ content: copy.home.qrComingSoon, icon: "info" });
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-              >
-                <ScanCodeOutline fontSize={18} />
-                <span>{copy.home.scanQr}</span>
-              </span>
-            </Button>
-          </div>
-
-          <Button
-            size="large"
-            fill="none"
-            
-            style={{
-              borderRadius: "50%",
-              flex: "none",
-            }}
-            onClick={() => {
-              void router.push("/settings");
-            }}
-            aria-label={copy.home.profileAriaLabel}
-          >
-            <SetOutline fontSize={22} />
-          </Button>
-        </div>
-      </div>
+      <AppTabBar />
     </div>
   );
 }

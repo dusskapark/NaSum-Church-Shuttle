@@ -4,6 +4,25 @@ body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
     Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  background: var(--adm-color-background);
+  color: var(--adm-color-text);
+}
+
+:root {
+  --app-color-title: var(--adm-color-text);
+  --app-color-text: var(--adm-color-text);
+  --app-color-subtle-text: var(--adm-color-weak);
+  --app-color-secondary-text: var(--adm-color-light);
+  --app-color-border: var(--adm-color-border);
+  --app-color-surface: var(--adm-color-box);
+  --app-color-surface-muted: color-mix(in srgb, var(--adm-color-box) 92%, var(--adm-color-background));
+  --app-color-link: var(--adm-color-primary);
+  --app-shadow-raised: 0 12px 28px color-mix(in srgb, var(--adm-color-text) 8%, transparent);
+  --app-shadow-toolbar: 0 -8px 24px color-mix(in srgb, var(--adm-color-text) 12%, transparent);
+  --app-map-marker-primary: var(--adm-color-primary);
+  --app-map-marker-muted: var(--adm-color-light);
+  --app-map-marker-danger: var(--adm-color-danger);
+  --app-map-marker-active: color-mix(in srgb, var(--adm-color-primary) 82%, var(--adm-color-background));
 }
 
 a {

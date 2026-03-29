@@ -1,6 +1,6 @@
 import packageJson from "@/package.json";
-import { MiniApp } from "@/components/mini-app";
+import { LiffShuttleApp } from "@/components/liff-shuttle-app";
 
 export default function Home() {
-  return <MiniApp appVersion={packageJson.version} />;
+  return <LiffShuttleApp appVersion={packageJson.version} />;
 }

@@ -8,7 +8,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "NaSum Church Shuttle",
   description:
-    "NaSum Church Shuttle rider mini-app prototype with map, search, and settings.",
+    "NaSum Church Shuttle LIFF MVP app with Home, Scan, History, and My flows.",
   applicationName: "NaSum Church Shuttle",
 };
 

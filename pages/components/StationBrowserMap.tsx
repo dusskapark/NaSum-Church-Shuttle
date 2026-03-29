@@ -3,7 +3,8 @@ import type { CSSProperties } from 'react'
 import { Toast } from 'antd-mobile'
 import { AddOutline, MinusOutline, TravelOutline } from 'antd-mobile-icons'
 import type { LngLatBoundsLike, Map as MapLibreMap, Marker } from 'maplibre-gl'
-import { baseMapStyle } from '../../lib/mapStyle'
+import { useAppSettings } from '../../lib/app-settings'
+import { getBaseMapStyle } from '../../lib/mapStyle'
 import { getThemeColor } from '../../lib/theme'
 import type { Station } from '../../lib/types'
 
@@ -28,6 +29,7 @@ export default function StationBrowserMap({
   currentLocationAriaLabel = 'Move to my current location',
   currentLocationUnavailable = 'Unable to access your location.',
 }: StationBrowserMapProps) {
+  const { isDark } = useAppSettings()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const mapLibRef = useRef<(typeof import('maplibre-gl')) | null>(null)
@@ -47,7 +49,7 @@ export default function StationBrowserMap({
       mapLibRef.current = maplibregl
       const map = new maplibregl.Map({
         container: containerRef.current,
-        style: baseMapStyle,
+        style: getBaseMapStyle(isDark),
         center: DEFAULT_CENTER,
         zoom: DEFAULT_ZOOM,
         attributionControl: false,
@@ -71,7 +73,7 @@ export default function StationBrowserMap({
       mapLibRef.current = null
       setMapReady(false)
     }
-  }, [])
+  }, [isDark])
 
   useEffect(() => {
     const map = mapRef.current
@@ -173,7 +175,14 @@ export default function StationBrowserMap({
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <div
+        ref={containerRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          background: 'var(--app-color-surface-muted)',
+        }}
+      />
 
       <div
         style={{
@@ -222,9 +231,9 @@ export default function StationBrowserMap({
 const mapControlButtonStyle: CSSProperties = {
   width: 42,
   height: 42,
-  border: 'none',
+  border: '1px solid var(--app-color-border)',
   borderRadius: 14,
-  background: 'var(--app-color-surface)',
+  background: 'var(--app-map-overlay)',
   color: 'var(--app-color-title)',
   boxShadow: 'var(--app-shadow-raised)',
   fontSize: 22,

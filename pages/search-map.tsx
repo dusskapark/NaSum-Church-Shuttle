@@ -77,7 +77,7 @@ export default function SearchMapPage() {
               cursor: 'pointer',
             }}
           >
-            <UnorderedListOutline fontSize={16} />
+            <UnorderedListOutline fontSize={16} style={{ color: 'var(--app-color-link)' }} />
             <span>{copy.search.list}</span>
           </span>
         }

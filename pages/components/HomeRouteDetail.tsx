@@ -56,7 +56,7 @@ export default function HomeRouteDetail({
                   cursor: 'pointer',
                 }}
               >
-                <EnvironmentOutline />
+                <EnvironmentOutline style={{ color: 'var(--app-color-link)' }} />
                 <span>{routeMapLabel}</span>
               </span>
             ) : null

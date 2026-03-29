@@ -3,7 +3,8 @@ import type { CSSProperties } from 'react'
 import { Toast } from 'antd-mobile'
 import { AddOutline, MinusOutline, TravelOutline } from 'antd-mobile-icons'
 import type { Map as MapLibreMap, Marker } from 'maplibre-gl'
-import { baseMapStyle } from '../../lib/mapStyle'
+import { useAppSettings } from '../../lib/app-settings'
+import { getBaseMapStyle } from '../../lib/mapStyle'
 import { getThemeColor } from '../../lib/theme'
 import type { Nullable, Station } from '../../lib/types'
 
@@ -33,6 +34,7 @@ export default function ShuttleMap({
   currentLocationAriaLabel = 'Move to my current location',
   currentLocationUnavailable = 'Unable to access your location.',
 }: ShuttleMapProps) {
+  const { isDark } = useAppSettings()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<Nullable<MapLibreMap>>(null)
   const mapLibRef = useRef<Nullable<MapLibreModule>>(null)
@@ -55,7 +57,7 @@ export default function ShuttleMap({
 
       map = new maplibregl.Map({
         container: containerRef.current,
-        style: baseMapStyle,
+        style: getBaseMapStyle(isDark),
         center: [CHURCH_LNG, CHURCH_LAT],
         zoom: DEFAULT_ZOOM,
         attributionControl: false,
@@ -91,7 +93,7 @@ export default function ShuttleMap({
       mapLibRef.current = null
       setMapReady(false)
     }
-  }, [])
+  }, [isDark])
 
   useEffect(() => {
     if (!mapReady || !mapRef.current || !mapLibRef.current) return
@@ -197,7 +199,14 @@ export default function ShuttleMap({
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: 300 }}>
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <div
+        ref={containerRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          background: 'var(--app-color-surface-muted)',
+        }}
+      />
 
       <div
         style={{
@@ -246,9 +255,9 @@ export default function ShuttleMap({
 const mapControlButtonStyle: CSSProperties = {
   width: 42,
   height: 42,
-  border: 'none',
+  border: '1px solid var(--app-color-border)',
   borderRadius: 14,
-  background: 'rgba(255, 255, 255, 0.94)',
+  background: 'var(--app-map-overlay)',
   color: 'var(--app-color-title)',
   boxShadow: 'var(--app-shadow-raised)',
   fontSize: 22,

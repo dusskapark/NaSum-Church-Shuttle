@@ -173,7 +173,7 @@ export default function StationFinder() {
               cursor: 'pointer',
             }}
           >
-            <EnvironmentOutline fontSize={16} />
+            <EnvironmentOutline fontSize={16} style={{ color: 'var(--app-color-link)' }} />
             <span>{copy.search.map}</span>
           </span>
         }

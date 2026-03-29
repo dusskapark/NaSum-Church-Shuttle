@@ -23,6 +23,7 @@ body {
   --app-map-marker-muted: var(--adm-color-light);
   --app-map-marker-danger: var(--adm-color-danger);
   --app-map-marker-active: color-mix(in srgb, var(--adm-color-primary) 82%, var(--adm-color-background));
+  --app-map-overlay: color-mix(in srgb, var(--app-color-surface) 92%, transparent);
 }
 
 a {
@@ -32,4 +33,52 @@ a {
 
 * {
   box-sizing: border-box;
+}
+
+.maplibregl-map {
+  background: var(--app-color-surface-muted);
+}
+
+.maplibregl-ctrl.maplibregl-ctrl-attrib {
+  padding: 4px 8px;
+  background: var(--app-map-overlay);
+  color: var(--app-color-secondary-text);
+  border: 1px solid var(--app-color-border);
+  border-radius: 10px 0 0 0;
+  backdrop-filter: blur(10px);
+}
+
+.maplibregl-ctrl-attrib a {
+  color: inherit;
+}
+
+.maplibregl-popup-content {
+  background: var(--app-color-surface);
+  color: var(--app-color-text);
+  border: 1px solid var(--app-color-border);
+  box-shadow: var(--app-shadow-raised);
+}
+
+.maplibregl-popup-close-button {
+  color: var(--app-color-secondary-text);
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--app-color-surface);
+}
+
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--app-color-surface);
+}
+
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--app-color-surface);
+}
+
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--app-color-surface);
 }

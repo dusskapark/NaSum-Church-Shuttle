@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { Button } from 'antd-mobile'
 import type { Map as MapLibreMap, Marker } from 'maplibre-gl'
-import { baseMapStyle } from '../../lib/mapStyle'
+import { useAppSettings } from '../../lib/app-settings'
+import { getBaseMapStyle } from '../../lib/mapStyle'
 import { getThemeColor } from '../../lib/theme'
 import type { Nullable, StopCandidate } from '../../lib/types'
 
@@ -18,6 +19,7 @@ export default function StopPreviewMap({
   routeMapLabel = 'Route map',
   googleMapsLabel = 'Open in Google Maps',
 }: StopPreviewMapProps) {
+  const { isDark } = useAppSettings()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<Nullable<MapLibreMap>>(null)
   const markerRef = useRef<Nullable<Marker>>(null)
@@ -39,7 +41,7 @@ export default function StopPreviewMap({
 
       const map = new maplibregl.Map({
         container: containerRef.current,
-        style: baseMapStyle,
+        style: getBaseMapStyle(isDark),
         center: [stop.lng, stop.lat],
         zoom: 15,
         attributionControl: false,
@@ -75,7 +77,7 @@ export default function StopPreviewMap({
       mapRef.current?.remove()
       mapRef.current = null
     }
-  }, [stop, stopId, stopLat, stopLng])
+  }, [isDark, stop, stopId, stopLat, stopLng])
 
   useEffect(() => {
     if (!mapRef.current || !stop) return
@@ -103,7 +105,14 @@ export default function StopPreviewMap({
           boxShadow: 'var(--app-shadow-raised)',
         }}
       >
-        <div ref={containerRef} style={{ width: '100%', height: 220 }} />
+        <div
+          ref={containerRef}
+          style={{
+            width: '100%',
+            height: 220,
+            background: 'var(--app-color-surface-muted)',
+          }}
+        />
         <div
           style={{
             display: 'flex',

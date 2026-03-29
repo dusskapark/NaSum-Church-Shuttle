@@ -1,37 +1,45 @@
 import { useEffect, useRef } from "react";
 import tw from "tailwind-styled-components";
-import mapboxgl from "mapbox-gl";
-
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
 
 const Map = ({ pickupCoordinate, dropoffCoordinate }) => {
   const mapContainerRef = useRef(null);
-  const hasMapboxToken = Boolean(mapboxgl.accessToken);
+  const hasMapboxToken = Boolean(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
 
   useEffect(() => {
     if (!mapContainerRef.current || !hasMapboxToken) return undefined;
 
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/streets-v11",
-      center: [-96, 37.8],
-      zoom: 3,
-    });
+    let map;
+    let marker1;
+    let marker2;
 
-    if (pickupCoordinate && dropoffCoordinate) {
-      const marker1 = new mapboxgl.Marker().setLngLat(pickupCoordinate).addTo(map);
-      const marker2 = new mapboxgl.Marker().setLngLat(dropoffCoordinate).addTo(map);
-      map.fitBounds([pickupCoordinate, dropoffCoordinate], { padding: 100 });
+    const loadMap = async () => {
+      const mapboxglModule = await import("mapbox-gl");
+      const mapboxgl = mapboxglModule.default;
 
-      return () => {
-        marker1.remove();
-        marker2.remove();
-        map.remove();
-      };
-    }
+      mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-    return () => map.remove();
-  }, [pickupCoordinate, dropoffCoordinate]);
+      map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: "mapbox://styles/mapbox/streets-v11",
+        center: [-96, 37.8],
+        zoom: 3,
+      });
+
+      if (pickupCoordinate && dropoffCoordinate) {
+        marker1 = new mapboxgl.Marker().setLngLat(pickupCoordinate).addTo(map);
+        marker2 = new mapboxgl.Marker().setLngLat(dropoffCoordinate).addTo(map);
+        map.fitBounds([pickupCoordinate, dropoffCoordinate], { padding: 100 });
+      }
+    };
+
+    loadMap();
+
+    return () => {
+      marker1?.remove();
+      marker2?.remove();
+      map?.remove();
+    };
+  }, [pickupCoordinate, dropoffCoordinate, hasMapboxToken]);
 
   if (!hasMapboxToken) {
     return (

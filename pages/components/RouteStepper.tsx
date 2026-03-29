@@ -1,15 +1,24 @@
 import { Steps } from 'antd-mobile'
+import type { Nullable, Station } from '../../lib/types'
 
-export default function RouteStepper({ stations = [], myStationId = null }) {
-  const myIndex = stations.findIndex((s) => s.id === myStationId)
+interface RouteStepperProps {
+  stations?: Station[]
+  myStationId?: Nullable<string>
+}
+
+export default function RouteStepper({
+  stations = [],
+  myStationId = null,
+}: RouteStepperProps) {
+  const myIndex = stations.findIndex((station) => station.id === myStationId)
 
   return (
     <Steps
-      direction="vertical"
+      direction='vertical'
       current={myIndex >= 0 ? myIndex : undefined}
       style={{ '--title-font-size': '14px', '--description-font-size': '12px' }}
     >
-      {stations.map((station, i) => (
+      {stations.map((station, index) => (
         <Steps.Step
           key={station.id}
           title={station.name}
@@ -18,13 +27,7 @@ export default function RouteStepper({ stations = [], myStationId = null }) {
               ? `${station.pickup_time}${station.notes ? ` · ${station.notes}` : ''}`
               : station.notes ?? undefined
           }
-          status={
-            station.id === myStationId
-              ? 'process'
-              : i < myIndex
-              ? 'finish'
-              : 'wait'
-          }
+          status={station.id === myStationId ? 'process' : index < myIndex ? 'finish' : 'wait'}
         />
       ))}
     </Steps>

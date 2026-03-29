@@ -1,18 +1,42 @@
-# Push Frame
+# NaSum Church Shuttle
 
-Push Frame은 **LINE LIFF 전용 앱**과 **셔틀 스캔 이벤트 서버**로 구성된 프로젝트입니다.
+NaSum Church Shuttle is the fresh Next.js foundation for LIFF-based shuttle check-in, route visibility, operations tooling, and LINE Messaging API workflows.
 
-본 프로젝트는 다음 원칙을 따릅니다.
+## Stack
 
-- Firebase/APNs 등 외부 푸시 노티피케이션 서비스 **미사용**
-- LINE LIFF 기능(사용자 컨텍스트, QR 스캔) 중심 구현
-- 서버는 스캔 이벤트 처리 및 이력 관리를 담당
+- Next.js App Router
+- React
+- Tailwind CSS
+- TypeScript
+- LINE LIFF + LINE Messaging API
+- Supabase
 
----
+## Getting Started
 
-## 문서 구조
+1. Copy `.env.example` values into your local `.env`.
+2. Install dependencies.
+3. Start the development server.
 
-- 프로젝트 최종 기획/범위: `PROJECT_PLAN.md`
-- 서버 실행/구현 세부: `server/README.md`
+```bash
+npm install
+npm run dev
+```
 
-중복되던 계획 문서는 정리했으며, 앞으로 기획 변경은 `PROJECT_PLAN.md`를 단일 기준으로 관리합니다.
+Open `http://localhost:3000`.
+
+## Starter Routes
+
+- `GET /api/health`
+- `GET /api/ready`
+- `POST /api/webhooks/line`
+- `POST /api/internal/notifications/line/push`
+
+## Environment Notes
+
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is the preferred key name.
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` is still accepted as a legacy alias for compatibility with existing local `.env` files.
+- `MESSAGING_API_CHANNEL_ACCESS_TOKEN` is required before readiness and LINE push tests can pass.
+
+## Repository
+
+- GitHub: `https://github.com/dusskapark/NaSum-Church-Shuttle`

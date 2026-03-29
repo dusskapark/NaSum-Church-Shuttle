@@ -1,38 +1,63 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import tw from "tailwind-styled-components";
-import mapboxgl from "mapbox-gl";
-
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
 
 const Map = ({ pickupCoordinate, dropoffCoordinate }) => {
+  const mapContainerRef = useRef(null);
+  const hasMapboxToken = Boolean(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
+
   useEffect(() => {
-    const map = new mapboxgl.Map({
-      container: "map",
-      style: "mapbox://styles/mapbox/streets-v11",
-      center: [-96, 37.8],
-      zoom: 3,
-    });
+    if (!mapContainerRef.current || !hasMapboxToken) return undefined;
 
-    if (pickupCoordinate && dropoffCoordinate) {
-      const marker1 = new mapboxgl.Marker().setLngLat(pickupCoordinate).addTo(map);
-      const marker2 = new mapboxgl.Marker().setLngLat(dropoffCoordinate).addTo(map);
-      map.fitBounds([pickupCoordinate, dropoffCoordinate], { padding: 100 });
+    let map;
+    let marker1;
+    let marker2;
 
-      return () => {
-        marker1.remove();
-        marker2.remove();
-        map.remove();
-      };
-    }
+    const loadMap = async () => {
+      const mapboxglModule = await import("mapbox-gl");
+      const mapboxgl = mapboxglModule.default;
 
-    return () => map.remove();
-  }, [pickupCoordinate, dropoffCoordinate]);
+      mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-  return <Wrapper id="map" />;
+      map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: "mapbox://styles/mapbox/streets-v11",
+        center: [-96, 37.8],
+        zoom: 3,
+      });
+
+      if (pickupCoordinate && dropoffCoordinate) {
+        marker1 = new mapboxgl.Marker().setLngLat(pickupCoordinate).addTo(map);
+        marker2 = new mapboxgl.Marker().setLngLat(dropoffCoordinate).addTo(map);
+        map.fitBounds([pickupCoordinate, dropoffCoordinate], { padding: 100 });
+      }
+    };
+
+    loadMap();
+
+    return () => {
+      marker1?.remove();
+      marker2?.remove();
+      map?.remove();
+    };
+  }, [pickupCoordinate, dropoffCoordinate, hasMapboxToken]);
+
+  if (!hasMapboxToken) {
+    return (
+      <FallbackMessage>
+        지도를 표시하려면 MAPBOX 토큰(NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN)이 필요합니다.
+      </FallbackMessage>
+    );
+  }
+
+  return <Wrapper ref={mapContainerRef} />;
 };
 
 export default Map;
 
 const Wrapper = tw.div`
 flex flex-1
+`;
+
+const FallbackMessage = tw.div`
+flex flex-1 items-center justify-center bg-gray-100 text-center text-sm text-gray-700 p-4
 `;

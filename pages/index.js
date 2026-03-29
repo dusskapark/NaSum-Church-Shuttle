@@ -1,62 +1,114 @@
-import tw from "tailwind-styled-components";
-import Map from "./components/Map";
-import Link from "next/link";
-import { Button, Card, Space } from "antd";
-import { CarOutlined, RocketOutlined, CalendarOutlined } from "@ant-design/icons";
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
+import dynamic from 'next/dynamic'
+import { Button, FloatingPanel, Modal, Skeleton, Toast } from 'antd-mobile'
+import { useLiff } from '../hooks/useLiff'
+import { getCopy } from '../lib/copy'
+import RouteStepper from './components/RouteStepper'
 
-export default function Home() {
-  return (
-    <Wrapper>
-      <Map />
-      <ActionItems>
-        <Header>
-          <UberLogo src="https://i.ibb.co/84stgjq/uber-technologies-new-20218114.jpg" />
-        </Header>
+// MapLibre uses browser APIs — must be client-side only
+const ShuttleMap = dynamic(() => import('./components/ShuttleMap'), { ssr: false })
 
-        <Space direction="horizontal" size={12} style={{ width: "100%" }}>
-          <Link href="/search" passHref>
-            <FeatureCard hoverable>
-              <CarOutlined style={{ fontSize: 28 }} />
-              Ride
-            </FeatureCard>
-          </Link>
-          <FeatureCard hoverable>
-            <RocketOutlined style={{ fontSize: 28 }} />
-            Wheels (Not Available)
-          </FeatureCard>
-          <FeatureCard hoverable>
-            <CalendarOutlined style={{ fontSize: 28 }} />
-            Reserve (Not Available)
-          </FeatureCard>
-        </Space>
-
-        <Link href="/search" passHref>
-          <Button type="default" size="large" block style={{ marginTop: 20, height: 56 }}>
-            Where to?
-          </Button>
-        </Link>
-      </ActionItems>
-    </Wrapper>
-  );
+function getAnchors() {
+  if (typeof window === 'undefined') return [100, 360, 680]
+  return [100, Math.round(window.innerHeight * 0.45), Math.round(window.innerHeight * 0.85)]
 }
 
-const Wrapper = tw.div`
-flex flex-col h-screen
-`;
+export default function ShuttleHome() {
+  const router = useRouter()
+  const { user, loading: liffLoading } = useLiff()
+  const copy = getCopy('en')
+  const [regLoading, setRegLoading] = useState(true)
+  const [registration, setRegistration] = useState(null)
+  const [anchors, setAnchors] = useState([100, 360, 680])
 
-const ActionItems = tw.div`
-flex-1 p-4
-`;
+  useEffect(() => {
+    const syncAnchors = () => {
+      setAnchors(getAnchors())
+    }
 
-const Header = tw.div`
-flex justify-between items-center
-`;
+    const frameId = window.requestAnimationFrame(syncAnchors)
+    window.addEventListener('resize', syncAnchors)
 
-const UberLogo = tw.img`
-h-28
-`;
+    return () => {
+      window.cancelAnimationFrame(frameId)
+      window.removeEventListener('resize', syncAnchors)
+    }
+  }, [])
 
-const FeatureCard = tw(Card)`
-flex: 1;
-text-align: center;
-`;
+  useEffect(() => {
+    if (!user) return
+
+    fetch(`/api/v1/user-registration?provider=line&provider_uid=${encodeURIComponent(user.userId)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.registered) {
+          setRegistration(data.registration)
+        } else {
+          Modal.confirm({
+            content: copy.home.noRegistration,
+            confirmText: copy.home.findStop,
+            cancelText: copy.home.later,
+            onConfirm: () => router.push('/search'),
+          })
+        }
+      })
+      .catch(() => Toast.show({ content: copy.common.serverError, icon: 'fail' }))
+      .finally(() => setRegLoading(false))
+  }, [copy.common.serverError, copy.home.findStop, copy.home.later, copy.home.noRegistration, router, user])
+
+  const isLoading = liffLoading || regLoading
+  const stations = registration?.route?.stations ?? []
+  const myStation = registration?.station ?? null
+
+  return (
+    <div style={{ position: 'relative', width: '100vw', height: '100dvh', overflow: 'hidden' }}>
+      {/* Map layer */}
+      <div style={{ position: 'absolute', inset: 0 }}>
+        <ShuttleMap stations={stations} myStation={myStation} />
+      </div>
+
+      {/* Floating bottom panel */}
+      <FloatingPanel anchors={anchors} style={{ '--z-index': 10 }}>
+        <div style={{ padding: '0 16px 16px' }}>
+          {registration && (
+            <div style={{ marginBottom: 12, fontWeight: 600, fontSize: 15, color: '#111' }}>
+              {registration.route.line} LINE ({registration.route.service})
+            </div>
+          )}
+
+          {isLoading ? (
+            <>
+              <Skeleton.Title animated />
+              <Skeleton.Paragraph lineCount={5} animated />
+            </>
+          ) : registration ? (
+            <RouteStepper stations={stations} myStationId={myStation?.id} />
+          ) : null}
+
+          <div style={{ marginTop: 20 }}>
+            <Button
+              block
+              size="large"
+              color="primary"
+              onClick={() => Toast.show({ content: copy.home.qrComingSoon, icon: 'info' })}
+            >
+              {copy.home.scanQr}
+            </Button>
+          </div>
+
+          {!isLoading && (
+            <div style={{ marginTop: 12, textAlign: 'center' }}>
+              <span
+                style={{ fontSize: 13, color: '#888', cursor: 'pointer' }}
+                onClick={() => router.push('/search')}
+              >
+                {copy.home.changeStop}
+              </span>
+            </div>
+          )}
+        </div>
+      </FloatingPanel>
+    </div>
+  )
+}

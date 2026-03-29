@@ -16,12 +16,12 @@
 
 핵심 기술 스택:
 - Frontend: **Next.js + React + Tailwind CSS + Ant Design 5**
-- Backend/API: **Next.js Route Handlers + Supabase Postgres + Prisma**
-- Auth/Identity: **LINE LIFF + LINE Login + Supabase Auth(운영자용)**
+- Backend/API: **Next.js Route Handlers + Neon Postgres + Prisma**
+- Auth/Identity: **LINE LIFF + LINE Login + Neon Auth(운영자용)**
 - Map: **OpenStreetMap**
 - Messaging: **LINE LIFF + LINE Messaging API**
 - Analytics: **Google Analytics 4 (GA4)**
-- Deployment: **Vercel Hobby (Web/API), Supabase Free (DB)**
+- Deployment: **Vercel Hobby (Web/API), Neon (DB)**
 
 ---
 
@@ -55,7 +55,7 @@
 - 운영자용 이벤트 모니터링 페이지(웹)
 - LINE Messaging API 채널 구성, webhook 검증, push 발송
 - GA4 이벤트 수집(핵심 퍼널 중심)
-- Vercel+Supabase 무료 플랜 중심 배포 자동화
+- Vercel+Neon 중심 배포 자동화
 - `/api/health`, `/api/ready` 기반 운영 점검
 - 환경변수/배포 체크리스트 문서화
 
@@ -176,7 +176,7 @@
 
 ### NFR-03. 보안/개인정보
 - 개인정보 최소 수집 원칙
-- Supabase RLS(Row Level Security) 적용
+- Neon RLS(Row Level Security) 적용
 - 관리자 화면은 역할 기반 접근제어(RBAC) 적용
 
 ### NFR-04. 운영/관측성
@@ -207,11 +207,11 @@
 - 고급 컴포넌트(Table, Form, Modal, DatePicker): Ant Design 5
 - 디자인 토큰(색상, radius, shadow)은 공통 테마로 통합
 
-### 8.3 Backend (Next.js API + Supabase + Prisma)
+### 8.3 Backend (Next.js API + Neon + Prisma)
 - Next.js Route Handler를 기본 API 레이어로 사용한다.
-- Postgres는 Supabase에서 운영한다.
+- Postgres는 Neon에서 운영한다.
 - Prisma를 DB 접근 계층으로 사용해 타입 안정성과 마이그레이션 일관성을 확보한다.
-- 운영자 인증은 Supabase Auth를 우선 검토한다.
+- 운영자 인증은 Neon Auth를 우선 검토한다.
 - RLS 정책은 사용자 자기 데이터 접근만 허용하도록 설계한다.
 
 ### 8.4 지도 (OpenStreetMap)
@@ -227,7 +227,7 @@ LINE App
   -> LIFF Web App (Vercel)
     -> Next.js Route Handler (/api/v1/scan-events)
       -> Prisma
-        -> Supabase Postgres
+        -> Neon Postgres
 ```
 
 선정 이유:
@@ -237,8 +237,8 @@ LINE App
 - 트래픽 증가 전까지 복잡한 인프라를 피할 수 있다.
 
 ### 8.6 배포/인프라
-- Vercel Hobby: Next.js 배포 (preview/prod)
-- Supabase Free: DB/API/스토리지
+- Vercel Hobby: Next.js 배포 (local/Vercel 런타임 차이만 관리)
+- Neon: 단일 production 브랜치 DB
 - CI: PR마다 lint/test/build 실행
 - 배포 후 LIFF Endpoint URL을 최신 프로덕션 URL로 유지
 - LINE Console의 LIFF Endpoint URL / Webhook URL / Use webhook 설정을 배포 상태와 동기화
@@ -271,19 +271,17 @@ LINE App
 - `LIFF_ENDPOINT_URL`
 
 ### 9.2 앱/서버
-- `DATABASE_URL` (Supabase Postgres pooled URL 권장)
-- `DIRECT_DATABASE_URL` (Prisma migrate / direct connection 용도)
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `DATABASE_URL` (Neon pooled URL, local/Vercel 공통 사용)
+- `DIRECT_URL` (선택사항, Prisma schema 변경 / migrate / db push 용도)
 - `PORT` (로컬 개발용)
 - `NODE_ENV`
 - `API_BASE_URL`
 - `WEB_BASE_URL`
 
 ### 9.3 운영 원칙
-- 프로덕션 환경변수는 Vercel과 Supabase에 분리 저장한다.
-- 로컬/개발/프로덕션 값을 혼용하지 않는다.
+- Neon은 production 브랜치 하나만 사용한다.
+- 로컬과 Vercel은 같은 `DATABASE_URL`을 사용한다.
+- `DIRECT_URL`은 필요할 때만 유지하고, 없으면 `DATABASE_URL`을 기준으로 동작하게 한다.
 - LIFF Endpoint와 `WEB_BASE_URL`은 배포 직후 즉시 동기화한다.
 
 ---
@@ -390,15 +388,15 @@ LINE App
 
 ### 15.1 실제 구현 워크스트림
 1. **채널/자격증명 워크스트림**
-   - LINE Login 채널, LIFF 앱, Messaging API 채널, Supabase 프로젝트를 생성한다.
-   - `.env`에는 LIFF/Messaging API/Supabase/DB 연결 문자열을 루트 기준으로 등록한다.
+   - LINE Login 채널, LIFF 앱, Messaging API 채널, Neon 프로젝트를 생성한다.
+   - `.env`에는 LIFF/Messaging API/DB 연결 문자열을 루트 기준으로 등록한다.
    - webhook 보안은 `x-line-signature` 검증을 기준으로 구현한다.
 2. **서버/API 워크스트림**
    - 스캔 이벤트 API, health/ready API, LINE webhook API, 내부용 LINE push API를 구현한다.
    - 요청 검증은 zod, DB 접근은 Prisma, 운영 검증은 `/api/ready`로 통일한다.
 3. **데이터/인프라 워크스트림**
-   - Supabase pooled connection과 direct connection을 분리해 관리한다.
-   - Prisma migration은 direct connection을 사용하고, 런타임 API는 pooled connection을 기본으로 사용한다.
+   - Neon production 브랜치 하나를 local/Vercel에서 공통 사용한다.
+   - Prisma schema 변경은 가능하면 `DIRECT_URL`을 사용하고, 런타임 API는 `DATABASE_URL`을 기본으로 사용한다.
 4. **프론트/LIFF 워크스트림**
    - LIFF 초기화, QR 스캔, 스캔 결과, 이력 조회, 운영자 화면을 단계적으로 연결한다.
    - LIFF와 Messaging API는 같은 LINE 생태계 채널 운영 기준에서 관리한다.
@@ -409,7 +407,7 @@ LINE App
 ### Phase 0 (1주): 기획/설계 확정
 - PRD, IA, 데이터 모델, KPI 사인오프
 - LINE Login / LIFF / Messaging API 채널 준비
-- Supabase / Vercel 계정 및 프로젝트 준비
+- Neon / Vercel 계정 및 프로젝트 준비
 - 필수 환경변수 등록 및 webhook URL 전략 확정
 - Express 기준 임시 P0 서버와 최종 Next.js 목표 구조 간 이행 순서 확정
 
@@ -428,7 +426,7 @@ LINE App
 - LINE 발송 상태/실패 사유 모니터링 기초 구현
 
 ### Phase 3 (1주): 배포/안정화/분석
-- Supabase 연결 및 Prisma migration / generate
+- Neon 연결 및 Prisma migration / generate
 - Vercel 배포 + 환경변수 등록
 - LIFF Endpoint URL 갱신
 - LINE Webhook URL 갱신 + Verify + Use webhook 활성화
@@ -455,7 +453,8 @@ LINE App
 - [ ] Prisma 쿼리 타임아웃/실패 로그 수집 확인
 - [ ] LIFF 권한/컨텍스트 실패 시 UX 확인
 - [ ] Vercel 환경변수 누락 여부 확인
-- [ ] Supabase 연결 문자열이 pooled URL인지 확인
+- [ ] Neon `DATABASE_URL`이 pooled URL인지 확인
+- [ ] local/Vercel이 같은 Neon production 브랜치를 바라보는지 확인
 - [ ] LIFF Endpoint URL이 최신 배포 URL과 일치하는지 확인
 - [ ] Messaging API access token이 유효한지 확인
 

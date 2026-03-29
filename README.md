@@ -22,5 +22,9 @@ npm run dev
 `.env.local`에 아래 값을 설정하세요.
 
 ```bash
-NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_token
+DATABASE_URL=postgresql://...
+# Optional: only needed for Prisma schema changes or migrations
+DIRECT_URL=postgresql://...
 ```
+
+현재 운영 방식은 local/Vercel이 같은 Neon production 브랜치를 공유하는 single-branch 구성입니다.

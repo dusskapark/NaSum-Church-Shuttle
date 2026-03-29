@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String             @id @default(cuid())
+  display_name  String?
+  picture_url   String?
+  role          String             @default("rider")
+  created_at    DateTime           @default(now())
+  identities    UserIdentity[]
+  registrations UserRegistration[]
+  scan_events   ScanEvent[]
+}
+
+model UserIdentity {
+  id           String   @id @default(cuid())
+  user_id      String
+  provider     String
+  provider_uid String
+  created_at   DateTime @default(now())
+  user         User     @relation(fields: [user_id], references: [id])
+
+  @@unique([provider, provider_uid])
+}
+
+model Route {
+  id              String             @id @default(cuid())
+  line            String
+  service         String
+  direction       String             @default("to_church")
+  google_maps_url String?
+  active          Boolean            @default(true)
+  stations        Station[]
+  runs            ShuttleRun[]
+  registrations   UserRegistration[]
+}
+
+model Station {
+  id            String             @id @default(cuid())
+  route_id      String
+  name          String
+  bus_stop_id   String?
+  lat           Float
+  lng           Float
+  sequence      Int
+  pickup_time   String?
+  notes         String?
+  is_terminal   Boolean            @default(false)
+  route         Route              @relation(fields: [route_id], references: [id])
+  registrations UserRegistration[]
+  scan_events   ScanEvent[]
+
+  @@unique([route_id, sequence])
+  @@index([bus_stop_id])
+}
+
+model UserRegistration {
+  id            String   @id @default(cuid())
+  user_id       String
+  route_id      String
+  station_id    String
+  registered_at DateTime @default(now())
+  status        String   @default("active")
+  user          User     @relation(fields: [user_id], references: [id])
+  route         Route    @relation(fields: [route_id], references: [id])
+  station       Station  @relation(fields: [station_id], references: [id])
+
+  @@unique([user_id, route_id])
+}
+
+model ShuttleRun {
+  id           String      @id @default(cuid())
+  route_id     String
+  service_date DateTime
+  status       String      @default("scheduled")
+  route        Route       @relation(fields: [route_id], references: [id])
+  scan_events  ScanEvent[]
+}
+
+model ScanEvent {
+  id              String     @id @default(cuid())
+  user_id         String
+  run_id          String
+  station_id      String
+  scanned_at      DateTime   @default(now())
+  result_code     String
+  idempotency_key String     @unique
+  user            User       @relation(fields: [user_id], references: [id])
+  run             ShuttleRun @relation(fields: [run_id], references: [id])
+  station         Station    @relation(fields: [station_id], references: [id])
+}

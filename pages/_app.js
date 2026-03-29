@@ -1,10 +1,14 @@
-import "../styles/globals.css";
-import "tailwindcss/tailwind.css";
-import "mapbox-gl/dist/mapbox-gl.css";
-import "antd/dist/reset.css";
+import 'maplibre-gl/dist/maplibre-gl.css'
+import 'antd-mobile/es/global'
+import '../styles/globals.css'
 
-function MyApp({ Component, pageProps }) {
-  return <Component {...pageProps} />;
+import { ConfigProvider } from 'antd-mobile'
+import koKR from 'antd-mobile/es/locales/ko-KR'
+
+export default function App({ Component, pageProps }) {
+  return (
+    <ConfigProvider locale={koKR}>
+      <Component {...pageProps} />
+    </ConfigProvider>
+  )
 }
-
-export default MyApp;

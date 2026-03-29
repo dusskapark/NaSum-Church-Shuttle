@@ -1,6 +1,8 @@
 import tw from "tailwind-styled-components";
 import Map from "./components/Map";
 import Link from "next/link";
+import { Button, Card, Space } from "antd";
+import { CarOutlined, RocketOutlined, CalendarOutlined } from "@ant-design/icons";
 
 export default function Home() {
   return (
@@ -10,24 +12,28 @@ export default function Home() {
         <Header>
           <UberLogo src="https://i.ibb.co/84stgjq/uber-technologies-new-20218114.jpg" />
         </Header>
-        <ActionButtons>
+
+        <Space direction="horizontal" size={12} style={{ width: "100%" }}>
           <Link href="/search" passHref>
-            <ActionButton>
-              <ActionButtonImage src="https://i.ibb.co/cyvcpfF/uberx.png" />
+            <FeatureCard hoverable>
+              <CarOutlined style={{ fontSize: 28 }} />
               Ride
-            </ActionButton>
+            </FeatureCard>
           </Link>
-          <ActionButton className="text-red-600">
-            <ActionButtonImage src="https://i.ibb.co/n776JLm/bike.png" />
+          <FeatureCard hoverable>
+            <RocketOutlined style={{ fontSize: 28 }} />
             Wheels (Not Available)
-          </ActionButton>
-          <ActionButton className="text-red-600">
-            <ActionButtonImage src="https://i.ibb.co/5RjchBg/uberschedule.png" />
+          </FeatureCard>
+          <FeatureCard hoverable>
+            <CalendarOutlined style={{ fontSize: 28 }} />
             Reserve (Not Available)
-          </ActionButton>
-        </ActionButtons>
+          </FeatureCard>
+        </Space>
+
         <Link href="/search" passHref>
-          <InputButton>Where to ?</InputButton>
+          <Button type="default" size="large" block style={{ marginTop: 20, height: 56 }}>
+            Where to?
+          </Button>
         </Link>
       </ActionItems>
     </Wrapper>
@@ -35,33 +41,22 @@ export default function Home() {
 }
 
 const Wrapper = tw.div`
- flex flex-col h-screen
+flex flex-col h-screen
 `;
 
 const ActionItems = tw.div`
- flex-1 p-4
+flex-1 p-4
 `;
 
 const Header = tw.div`
- flex justify-between items-center
+flex justify-between items-center
 `;
 
 const UberLogo = tw.img`
- h-28
+h-28
 `;
 
-const ActionButtons = tw.div`
-flex 
-`;
-
-const ActionButton = tw.div`
-flex flex-col bg-gray-200 flex-1 m-1 h-32 items-center justify-center rounded-lg transform hover:scale-105 transition text-xl curson-pointer
-`;
-
-const ActionButtonImage = tw.img`
-h-3/5
-`;
-
-const InputButton = tw.div`
-h-20 bg-gray-200 text-2xl p-4 flex items-center justify-center rounded-lg transform hover:scale-105 transition mt-8
+const FeatureCard = tw(Card)`
+flex: 1;
+text-align: center;
 `;

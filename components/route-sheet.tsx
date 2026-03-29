@@ -170,7 +170,7 @@ export function RouteSheet({
 
             {selectedRoute.stops.length > 0 ? (
               <Steps
-                direction="vertical"
+                orientation="vertical"
                 current={Math.max(currentStepIndex, 0)}
                 items={selectedRoute.stops.map((routeStop) => {
                   const stop = stopsById[routeStop.stopId];
@@ -190,7 +190,7 @@ export function RouteSheet({
                         </span>
                       </button>
                     ),
-                    description: (
+                    content: (
                       <div className="pb-3 pl-3 text-sm text-slate-500">
                         <span>{routeStop.scheduledTime}</span>
                         <span className="mx-1.5">·</span>

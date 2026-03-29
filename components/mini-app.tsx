@@ -262,7 +262,7 @@ export function MiniApp({ appVersion }: { appVersion: string }) {
       <Drawer
         title={dictionary.map.settings}
         placement="bottom"
-        height="auto"
+        size="auto"
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       >

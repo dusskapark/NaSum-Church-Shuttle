@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
-import { Button, CheckList, NavBar, Skeleton, Toast } from 'antd-mobile'
+import { Button, CheckList, NavBar, SafeArea, Skeleton, Toast } from 'antd-mobile'
 import type { CheckListValue } from 'antd-mobile/es/components/check-list'
 import { useRoutes } from '../hooks/useRoutes'
 import { useLiff } from '../hooks/useLiff'
@@ -15,6 +15,7 @@ import {
 import type { StopCandidate, UserRegistrationRequest } from '../lib/types'
 
 const StopPreviewMap = dynamic(() => import('../components/maps/StopPreviewMap'), { ssr: false })
+const STOP_DETAIL_ACTION_BAR_HEIGHT = 88
 
 export default function StopDetailPage() {
   const router = useRouter()
@@ -83,7 +84,12 @@ export default function StopDetailPage() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', paddingBottom: 88, background: 'var(--adm-color-background)' }}>
+    <div
+      style={{
+        minHeight: '100dvh',
+        background: 'var(--adm-color-background)',
+      }}
+    >
       <NavBar
         onBack={() => {
           router.back()
@@ -145,13 +151,16 @@ export default function StopDetailPage() {
         </>
       )}
 
+      <div style={{ height: STOP_DETAIL_ACTION_BAR_HEIGHT }} />
+      <SafeArea position='bottom' />
+
       <div
         style={{
           position: 'fixed',
           right: 0,
           bottom: 0,
           left: 0,
-          padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
+          padding: '12px 16px',
           background: 'var(--app-color-surface)',
           borderTop: '1px solid var(--app-color-border)',
         }}
@@ -169,6 +178,7 @@ export default function StopDetailPage() {
         >
           {selectedStop ? copy.stopDetail.registerButton : copy.stopDetail.noSelection}
         </Button>
+        <SafeArea position='bottom' />
       </div>
     </div>
   )

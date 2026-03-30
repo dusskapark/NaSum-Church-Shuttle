@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
-import AppTabBar, { APP_TAB_BAR_SAFE_OFFSET } from '../navigation/AppTabBar'
+import { SafeArea } from 'antd-mobile'
+import AppTabBar, { APP_TAB_BAR_HEIGHT } from '../navigation/AppTabBar'
 
 interface TabPageLayoutProps {
   children: ReactNode
@@ -17,12 +18,17 @@ export default function TabPageLayout({
   const baseStyle: CSSProperties = {
     minHeight: '100dvh',
     background: 'var(--adm-color-background)',
-    ...(withSafeAreaPadding ? { paddingBottom: APP_TAB_BAR_SAFE_OFFSET } : {}),
   }
 
   return (
     <div style={{ ...baseStyle, ...style }}>
       {children}
+      {showTabBar && withSafeAreaPadding ? (
+        <>
+          <div style={{ height: APP_TAB_BAR_HEIGHT }} />
+          <SafeArea position='bottom' />
+        </>
+      ) : null}
       {showTabBar ? <AppTabBar /> : null}
     </div>
   )

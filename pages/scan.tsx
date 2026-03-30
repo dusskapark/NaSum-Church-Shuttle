@@ -1,6 +1,7 @@
 import { NavBar } from 'antd-mobile'
 import { useRouter } from 'next/router'
 import TabPageLayout from '../components/layout/TabPageLayout'
+import { APP_TAB_BAR_SAFE_OFFSET } from '../components/navigation/AppTabBar'
 import { useAppSettings } from '../lib/app-settings'
 import { getCopy } from '../lib/copy'
 
@@ -23,7 +24,7 @@ export default function ScanPage() {
         style={{
           display: 'grid',
           placeItems: 'center',
-          minHeight: 'calc(100dvh - 45px - 64px - env(safe-area-inset-bottom))',
+          minHeight: `calc(100dvh - 45px - ${APP_TAB_BAR_SAFE_OFFSET})`,
           padding: 24,
         }}
       >

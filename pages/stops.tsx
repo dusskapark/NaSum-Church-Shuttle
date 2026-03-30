@@ -15,6 +15,7 @@ import {
 import type { StopCandidate, UserRegistrationRequest } from '../lib/types'
 
 const StopPreviewMap = dynamic(() => import('../components/maps/StopPreviewMap'), { ssr: false })
+const STOP_DETAIL_ACTION_BAR_OFFSET = 'calc(88px + env(safe-area-inset-bottom, 0px))'
 
 export default function StopDetailPage() {
   const router = useRouter()
@@ -83,7 +84,13 @@ export default function StopDetailPage() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', paddingBottom: 88, background: 'var(--adm-color-background)' }}>
+    <div
+      style={{
+        minHeight: '100dvh',
+        paddingBottom: STOP_DETAIL_ACTION_BAR_OFFSET,
+        background: 'var(--adm-color-background)',
+      }}
+    >
       <NavBar
         onBack={() => {
           router.back()
@@ -151,7 +158,7 @@ export default function StopDetailPage() {
           right: 0,
           bottom: 0,
           left: 0,
-          padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
+          padding: '12px 16px calc(12px + env(safe-area-inset-bottom, 0px))',
           background: 'var(--app-color-surface)',
           borderTop: '1px solid var(--app-color-border)',
         }}

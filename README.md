@@ -25,6 +25,15 @@ npm run dev
 DATABASE_URL=postgresql://...
 # Optional: only needed for Prisma schema changes or migrations
 DIRECT_URL=postgresql://...
+NEXT_PUBLIC_LIFF_ID=...
+# Optional: localhost development LIFF ID override
+NEXT_PUBLIC_LIFF_ID_DEV=...
 ```
 
 현재 운영 방식은 local/Vercel이 같은 Neon production 브랜치를 공유하는 single-branch 구성입니다.
+
+## LIFF QR 스캔
+
+- `/scan` 페이지는 `LIFF scanCodeV2`를 사용합니다.
+- QR 스캔은 LINE 앱 내부에서만 동작합니다.
+- LIFF 콘솔에서 해당 앱의 QR scanner capability가 활성화되어 있어야 합니다.

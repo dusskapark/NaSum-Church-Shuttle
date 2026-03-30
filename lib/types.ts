@@ -71,6 +71,23 @@ export interface CopyDictionary {
   scan: {
     title: string
     description: string
+    availabilityReady: string
+    availabilityLoading: string
+    availabilityLineOnly: string
+    availabilityUnsupported: string
+    availabilityExternal: string
+    scanButton: string
+    scanAgainButton: string
+    scanning: string
+    lastResult: string
+    emptyResult: string
+    scanCancelled: string
+    scanFailed: string
+    copied: string
+    copyResult: string
+    openResult: string
+    openInApp: string
+    resultHint: string
   }
   notifications: {
     title: string

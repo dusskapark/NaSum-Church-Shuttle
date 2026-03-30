@@ -13,7 +13,8 @@ import { useAppSettings } from '../../lib/app-settings'
 import { getCopy } from '../../lib/copy'
 
 export const APP_TAB_BAR_HEIGHT = 64
-export const APP_TAB_BAR_SAFE_OFFSET = `calc(${APP_TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom))`
+export const APP_SAFE_AREA_INSET_BOTTOM = 'env(safe-area-inset-bottom, 0px)'
+export const APP_TAB_BAR_SAFE_OFFSET = `calc(${APP_TAB_BAR_HEIGHT}px + ${APP_SAFE_AREA_INSET_BOTTOM})`
 
 type TabItem = {
   key: string
@@ -130,6 +131,7 @@ export default function AppTabBar() {
         right: 0,
         bottom: 0,
         left: 0,
+        paddingBottom: APP_SAFE_AREA_INSET_BOTTOM,
         zIndex: 40,
         background: 'var(--adm-color-background)',
         boxShadow: 'var(--app-shadow-toolbar)',

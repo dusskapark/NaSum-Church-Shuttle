@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useMemo } from 'react'
-import { Badge, TabBar } from 'antd-mobile'
+import { Badge, SafeArea, TabBar } from 'antd-mobile'
 import {
   BellOutline,
   CompassOutline,
@@ -151,6 +151,7 @@ export default function AppTabBar() {
           <TabBar.Item key={tab.key} icon={tab.icon} title={tab.title} />
         ))}
       </TabBar>
+      <SafeArea position='bottom' />
     </div>
   )
 }

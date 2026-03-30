@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
+import Head from 'next/head'
 import { useRouter } from 'next/router'
-import { Button, CheckList, NavBar, Skeleton, Toast } from 'antd-mobile'
+import { Button, CheckList, Skeleton, Toast } from 'antd-mobile'
 import type { CheckListValue } from 'antd-mobile/es/components/check-list'
+import Layout from '../components/Layout'
 import { useRoutes } from '../hooks/useRoutes'
 import { useLiff } from '../hooks/useLiff'
 import { useAppSettings } from '../lib/app-settings'
@@ -14,12 +16,12 @@ import {
 } from '../lib/routeSelectors'
 import type { StopCandidate, UserRegistrationRequest } from '../lib/types'
 
-const StopPreviewMap = dynamic(() => import('../components/maps/StopPreviewMap'), { ssr: false })
+const StopPreviewMap = dynamic(() => import('../components/Maps').then(mod => ({ default: mod.StopPreviewMap })), { ssr: false })
 const STOP_DETAIL_ACTION_BAR_OFFSET = 'calc(88px + env(safe-area-inset-bottom, 0px))'
 
 export default function StopDetailPage() {
   const router = useRouter()
-  const { stationId } = router.query
+  const { placeId } = router.query
   const { user, loading: liffLoading } = useLiff()
   const { lang } = useAppSettings()
   const copy = getCopy(lang)
@@ -34,8 +36,8 @@ export default function StopDetailPage() {
   )
 
   const sourceStop = useMemo<StopCandidate | null>(() => {
-    return getSourceStop(allStops, typeof stationId === 'string' ? stationId : null)
-  }, [allStops, stationId])
+    return getSourceStop(allStops, typeof placeId === 'string' ? placeId : null)
+  }, [allStops, placeId])
 
   const matchingStops = useMemo<StopCandidate[]>(
     () => getMatchingStops(allStops, sourceStop),
@@ -49,7 +51,7 @@ export default function StopDetailPage() {
       return null
     }
 
-    return matchingStops.find(stop => stop.id === selectedId) ?? null
+    return matchingStops.find(stop => stop.routeStopId === selectedId) ?? null
   }, [matchingStops, selectedStopId])
 
   async function handleRegister(): Promise<void> {
@@ -62,8 +64,8 @@ export default function StopDetailPage() {
         provider_uid: user.userId,
         display_name: user.displayName,
         picture_url: user.pictureUrl,
-        route_id: selectedStop.routeId,
-        station_id: selectedStop.id,
+        route_code: selectedStop.routeCode,
+        route_stop_id: selectedStop.routeStopId,
       }
 
       const response = await fetch('/api/v1/user-registration', {
@@ -84,21 +86,11 @@ export default function StopDetailPage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100dvh',
-        paddingBottom: STOP_DETAIL_ACTION_BAR_OFFSET,
-        background: 'var(--adm-color-background)',
-      }}
-    >
-      <NavBar
-        onBack={() => {
-          router.back()
-        }}
-      >
-        {copy.stopDetail.title}
-      </NavBar>
-
+    <>
+      <Head>
+        <title>{copy.stopDetail.title}</title>
+      </Head>
+      <Layout showTabBar={false}>
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--app-color-border)' }}>
         <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--app-color-title)' }}>
           {sourceStop?.name ?? '...'}
@@ -136,14 +128,14 @@ export default function StopDetailPage() {
 
           <CheckList value={selectedStopId} onChange={setSelectedStopId}>
             {matchingStops.map(stop => (
-              <CheckList.Item key={`${stop.routeId}-${stop.id}`} value={stop.id}>
+              <CheckList.Item key={stop.routeStopId} value={stop.routeStopId}>
                 <div style={{ display: 'grid', gap: 6 }}>
                   <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--app-color-title)' }}>
                     {stop.routeLabel}
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--app-color-secondary-text)' }}>
                     {copy.stopDetail.stopOrder} {stop.stopOrder}
-                    {stop.pickup_time ? ` · ${copy.stopDetail.boardAt} ${stop.pickup_time}` : ''}
+                    {stop.pickupTime ? ` · ${copy.stopDetail.boardAt} ${stop.pickupTime}` : ''}
                   </div>
                 </div>
               </CheckList.Item>
@@ -177,6 +169,7 @@ export default function StopDetailPage() {
           {selectedStop ? copy.stopDetail.registerButton : copy.stopDetail.noSelection}
         </Button>
       </div>
-    </div>
+    </Layout>
+    </>
   )
 }

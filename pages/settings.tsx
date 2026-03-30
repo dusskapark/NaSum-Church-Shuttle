@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Avatar, List, NavBar, Picker, Skeleton, Switch } from 'antd-mobile'
+import Head from 'next/head'
+import { Avatar, List, Picker, Skeleton, Switch } from 'antd-mobile'
 import { useRouter } from 'next/router'
 import packageJson from '../package.json'
-import TabPageLayout from '../components/layout/TabPageLayout'
+import Layout from '../components/Layout'
 import { useHydrated } from '../hooks/useHydrated'
 import { useRegistration } from '../hooks/useRegistration'
 import { useLiff } from '../hooks/useLiff'
@@ -26,6 +27,7 @@ export default function SettingsPage() {
   const [pushEnabledOverride, setPushEnabledOverride] = useState<boolean | null>(null)
   const [pickerVisible, setPickerVisible] = useState(false)
 
+
   const langLabel = lang === 'ko' ? copy.settings.languageKorean : copy.settings.languageEnglish
   const pushEnabled =
     pushEnabledOverride ??
@@ -41,175 +43,182 @@ export default function SettingsPage() {
 
   const isLoading = liffLoading || registrationLoading
 
+  const listStyle = {
+    '--border-radius': '12px',
+    background: 'var(--app-color-surface)',
+    overflow: 'hidden' as const,
+  }
+
   return (
-    <TabPageLayout>
-      <NavBar
-        onBack={() => {
-          void router.push('/')
-        }}
-      >
-        {copy.settings.title}
-      </NavBar>
+    <>
+      <Head>
+        <title>{copy.settings.title}</title>
+      </Head>
+      <Layout>
+        <List header={copy.settings.profileHeader} style={listStyle}>
+          <List.Item
+            prefix={
+              <Avatar
+                src={user?.pictureUrl ?? ''}
+                fallback={user?.displayName?.charAt(0).toUpperCase() ?? 'N'}
+                style={{ '--size': '40px', '--border-radius': '50%' }}
+              />
+            }
+          >
+            {user?.displayName ?? copy.common.loadingUserName}
+          </List.Item>
+          <List.Item
+            extra={
+              <span style={{ color: 'var(--app-color-subtle-text)' }}>
+                {user?.displayName ?? copy.common.loadingUserName}
+              </span>
+            }
+          >
+            {copy.settings.displayName}
+          </List.Item>
+          <List.Item
+            extra={
+              <span style={{ color: 'var(--app-color-subtle-text)', fontSize: 12 }}>
+                {user?.userId ?? '-'}
+              </span>
+            }
+          >
+            {copy.settings.userId}
+          </List.Item>
+        </List>
 
-      <List header={copy.settings.profileHeader}>
-        <List.Item
-          prefix={
-            <Avatar
-              src={user?.pictureUrl ?? ''}
-              fallback={user?.displayName?.charAt(0).toUpperCase() ?? 'N'}
-              style={{ '--size': '40px', '--border-radius': '50%' }}
-            />
-          }
-        >
-          {user?.displayName ?? copy.common.loadingUserName}
-        </List.Item>
-        <List.Item
-          extra={
-            <span style={{ color: 'var(--app-color-subtle-text)' }}>
-              {user?.displayName ?? copy.common.loadingUserName}
-            </span>
-          }
-        >
-          {copy.settings.displayName}
-        </List.Item>
-        <List.Item
-          extra={
-            <span style={{ color: 'var(--app-color-subtle-text)', fontSize: 12 }}>
-              {user?.userId ?? '-'}
-            </span>
-          }
-        >
-          {copy.settings.userId}
-        </List.Item>
-      </List>
-
-      <List header={copy.settings.routeHeader}>
-        {isLoading ? (
-          <div style={{ padding: 16 }}>
-            <Skeleton.Title animated />
-            <Skeleton.Paragraph lineCount={3} animated />
-          </div>
-        ) : (
-          <>
-            <List.Item
-              extra={
-                <span style={{ color: 'var(--app-color-subtle-text)' }}>
-                  {registration ? getRouteLabel(registration.route) : copy.settings.noRouteSelected}
-                </span>
-              }
-            >
-              {copy.settings.currentRoute}
-            </List.Item>
-            <List.Item
-              extra={
-                <span style={{ color: 'var(--app-color-subtle-text)' }}>
-                  {registration?.station.name ?? '-'}
-                </span>
-              }
-            >
-              {copy.settings.currentStop}
-            </List.Item>
-            <List.Item
-              clickable
-              onClick={() => {
-                void router.push('/search')
-              }}
-            >
-              {copy.settings.changeRoute}
-            </List.Item>
-          </>
-        )}
-      </List>
-
-      <List header={copy.settings.preferencesHeader}>
-        <List.Item
-          extra={
-            <Switch
-              checked={pushEnabled}
-              onChange={checked => {
-                setPushEnabledOverride(checked)
-
-                if (typeof window !== 'undefined') {
-                  window.localStorage.setItem(PUSH_PREF_KEY, String(checked))
+        <List header={copy.settings.routeHeader} style={listStyle}>
+          {isLoading ? (
+            <div style={{ padding: 16 }}>
+              <Skeleton.Title animated />
+              <Skeleton.Paragraph lineCount={3} animated />
+            </div>
+          ) : (
+            <>
+              <List.Item
+                extra={
+                  <span style={{ color: 'var(--app-color-subtle-text)' }}>
+                    {registration ? getRouteLabel(registration.route) : copy.settings.noRouteSelected}
+                  </span>
                 }
-              }}
-            />
-          }
-          description={copy.settings.pushNotificationsHint}
-        >
-          {copy.settings.pushNotifications}
-        </List.Item>
-      </List>
+              >
+                {copy.settings.currentRoute}
+              </List.Item>
+              <List.Item
+                extra={
+                  <span style={{ color: 'var(--app-color-subtle-text)' }}>
+                    {registration ? (registration.route_stop.place.display_name ?? registration.route_stop.place.name) : '-'}
+                  </span>
+                }
+              >
+                {copy.settings.currentStop}
+              </List.Item>
+              <List.Item
+                clickable
+                onClick={() => {
+                  void router.push('/search')
+                }}
+              >
+                {copy.settings.changeRoute}
+              </List.Item>
+            </>
+          )}
+        </List>
 
-      <List header={copy.settings.themeHeader}>
-        <List.Item
-          extra={<span style={{ color: 'var(--app-color-subtle-text)' }}>{langLabel}</span>}
-          onClick={() => {
-            setPickerVisible(true)
+        <List header={copy.settings.preferencesHeader} style={listStyle}>
+          <List.Item
+            extra={
+              <Switch
+                checked={pushEnabled}
+                onChange={checked => {
+                  setPushEnabledOverride(checked)
+
+                  if (typeof window !== 'undefined') {
+                    window.localStorage.setItem(PUSH_PREF_KEY, String(checked))
+                  }
+                }}
+              />
+            }
+            description={copy.settings.pushNotificationsHint}
+          >
+            {copy.settings.pushNotifications}
+          </List.Item>
+        </List>
+
+        <List header={copy.settings.themeHeader} style={listStyle}>
+          <List.Item
+            extra={<span style={{ color: 'var(--app-color-subtle-text)' }}>{langLabel}</span>}
+            onClick={() => {
+              setPickerVisible(true)
+            }}
+          >
+            {copy.settings.language}
+          </List.Item>
+          <List.Item
+            extra={
+              <Switch
+                checked={isDark}
+                onChange={checked => {
+                  if (checked !== isDark) {
+                    toggleTheme()
+                  }
+                }}
+              />
+            }
+          >
+            {copy.settings.darkMode}
+          </List.Item>
+        </List>
+
+        <List header={copy.settings.versionHeader} style={listStyle}>
+          <List.Item
+            extra={
+              <span style={{ color: 'var(--app-color-subtle-text)' }}>
+                {packageJson.dependencies['antd-mobile']}
+              </span>
+            }
+          >
+            {copy.settings.antdMobileVersion}
+          </List.Item>
+          <List.Item
+            extra={
+              <span style={{ color: 'var(--app-color-subtle-text)' }}>
+                {packageJson.dependencies['@line/liff']}
+              </span>
+            }
+          >
+            {copy.settings.liffSdkVersion}
+          </List.Item>
+          <List.Item extra={<span style={{ color: 'var(--app-color-subtle-text)' }}>{lineVersion}</span>}>
+            {copy.settings.lineVersion}
+          </List.Item>
+        </List>
+
+
+        {/* 하단 탭바 여백 */}
+        <div style={{ height: 'calc(var(--app-tab-bar-height) + env(safe-area-inset-bottom, 0px) + 16px)' }} />
+
+        <Picker
+          columns={[
+            [
+              { label: copy.settings.languageEnglish, value: 'en' },
+              { label: copy.settings.languageKorean, value: 'ko' },
+            ],
+          ]}
+          visible={pickerVisible}
+          onClose={() => {
+            setPickerVisible(false)
           }}
-        >
-          {copy.settings.language}
-        </List.Item>
-        <List.Item
-          extra={
-            <Switch
-              checked={isDark}
-              onChange={checked => {
-                if (checked !== isDark) {
-                  toggleTheme()
-                }
-              }}
-            />
-          }
-        >
-          {copy.settings.darkMode}
-        </List.Item>
-      </List>
+          value={[lang]}
+          onConfirm={value => {
+            const nextLanguage = value[0]
 
-      <List header={copy.settings.versionHeader}>
-        <List.Item
-          extra={
-            <span style={{ color: 'var(--app-color-subtle-text)' }}>
-              {packageJson.dependencies['antd-mobile']}
-            </span>
-          }
-        >
-          {copy.settings.antdMobileVersion}
-        </List.Item>
-        <List.Item
-          extra={
-            <span style={{ color: 'var(--app-color-subtle-text)' }}>
-              {packageJson.dependencies['@line/liff']}
-            </span>
-          }
-        >
-          {copy.settings.liffSdkVersion}
-        </List.Item>
-        <List.Item extra={<span style={{ color: 'var(--app-color-subtle-text)' }}>{lineVersion}</span>}>
-          {copy.settings.lineVersion}
-        </List.Item>
-      </List>
-
-      <Picker
-        columns={[
-          [
-            { label: copy.settings.languageEnglish, value: 'en' },
-            { label: copy.settings.languageKorean, value: 'ko' },
-          ],
-        ]}
-        visible={pickerVisible}
-        onClose={() => {
-          setPickerVisible(false)
-        }}
-        value={[lang]}
-        onConfirm={value => {
-          const nextLanguage = value[0]
-
-          if (nextLanguage === 'en' || nextLanguage === 'ko') {
-            setLang(nextLanguage as AppLanguage)
-          }
-        }}
-      />
-    </TabPageLayout>
+            if (nextLanguage === 'en' || nextLanguage === 'ko') {
+              setLang(nextLanguage as AppLanguage)
+            }
+          }}
+        />
+      </Layout>
+    </>
   )
 }

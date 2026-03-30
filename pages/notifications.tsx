@@ -1,7 +1,6 @@
-import { NavBar } from 'antd-mobile'
+import Head from 'next/head'
 import { useRouter } from 'next/router'
-import TabPageLayout from '../components/layout/TabPageLayout'
-import { APP_TAB_BAR_SAFE_OFFSET } from '../components/navigation/AppTabBar'
+import Layout from '../components/Layout'
 import { useAppSettings } from '../lib/app-settings'
 import { getCopy } from '../lib/copy'
 
@@ -11,20 +10,16 @@ export default function NotificationsPage() {
   const copy = getCopy(lang)
 
   return (
-    <TabPageLayout>
-      <NavBar
-        onBack={() => {
-          void router.push('/')
-        }}
-      >
-        {copy.notifications.title}
-      </NavBar>
-
+    <>
+      <Head>
+        <title>{copy.notifications.title}</title>
+      </Head>
+      <Layout>
       <div
         style={{
           display: 'grid',
           placeItems: 'center',
-          minHeight: `calc(100dvh - 45px - ${APP_TAB_BAR_SAFE_OFFSET})`,
+          minHeight: 'calc(var(--app-content-height) - 45px)',
           padding: 24,
         }}
       >
@@ -46,6 +41,7 @@ export default function NotificationsPage() {
           </div>
         </div>
       </div>
-    </TabPageLayout>
+    </Layout>
+    </>
   )
 }

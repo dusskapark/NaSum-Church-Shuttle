@@ -30,45 +30,74 @@ model UserIdentity {
 
 model Route {
   id              String             @id @default(cuid())
+  route_code      String             @unique
+  name            String
+  display_name    String?
   line            String
   service         String
   direction       String             @default("to_church")
+  revision        String
   google_maps_url String?
+  resolved_google_maps_url String?
+  sync_status     String             @default("pending")
+  sync_source_hash String?
+  stops_snapshot_hash String?
+  last_synced_at  DateTime?
+  sync_error      String?
+  path_json       Json?
+  path_cache_status String           @default("missing")
+  path_cache_updated_at DateTime?
+  path_cache_expires_at DateTime?
+  path_cache_error String?
   active          Boolean            @default(true)
-  stations        Station[]
+  stops           RouteStop[]
   runs            ShuttleRun[]
   registrations   UserRegistration[]
 }
 
-model Station {
+model Place {
   id            String             @id @default(cuid())
-  route_id      String
+  google_place_id String           @unique
   name          String
-  bus_stop_id   String?
+  display_name  String?
+  address       String?
   lat           Float
   lng           Float
-  sequence      Int
-  pickup_time   String?
+  place_types   String[]
   notes         String?
   is_terminal   Boolean            @default(false)
-  route         Route              @relation(fields: [route_id], references: [id])
-  registrations UserRegistration[]
-  scan_events   ScanEvent[]
+  route_stops   RouteStop[]
+
+  @@index([google_place_id])
+}
+
+model RouteStop {
+  id                String             @id @default(cuid())
+  route_id          String
+  place_id          String
+  sequence          Int
+  pickup_time       String?
+  notes             String?
+  is_pickup_enabled Boolean            @default(true)
+  route             Route              @relation(fields: [route_id], references: [id])
+  place             Place              @relation(fields: [place_id], references: [id])
+  registrations     UserRegistration[]
+  scan_events       ScanEvent[]
 
   @@unique([route_id, sequence])
-  @@index([bus_stop_id])
+  @@unique([route_id, place_id])
 }
 
 model UserRegistration {
   id            String   @id @default(cuid())
   user_id       String
   route_id      String
-  station_id    String
+  route_stop_id String
   registered_at DateTime @default(now())
   status        String   @default("active")
   user          User     @relation(fields: [user_id], references: [id])
   route         Route    @relation(fields: [route_id], references: [id])
-  station       Station  @relation(fields: [station_id], references: [id])
+  route_stop    RouteStop @relation(fields: [route_stop_id], references: [id])
 
   @@unique([user_id, route_id])
 }
@@ -86,11 +115,11 @@ model ScanEvent {
   id              String     @id @default(cuid())
   user_id         String
   run_id          String
-  station_id      String
+  route_stop_id   String
   scanned_at      DateTime   @default(now())
   result_code     String
   idempotency_key String     @unique
   user            User       @relation(fields: [user_id], references: [id])
   run             ShuttleRun @relation(fields: [run_id], references: [id])
-  station         Station    @relation(fields: [station_id], references: [id])
+  route_stop      RouteStop  @relation(fields: [route_stop_id], references: [id])
 }

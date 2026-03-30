@@ -1,6 +1,10 @@
 import type { Prisma } from '@prisma/client'
 
 export type Nullable<T> = T | null
+export interface RoutePathPoint {
+  lat: number
+  lng: number
+}
 
 export interface LiffUser {
   userId: string
@@ -51,6 +55,9 @@ export interface CopyDictionary {
     moreHeader: string
     stopCount: string
     requestStop: string
+    clearSelection: string
+    stationDetail: string
+    selected: string
     settings: string
     selectedBadge: string
     footerLabel: string
@@ -122,15 +129,23 @@ export interface CopyDictionary {
   }
 }
 
-export type Station = Prisma.StationGetPayload<Record<string, never>>
+export type Place = Prisma.PlaceGetPayload<Record<string, never>>
 export type Route = Prisma.RouteGetPayload<Record<string, never>>
 export type User = Prisma.UserGetPayload<Record<string, never>>
 export type UserIdentity = Prisma.UserIdentityGetPayload<Record<string, never>>
-export type UserRegistration = Prisma.UserRegistrationGetPayload<Record<string, never>>
-
-export type RouteWithStations = Prisma.RouteGetPayload<{
+export type RouteStopWithPlace = Prisma.RouteStopGetPayload<{
   include: {
-    stations: true
+    place: true
+  }
+}>
+
+export type RouteWithStops = Prisma.RouteGetPayload<{
+  include: {
+    stops: {
+      include: {
+        place: true
+      }
+    }
   }
 }>
 
@@ -138,10 +153,18 @@ export type RegistrationWithRelations = Prisma.UserRegistrationGetPayload<{
   include: {
     route: {
       include: {
-        stations: true
+        stops: {
+          include: {
+            place: true
+          }
+        }
       }
     }
-    station: true
+    route_stop: {
+      include: {
+        place: true
+      }
+    }
   }
 }>
 
@@ -156,22 +179,41 @@ export interface RegisteredUserResponse {
   registration?: Nullable<RegistrationWithRelations>
 }
 
-export type RoutesResponse = RouteWithStations[]
-
 export interface UserRegistrationRequest {
   provider?: string
   provider_uid: string
   display_name?: Nullable<string>
   picture_url?: Nullable<string>
-  route_id: string
-  station_id: string
+  route_code: string
+  route_stop_id: string
 }
 
-export interface StopCandidate extends Station {
+export interface PlaceSummary {
+  googlePlaceId: string
+  name: string
   lat: number
   lng: number
-  routeId: string
+  isTerminal: boolean
+}
+
+export interface StopCandidate extends PlaceSummary {
+  routeStopId: string
+  routeCode: string
   routeLabel: string
   stopOrder: number
-  google_maps_url?: Nullable<string>
+  pickupTime: Nullable<string>
+  notes: Nullable<string>
+  googleMapsUrl: Nullable<string>
 }
+
+export interface RoutePathCacheSnapshot {
+  cachedPath: RoutePathPoint[]
+  pathCacheStatus: string
+  pathCacheUpdatedAt: Nullable<string>
+  pathCacheExpiresAt: Nullable<string>
+  pathCacheError: Nullable<string>
+}
+
+export type ApiRouteWithStops = RouteWithStops & RoutePathCacheSnapshot
+
+export type RoutesResponse = ApiRouteWithStops[]

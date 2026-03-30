@@ -1,7 +1,8 @@
 import type {
   Nullable,
-  RouteWithStations,
-  Station,
+  PlaceSummary,
+  RouteStopWithPlace,
+  RouteWithStops,
   StopCandidate,
 } from './types'
 
@@ -11,37 +12,55 @@ export interface Coordinates {
 }
 
 type RouteSummary = {
+  name?: string
+  display_name?: string | null
   line: string
   service: string
 }
 
-type StationGroups = Record<string, Station[]>
+type PlaceGroups = Record<string, PlaceSummary[]>
 
 export function getRouteLabel(route: RouteSummary): string {
+  if (route.display_name?.trim()) {
+    return route.display_name.trim()
+  }
+
+  if (route.name?.trim()) {
+    return route.name.trim()
+  }
+
   return `${route.line} LINE (${route.service})`
 }
 
-export function getVisibleStations(route?: Nullable<RouteWithStations>): Station[] {
-  return (route?.stations ?? []).filter(station => !station.is_terminal)
+export function getVisibleStops(route?: Nullable<RouteWithStops>): RouteStopWithPlace[] {
+  return (route?.stops ?? []).filter(stop => stop.is_pickup_enabled && !stop.place.is_terminal)
 }
 
-export function getUniqueStations(routes: RouteWithStations[]): Station[] {
+export function getUniqueStations(routes: RouteWithStops[]): PlaceSummary[] {
   return Array.from(
     routes
-      .flatMap(route => getVisibleStations(route))
-      .reduce<Map<string, Station>>((accumulator, station) => {
-        if (!accumulator.has(station.name)) {
-          accumulator.set(station.name, station)
+      .flatMap(route => getVisibleStops(route))
+      .reduce<Map<string, PlaceSummary>>((accumulator, stop) => {
+        const googlePlaceId = stop.place.google_place_id
+
+        if (!accumulator.has(googlePlaceId)) {
+          accumulator.set(googlePlaceId, {
+            googlePlaceId,
+            name: stop.place.display_name ?? stop.place.name,
+            lat: stop.place.lat,
+            lng: stop.place.lng,
+            isTerminal: stop.place.is_terminal,
+          })
         }
 
         return accumulator
       }, new Map())
   )
-    .map(([, station]) => station)
+    .map(([, place]) => place)
     .sort((left, right) => left.name.localeCompare(right.name))
 }
 
-export function filterStationsByKeyword(stations: Station[], keyword: string): Station[] {
+export function filterStationsByKeyword(stations: PlaceSummary[], keyword: string): PlaceSummary[] {
   const normalizedKeyword = keyword.trim().toLowerCase()
 
   if (!normalizedKeyword) {
@@ -56,8 +75,8 @@ export function getStationIndex(name: string): string {
   return /[A-Z]/.test(firstChar) ? firstChar : '#'
 }
 
-export function groupStationsByIndex(stations: Station[]): StationGroups {
-  return stations.reduce<StationGroups>((accumulator, station) => {
+export function groupStationsByIndex(stations: PlaceSummary[]): PlaceGroups {
+  return stations.reduce<PlaceGroups>((accumulator, station) => {
     const index = getStationIndex(station.name)
 
     if (!accumulator[index]) {
@@ -69,7 +88,7 @@ export function groupStationsByIndex(stations: Station[]): StationGroups {
   }, {})
 }
 
-export function sortStationIndexes(groups: StationGroups): string[] {
+export function sortStationIndexes(groups: PlaceGroups): string[] {
   return Object.keys(groups).sort((left, right) => {
     if (left === '#') return 1
     if (right === '#') return -1
@@ -92,9 +111,9 @@ export function getDistanceInKm(from: Coordinates, to: Coordinates): number {
 }
 
 export function sortStationsByDistance(
-  stations: Station[],
+  stations: PlaceSummary[],
   coordinates: Nullable<Coordinates>
-): Station[] {
+): PlaceSummary[] {
   if (!coordinates) {
     return stations
   }
@@ -111,27 +130,34 @@ export function sortStationsByDistance(
   })
 }
 
-export function getStopCandidates(routes: RouteWithStations[]): StopCandidate[] {
+export function getStopCandidates(routes: RouteWithStops[]): StopCandidate[] {
   return routes.flatMap(route =>
-    getVisibleStations(route).map((station, index) => ({
-      ...station,
-      routeId: route.id,
+    getVisibleStops(route).map((stop, index) => ({
+      googlePlaceId: stop.place.google_place_id,
+      name: stop.place.display_name ?? stop.place.name,
+      lat: stop.place.lat,
+      lng: stop.place.lng,
+      isTerminal: stop.place.is_terminal,
+      routeStopId: stop.id,
+      routeCode: route.route_code,
       routeLabel: getRouteLabel(route),
       stopOrder: index + 1,
-      google_maps_url: route.google_maps_url,
+      pickupTime: stop.pickup_time,
+      notes: stop.notes,
+      googleMapsUrl: route.google_maps_url,
     }))
   )
 }
 
 export function getSourceStop(
   allStops: StopCandidate[],
-  stationId: Nullable<string>
+  googlePlaceId: Nullable<string>
 ): Nullable<StopCandidate> {
-  if (!stationId) {
+  if (!googlePlaceId) {
     return null
   }
 
-  return allStops.find(stop => stop.id === stationId) ?? null
+  return allStops.find(stop => stop.googlePlaceId === googlePlaceId) ?? null
 }
 
 export function getMatchingStops(
@@ -142,5 +168,5 @@ export function getMatchingStops(
     return []
   }
 
-  return allStops.filter(stop => stop.name === sourceStop.name)
+  return allStops.filter(stop => stop.googlePlaceId === sourceStop.googlePlaceId)
 }

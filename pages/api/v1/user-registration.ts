@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import prisma from '../../../lib/prisma'
+import { withPrismaRetry } from '../../../lib/prismaRetry'
 import type {
   RegisteredUserResponse,
   RegistrationWithRelations,
@@ -24,7 +25,8 @@ export default async function handler(
       return
     }
 
-    const identity = await prisma.userIdentity.findUnique({
+    const identity = await withPrismaRetry(() =>
+      prisma.userIdentity.findUnique({
       where: { provider_provider_uid: { provider, provider_uid } },
       include: {
         user: {
@@ -32,14 +34,28 @@ export default async function handler(
             registrations: {
               where: { status: 'active' },
               include: {
-                route: { include: { stations: { orderBy: { sequence: 'asc' } } } },
-                station: true,
+                route: {
+                  include: {
+                    stops: {
+                      orderBy: { sequence: 'asc' },
+                      include: {
+                        place: true,
+                      },
+                    },
+                  },
+                },
+                route_stop: {
+                  include: {
+                    place: true,
+                  },
+                },
               },
             },
           },
         },
       },
-    })
+      })
+    )
 
     if (!identity) {
       res.status(200).json({ registered: false })
@@ -61,43 +77,87 @@ export default async function handler(
       provider_uid,
       display_name,
       picture_url,
-      route_id,
-      station_id,
+      route_code,
+      route_stop_id,
     } = req.body as UserRegistrationRequest
 
-    if (!provider_uid || !route_id || !station_id) {
-      res.status(400).json({ error: 'provider_uid, route_id, station_id required' })
+    if (!provider_uid || !route_code || !route_stop_id) {
+      res.status(400).json({ error: 'provider_uid, route_code, route_stop_id required' })
       return
     }
 
-    const identity = await prisma.userIdentity.findUnique({
+    const identity = await withPrismaRetry(() =>
+      prisma.userIdentity.findUnique({
       where: { provider_provider_uid: { provider, provider_uid } },
       include: { user: true },
-    })
+      })
+    )
 
     let userId: string
     if (!identity) {
-      const user = await prisma.user.create({
+      const user = await withPrismaRetry(() =>
+        prisma.user.create({
         data: {
           display_name,
           picture_url,
           identities: { create: { provider, provider_uid } },
         },
-      })
+        })
+      )
       userId = user.id
     } else {
       userId = identity.user_id
     }
 
-    const registration = (await prisma.userRegistration.upsert({
-      where: { user_id_route_id: { user_id: userId, route_id } },
-      update: { station_id, status: 'active' },
-      create: { user_id: userId, route_id, station_id },
+    const route = await withPrismaRetry(() =>
+      prisma.route.findUnique({
+      where: { route_code },
+      })
+    )
+
+    if (!route) {
+      res.status(404).json({ error: 'Route not found' })
+      return
+    }
+
+    const routeStop = await withPrismaRetry(() =>
+      prisma.routeStop.findUnique({
+      where: { id: route_stop_id },
       include: {
-        route: { include: { stations: { orderBy: { sequence: 'asc' } } } },
-        station: true,
+        place: true,
       },
-    })) as RegistrationWithRelations
+      })
+    )
+
+    if (!routeStop || routeStop.route_id !== route.id) {
+      res.status(400).json({ error: 'route_stop_id does not belong to route_code' })
+      return
+    }
+
+    const registration = (await withPrismaRetry(() =>
+      prisma.userRegistration.upsert({
+      where: { user_id_route_id: { user_id: userId, route_id: route.id } },
+      update: { route_stop_id, status: 'active' },
+      create: { user_id: userId, route_id: route.id, route_stop_id },
+      include: {
+        route: {
+          include: {
+            stops: {
+              orderBy: { sequence: 'asc' },
+              include: {
+                place: true,
+              },
+            },
+          },
+        },
+        route_stop: {
+          include: {
+            place: true,
+          },
+        },
+      },
+      })
+    )) as RegistrationWithRelations
 
     res.status(200).json({ registered: true, registration })
     return

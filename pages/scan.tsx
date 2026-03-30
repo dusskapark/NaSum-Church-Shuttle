@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { Button, Toast } from 'antd-mobile'
@@ -23,6 +23,7 @@ export default function ScanPage() {
   const [isScanning, setIsScanning] = useState(false)
   const [scanResult, setScanResult] = useState<string | null>(null)
   const [scanError, setScanError] = useState<string | null>(null)
+  const hasAutoStartedRef = useRef(false)
 
   const scannedUrl = useMemo(() => {
     if (!scanResult) return null
@@ -41,7 +42,7 @@ export default function ScanPage() {
     return copy.scan.availabilityReady
   }, [copy.scan.availabilityExternal, copy.scan.availabilityLoading, copy.scan.availabilityReady, isInClient, isReady, liffLoading])
 
-  async function handleScan(): Promise<void> {
+  const handleScan = useCallback(async (): Promise<void> => {
     setIsScanning(true)
     setScanError(null)
 
@@ -75,7 +76,7 @@ export default function ScanPage() {
     } finally {
       setIsScanning(false)
     }
-  }
+  }, [copy.scan.availabilityLineOnly, copy.scan.availabilityUnsupported, copy.scan.scanCancelled, copy.scan.scanFailed, isInClient])
 
   async function handleCopy(): Promise<void> {
     if (!scanResult) return
@@ -98,6 +99,14 @@ export default function ScanPage() {
 
     window.open(scannedUrl.toString(), '_blank', 'noopener,noreferrer')
   }
+
+  useEffect(() => {
+    if (hasAutoStartedRef.current) return
+    if (liffLoading || !isReady || !isInClient) return
+
+    hasAutoStartedRef.current = true
+    void handleScan()
+  }, [handleScan, isInClient, isReady, liffLoading])
 
   return (
     <>

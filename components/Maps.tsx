@@ -26,6 +26,15 @@ const DEFAULT_ZOOM = 13
 const FOCUSED_ZOOM = 14
 const CURRENT_LOCATION_ZOOM = 15
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
 function useCurrentLocationControl(
   map: google.maps.Map | null,
   setCenter: (center: Coordinate) => void,
@@ -172,35 +181,39 @@ export function ShuttleMap({
     // 스테이션 마커들
     ...stops
       .filter(stop => !stop.place.is_terminal)
-      .map(stop => ({
-        id: stop.id,
-        position: { lat: stop.place.lat, lng: stop.place.lng },
-        title: stop.place.display_name ?? stop.place.name,
-        content: `
-          <div style="padding: 8px;">
-            <strong>${stop.place.display_name ?? stop.place.name}</strong>
-          </div>
-        `,
-        icon: myStop?.id === stop.id ? {
+      .map(stop => {
+        const stopName = stop.place.display_name ?? stop.place.name
+
+        return {
+          id: stop.id,
+          position: { lat: stop.place.lat, lng: stop.place.lng },
+          title: stopName,
+          content: `
+            <div style="padding: 8px;">
+              <strong>${escapeHtml(stopName)}</strong>
+            </div>
+          `,
+          icon: myStop?.id === stop.id ? {
           // 내 스테이션 - 강조 마커
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#2563EB"/>
-              <circle cx="12" cy="9" r="2.5" fill="white"/>
-            </svg>
-          `)}`,
+            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#2563EB"/>
+                <circle cx="12" cy="9" r="2.5" fill="white"/>
+              </svg>
+            `)}`,
           // scaledSize와 anchor는 Google Maps API 로드 후 설정
-        } : {
+          } : {
           // 일반 스테이션 마커
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#64748B"/>
-              <circle cx="12" cy="9" r="2.5" fill="white"/>
-            </svg>
-          `)}`,
+            url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#64748B"/>
+                <circle cx="12" cy="9" r="2.5" fill="white"/>
+              </svg>
+            `)}`,
           // scaledSize와 anchor는 Google Maps API 로드 후 설정
-        },
-      }))
+          },
+        }
+      })
   ]
 
   const {
@@ -352,11 +365,7 @@ export function StationBrowserMap({
     title: place.name,
     content: `
       <div style="padding: 8px;">
-        <strong>${place.name}</strong><br>
-        <button onclick="window.selectStation('${place.googlePlaceId}')"
-                style="margin-top: 4px; padding: 4px 8px; background: #2563EB; color: white; border: none; border-radius: 4px; cursor: pointer;">
-          선택
-        </button>
+        <strong>${escapeHtml(place.name)}</strong>
       </div>
     `,
     icon: {
@@ -402,17 +411,6 @@ export function StationBrowserMap({
       onSelect?.(marker.id)
     },
   })
-
-  // 전역 함수로 스테이션 선택 핸들러 등록
-  useEffect(() => {
-    (window as any).selectStation = (stationId: string) => {
-      onSelect?.(stationId)
-    }
-
-    return () => {
-      delete (window as any).selectStation
-    }
-  }, [onSelect])
 
   // 스테이션들에 맞게 경계 조정
   useEffect(() => {
@@ -516,7 +514,7 @@ export function StopPreviewMap({
     title: stop.name || '정류장',
     content: `
       <div style="padding: 8px;">
-        <strong>${stop.name || '정류장'}</strong>
+        <strong>${escapeHtml(stop.name || '정류장')}</strong>
       </div>
     `,
     icon: {

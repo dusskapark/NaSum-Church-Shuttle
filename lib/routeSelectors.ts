@@ -20,6 +20,11 @@ type RouteSummary = {
 
 type PlaceGroups = Record<string, PlaceSummary[]>
 
+function getPlaceName(name?: string | null, displayName?: string | null): string {
+  const resolvedName = displayName?.trim() || name?.trim()
+  return resolvedName || 'Unnamed stop'
+}
+
 export function getRouteLabel(route: RouteSummary): string {
   if (route.display_name?.trim()) {
     return route.display_name.trim()
@@ -41,12 +46,16 @@ export function getUniqueStations(routes: RouteWithStops[]): PlaceSummary[] {
     routes
       .flatMap(route => getVisibleStops(route))
       .reduce<Map<string, PlaceSummary>>((accumulator, stop) => {
-        const googlePlaceId = stop.place.google_place_id
+        const googlePlaceId = stop.place.google_place_id?.trim()
+
+        if (!googlePlaceId) {
+          return accumulator
+        }
 
         if (!accumulator.has(googlePlaceId)) {
           accumulator.set(googlePlaceId, {
             googlePlaceId,
-            name: stop.place.display_name ?? stop.place.name,
+            name: getPlaceName(stop.place.name, stop.place.display_name),
             lat: stop.place.lat,
             lng: stop.place.lng,
             isTerminal: stop.place.is_terminal,
@@ -132,20 +141,28 @@ export function sortStationsByDistance(
 
 export function getStopCandidates(routes: RouteWithStops[]): StopCandidate[] {
   return routes.flatMap(route =>
-    getVisibleStops(route).map((stop, index) => ({
-      googlePlaceId: stop.place.google_place_id,
-      name: stop.place.display_name ?? stop.place.name,
-      lat: stop.place.lat,
-      lng: stop.place.lng,
-      isTerminal: stop.place.is_terminal,
-      routeStopId: stop.id,
-      routeCode: route.route_code,
-      routeLabel: getRouteLabel(route),
-      stopOrder: index + 1,
-      pickupTime: stop.pickup_time,
-      notes: stop.notes,
-      googleMapsUrl: route.google_maps_url,
-    }))
+    getVisibleStops(route).flatMap((stop, index) => {
+      const googlePlaceId = stop.place.google_place_id?.trim()
+
+      if (!googlePlaceId) {
+        return []
+      }
+
+      return [{
+        googlePlaceId,
+        name: getPlaceName(stop.place.name, stop.place.display_name),
+        lat: stop.place.lat,
+        lng: stop.place.lng,
+        isTerminal: stop.place.is_terminal,
+        routeStopId: stop.id,
+        routeCode: route.route_code,
+        routeLabel: getRouteLabel(route),
+        stopOrder: index + 1,
+        pickupTime: stop.pickup_time,
+        notes: stop.notes,
+        googleMapsUrl: route.google_maps_url,
+      }]
+    })
   )
 }
 

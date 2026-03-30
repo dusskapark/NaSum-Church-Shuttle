@@ -93,7 +93,7 @@ export default function ShuttleHome() {
   }
 
   const handleStopDetails = (googlePlaceId: string) => {
-    window.open(`/stops?placeId=${googlePlaceId}`, '_blank')
+    window.open(`/stops?placeId=${encodeURIComponent(googlePlaceId)}`, '_blank')
   }
 
   return (

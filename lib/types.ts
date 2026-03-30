@@ -168,6 +168,8 @@ export interface UserRegistrationRequest {
 }
 
 export interface StopCandidate extends Station {
+  lat: number
+  lng: number
   routeId: string
   routeLabel: string
   stopOrder: number

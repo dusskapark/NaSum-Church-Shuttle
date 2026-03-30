@@ -2,6 +2,7 @@
  * 도로 경로를 가져오기 위한 routing 유틸리티
  * OpenRouteService API를 사용합니다 (무료)
  */
+import { logWarn } from './logger'
 
 interface Coordinate {
   lng: number
@@ -36,7 +37,7 @@ export async function getRouteCoordinates(
     )
 
     if (!response.ok) {
-      console.warn('OSRM routing API failed, falling back to straight line')
+      logWarn('OSRM routing API failed, falling back to a straight line.')
       return [[start.lng, start.lat], [end.lng, end.lat]]
     }
 
@@ -48,7 +49,7 @@ export async function getRouteCoordinates(
 
     return [[start.lng, start.lat], [end.lng, end.lat]]
   } catch (error) {
-    console.warn('Failed to fetch route:', error)
+    logWarn('Failed to fetch route.', error)
     // 실패 시 직선으로 fallback
     return [[start.lng, start.lat], [end.lng, end.lat]]
   }

@@ -1,4 +1,5 @@
 import { createContext, createElement, useContext, useEffect, useState, type ReactNode } from 'react'
+import { logError } from '../lib/logger'
 import type { LiffUser, Nullable } from '../lib/types'
 
 /**
@@ -164,7 +165,7 @@ function useProvideLiff(): UseLiffResult {
         setError(err)
         setDebugInfo(logs.join('\n'))
 
-        console.error('LIFF Error:', err)
+        logError('LIFF Error:', err)
 
         // 에러 발생 시 Guest 사용자 제공
         logs.push('🔄 Guest 사용자로 계속...')

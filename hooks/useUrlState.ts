@@ -1,4 +1,5 @@
 import { useRouter } from 'next/router'
+import { logDebug, logError } from '../lib/logger'
 
 interface UrlStateOptions<T> {
   key: string
@@ -49,12 +50,12 @@ export function useUrlState<T extends string | number | boolean | null>(
     })
     const newUrl = `${router.pathname}${params.toString() ? '?' + params.toString() : ''}`
 
-    console.log(`🔗 URL Update [${key}]:`, { newValue, newUrl })
+    logDebug(`URL Update [${key}]`, { newValue, newUrl })
 
     void router.push(newUrl, undefined, { shallow: false }).then(() => {
-      console.log('✅ URL updated successfully')
+      logDebug(`URL updated successfully [${key}]`)
     }).catch((error) => {
-      console.error('❌ URL update failed:', error)
+      logError(`URL update failed [${key}]`, error)
     })
   }
 
@@ -76,7 +77,7 @@ export function useHomeUrlState() {
   })
 
   const selectRouteAndStation = (routeId: string | null, stationId: string | null) => {
-    console.log('🚌 Route/Station Update:', { routeId, stationId })
+    logDebug('Route/Station Update', { routeId, stationId })
     setSelectedRoute(routeId)
     setSelectedStation(stationId)
   }

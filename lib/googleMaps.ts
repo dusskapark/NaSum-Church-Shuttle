@@ -4,6 +4,7 @@
  */
 
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader'
+import { logError } from './logger'
 
 interface Coordinate {
   lng: number
@@ -83,7 +84,7 @@ export async function initializeGoogleMaps(config?: Partial<GoogleMapsConfig>): 
     await initializationPromise
   } catch (error) {
     initializationPromise = null
-    console.error('Google Maps API 초기화 실패:', error)
+    logError('Google Maps API initialization failed:', error)
     throw error
   }
 }

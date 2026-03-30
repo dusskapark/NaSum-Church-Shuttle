@@ -1,4 +1,5 @@
 import { Toast } from 'antd-mobile'
+import { logDebug, logError, logWarn } from './logger'
 
 interface ErrorInfo {
   message: string
@@ -30,12 +31,12 @@ Stack: ${error.stack || 'No stack trace'}
 
 function logErrorQuietly(error: ErrorInfo) {
   // 조용히 로그만 남기고 에러 큐에 저장
-  console.error('🚨 Global Error:', error)
+  logError('Global Error:', error)
 
   // 개발 환경에서만 간단한 알림 (프로덕션에서는 조용히)
   if (process.env.NODE_ENV === 'development') {
     // 작은 알림만 표시 (덜 방해가 되도록)
-    console.warn(`⚠️ Error logged: ${error.message}`)
+    logWarn(`Error logged: ${error.message}`)
   }
 }
 
@@ -112,7 +113,7 @@ export function initGlobalErrorHandler() {
     }
   }, true)
 
-  console.log('✅ Global error handler initialized')
+  logDebug('Global error handler initialized')
 }
 
 export function getErrorQueue(): ErrorInfo[] {

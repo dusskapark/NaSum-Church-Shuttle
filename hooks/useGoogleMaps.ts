@@ -4,6 +4,7 @@
  */
 
 import { useRef, useEffect, useState, useCallback } from 'react'
+import { logError } from '../lib/logger'
 import {
   createGoogleMap,
   applyDarkMode,
@@ -82,7 +83,7 @@ export function useGoogleMaps(props: UseGoogleMapsProps = {}): UseGoogleMapsRetu
         setMap(mapInstance)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Google Maps 로드 실패')
-        console.error('Google Maps 초기화 실패:', err)
+        logError('Google Maps initialization failed:', err)
       } finally {
         setIsLoading(false)
       }

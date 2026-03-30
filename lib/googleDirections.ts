@@ -5,6 +5,7 @@
 
 import type { Coordinate } from './googleMaps'
 import { initializeGoogleMaps } from './googleMaps'
+import { logError, logInfo, logWarn } from './logger'
 
 let hasWarnedRoutesApiDisabled = false
 let hasWarnedRoutesPermissionDenied = false
@@ -46,7 +47,7 @@ export async function getGoogleDirectionsRoute(
   if (!isGoogleRoutesApiEnabled()) {
     if (!hasWarnedRoutesApiDisabled) {
       hasWarnedRoutesApiDisabled = true
-      console.info(
+      logInfo(
         'Google Routes API is disabled. Set NEXT_PUBLIC_GOOGLE_ROUTES_API_ENABLED=true after enabling routes.googleapis.com to use road routing.'
       )
     }
@@ -59,7 +60,7 @@ export async function getGoogleDirectionsRoute(
     const routeApi = routesLibrary?.Route
 
     if (!routeApi?.computeRoutes) {
-      console.warn('Google Routes API가 아직 로드되지 않았습니다. 직선으로 fallback합니다.')
+      logWarn('Google Routes API is not loaded yet. Falling back to a straight line.')
       return fallbackRoute
     }
 
@@ -87,14 +88,14 @@ export async function getGoogleDirectionsRoute(
     if (isPermissionDeniedError(error)) {
       if (!hasWarnedRoutesPermissionDenied) {
         hasWarnedRoutesPermissionDenied = true
-        console.warn(
+        logWarn(
           'Google Routes API 권한이 없어 직선 경로로 fallback합니다. GCP에서 Routes API를 활성화하고 Maps JavaScript API 키 제한을 확인하세요.'
         )
       }
       return fallbackRoute
     }
 
-    console.warn('Google Routes API 실패, 직선으로 fallback:', error)
+    logWarn('Google Routes API failed, falling back to a straight line.', error)
     return fallbackRoute
   }
 }
@@ -126,7 +127,7 @@ export async function createGoogleDirections(
     return routePoints
 
   } catch (error) {
-    console.error('Google Routes API로 루트 생성 실패:', error)
+    logError('Google Routes API route generation failed:', error)
 
     // 실패 시 간단한 직선 연결로 fallback
     return createStraightLineRoute([...stations, finalDestination])

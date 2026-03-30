@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import { Toast } from 'antd-mobile'
+import { logError } from '../lib/logger'
 
 interface ErrorBoundaryState {
   hasError: boolean
@@ -34,7 +35,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       userAgent: navigator.userAgent
     }
 
-    console.error('🚨 React Error Boundary:', errorDetails)
+    logError('React Error Boundary:', errorDetails)
 
     // Toast로 에러 표시
     const shortMessage = error.message.length > 80
@@ -64,7 +65,7 @@ UserAgent: ${errorDetails.userAgent}
         navigator.clipboard.writeText(fullError).then(() => {
           Toast.show({ content: 'React 에러 정보 복사됨!', icon: 'success', duration: 2000 })
         }).catch(() => {
-          console.error('Copy failed')
+          logError('Copy failed')
         })
       }, 2000)
     }

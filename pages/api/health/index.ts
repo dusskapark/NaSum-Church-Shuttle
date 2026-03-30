@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import prisma from '../../../lib/prisma'
+import { logError } from '../../../lib/logger'
 
 interface HealthResponse {
   status: 'ok' | 'error'
@@ -22,7 +23,7 @@ export default async function handler(
     })
   } catch (caughtError) {
     const errorMessage = caughtError instanceof Error ? caughtError.message : 'Unknown error'
-    console.error('DB connection error:', caughtError)
+    logError('DB connection error:', caughtError)
     res.status(500).json({
       status: 'error',
       database: 'disconnected',

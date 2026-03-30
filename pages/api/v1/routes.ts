@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { logError } from '../../../lib/logger'
 import prisma from '../../../lib/prisma'
 import { withPrismaRetry } from '../../../lib/prismaRetry'
 import type { RoutePathPoint, RouteWithStops, RoutesResponse } from '../../../lib/types'
@@ -58,7 +59,7 @@ export default async function handler(
 
     res.status(200).json(response as RoutesResponse)
   } catch (error) {
-    console.error('Failed to load routes:', error)
+    logError('Failed to load routes:', error)
     res.status(500).json({ error: 'Failed to load routes' })
   }
 }

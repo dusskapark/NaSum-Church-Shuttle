@@ -1,5 +1,6 @@
 import { Toast } from 'antd-mobile'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import useSWR from 'swr'
 import type { Nullable, RoutesResponse } from '../lib/types'
 
 interface UseRoutesResult {
@@ -8,49 +9,36 @@ interface UseRoutesResult {
   error: Nullable<unknown>
 }
 
+const ROUTES_ENDPOINT = '/api/v1/routes'
+
+const fetchRoutes = async (url: string): Promise<RoutesResponse> => {
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error('Failed to load routes')
+  }
+
+  return (await response.json()) as RoutesResponse
+}
+
 export function useRoutes(routeLoadErrorMessage?: string): UseRoutesResult {
-  const [routes, setRoutes] = useState<RoutesResponse>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Nullable<unknown>>(null)
+  const { data, error, isLoading } = useSWR<RoutesResponse>(ROUTES_ENDPOINT, fetchRoutes, {
+    dedupingInterval: 300000,
+    revalidateOnFocus: false,
+    keepPreviousData: true,
+    errorRetryCount: 2,
+    errorRetryInterval: 2000,
+  })
 
   useEffect(() => {
-    let cancelled = false
-
-    setLoading(true)
-    setError(null)
-
-    void (async () => {
-      try {
-        const response = await fetch('/api/v1/routes')
-
-        if (!response.ok) {
-          throw new Error('Failed to load routes')
-        }
-
-        const data = (await response.json()) as RoutesResponse
-
-        if (!cancelled) {
-          setRoutes(data)
-        }
-      } catch (caughtError) {
-        if (!cancelled) {
-          setError(caughtError)
-
-          if (routeLoadErrorMessage) {
-            Toast.show({ content: routeLoadErrorMessage, icon: 'fail' })
-          }
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    })()
-
-    return () => {
-      cancelled = true
+    if (error && routeLoadErrorMessage) {
+      Toast.show({ content: routeLoadErrorMessage, icon: 'fail' })
     }
-  }, [routeLoadErrorMessage])
+  }, [error, routeLoadErrorMessage])
 
-  return { routes, loading, error }
+  return {
+    routes: data ?? [],
+    loading: isLoading,
+    error: error ?? null,
+  }
 }

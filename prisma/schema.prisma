@@ -29,46 +29,51 @@ model UserIdentity {
 }
 
 model Route {
-  id              String             @id @default(cuid())
-  route_code      String             @unique
-  name            String
-  display_name    String?
-  line            String
-  service         String
-  direction       String             @default("to_church")
-  revision        String
-  google_maps_url String?
+  id                       String             @id @default(cuid())
+  route_code               String             @unique
+  name                     String
+  display_name             String?
+  line                     String
+  service                  String
+  direction                String             @default("to_church")
+  revision                 String
+  google_maps_url          String?
   resolved_google_maps_url String?
-  sync_status     String             @default("pending")
-  sync_source_hash String?
-  stops_snapshot_hash String?
-  last_synced_at  DateTime?
-  sync_error      String?
-  path_json       Json?
-  path_cache_status String           @default("missing")
-  path_cache_updated_at DateTime?
-  path_cache_expires_at DateTime?
-  path_cache_error String?
-  active          Boolean            @default(true)
-  stops           RouteStop[]
-  runs            ShuttleRun[]
-  registrations   UserRegistration[]
+  sync_status              String             @default("pending")
+  sync_source_hash         String?
+  stops_snapshot_hash      String?
+  last_synced_at           DateTime?
+  sync_error               String?
+  path_json                Json?
+  path_cache_status        String             @default("missing")
+  path_cache_updated_at    DateTime?
+  path_cache_expires_at    DateTime?
+  path_cache_error         String?
+  active                   Boolean            @default(true)
+  stops                    RouteStop[]
+  runs                     ShuttleRun[]
+  registrations            UserRegistration[]
+
+  @@index([active])
+  @@index([line, service, revision])
 }
 
 model Place {
-  id            String             @id @default(cuid())
-  google_place_id String           @unique
-  name          String
-  display_name  String?
-  address       String?
-  lat           Float
-  lng           Float
-  place_types   String[]
-  notes         String?
-  is_terminal   Boolean            @default(false)
-  route_stops   RouteStop[]
+  id              String    @id @default(cuid())
+  google_place_id String    @unique
+  name            String
+  display_name    String?
+  address         String?
+  lat             Float
+  lng             Float
+  place_types     String[]
+  notes           String?
+  is_terminal     Boolean   @default(false)
+  route_stops     RouteStop[]
 
   @@index([google_place_id])
+  @@index([lat, lng])
+  @@index([is_terminal])
 }
 
 model RouteStop {
@@ -86,17 +91,20 @@ model RouteStop {
 
   @@unique([route_id, sequence])
   @@unique([route_id, place_id])
+  @@index([route_id, sequence])
+  @@index([place_id])
+  @@index([is_pickup_enabled])
 }
 
 model UserRegistration {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   user_id       String
   route_id      String
   route_stop_id String
-  registered_at DateTime @default(now())
-  status        String   @default("active")
-  user          User     @relation(fields: [user_id], references: [id])
-  route         Route    @relation(fields: [route_id], references: [id])
+  registered_at DateTime  @default(now())
+  status        String    @default("active")
+  user          User      @relation(fields: [user_id], references: [id])
+  route         Route     @relation(fields: [route_id], references: [id])
   route_stop    RouteStop @relation(fields: [route_stop_id], references: [id])
 
   @@unique([user_id, route_id])

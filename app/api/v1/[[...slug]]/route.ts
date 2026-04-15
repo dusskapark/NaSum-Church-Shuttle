@@ -133,6 +133,7 @@ async function handleAuthSession(request: NextRequest) {
     userId: actor.userId,
     displayName: actor.displayName,
     pictureUrl: actor.pictureUrl,
+    statusMessage: actor.statusMessage,
     email: actor.email,
     phone: null,
     role: actor.role,

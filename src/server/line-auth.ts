@@ -60,9 +60,17 @@ export async function upsertLineIdentity({
   profile?: {
     displayName?: string | null;
     pictureUrl?: string | null;
+    statusMessage?: string | null;
   } | null;
   verified: VerifyIdTokenResponse;
-}): Promise<SessionActor & { displayName: string; email: string | null; pictureUrl: string | null }> {
+}): Promise<
+  SessionActor & {
+    displayName: string;
+    email: string | null;
+    pictureUrl: string | null;
+    statusMessage: string | null;
+  }
+> {
   const provider = 'line';
   const providerUid = verified.sub!;
   const displayName =
@@ -70,6 +78,7 @@ export async function upsertLineIdentity({
     verified.name ??
     (verified.email ? titleizeEmailPrefix(verified.email) : 'LINE User');
   const pictureUrl = profile?.pictureUrl ?? verified.picture ?? null;
+  const statusMessage = profile?.statusMessage ?? null;
   const email = verified.email ?? null;
 
   const identity = await queryOne<{ user_id: string; role: SessionActor['role'] }>(
@@ -105,5 +114,13 @@ export async function upsertLineIdentity({
     );
   }
 
-  return { userId, providerUid, role, displayName, email, pictureUrl };
+  return {
+    userId,
+    providerUid,
+    role,
+    displayName,
+    email,
+    pictureUrl,
+    statusMessage,
+  };
 }

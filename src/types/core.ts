@@ -11,6 +11,7 @@ export interface GrabUser {
   userId: string;
   displayName: string;
   pictureUrl: Nullable<string>;
+  statusMessage: Nullable<string>;
   email: Nullable<string>;
   phone: Nullable<string>;
   role: UserRole;

@@ -42,6 +42,7 @@ export interface StoredAuth {
   userId: string;
   displayName: string;
   pictureUrl: string | null;
+  statusMessage: string | null;
   email: string | null;
   phone: string | null;
   role: UserRole;
@@ -82,6 +83,7 @@ function toGrabUser(auth: StoredAuth): GrabUser {
     userId: auth.userId,
     displayName: auth.displayName,
     pictureUrl: auth.pictureUrl,
+    statusMessage: auth.statusMessage,
     email: auth.email,
     phone: auth.phone,
     role: auth.role,
@@ -117,6 +119,7 @@ function useProvideGrabUser(): UseGrabUserResult {
           userId: 'dev-user-001',
           displayName: 'Developer (admin)',
           pictureUrl: null,
+          statusMessage: 'Local development bypass',
           email: 'dev@example.com',
           phone: null,
           role: 'admin',

@@ -105,19 +105,7 @@ export default function SettingsPage() {
                 />
               }
             >
-              {t('settings.email')}
-            </List.Item>
-            <List.Item
-              clickable={false}
-              extra={
-                <Skeleton.Paragraph
-                  lineCount={1}
-                  animated
-                  style={{ width: 120, marginBlock: 0 }}
-                />
-              }
-            >
-              {t('settings.phone')}
+              {t('settings.statusMessage')}
             </List.Item>
           </>
         ) : (
@@ -144,7 +132,7 @@ export default function SettingsPage() {
                       fontWeight: 600,
                     }}
                   >
-                    {(user?.displayName ?? user?.email ?? '?')
+                    {(user?.displayName ?? '?')
                       .charAt(0)
                       .toUpperCase()}
                   </div>
@@ -197,21 +185,11 @@ export default function SettingsPage() {
               clickable={false}
               extra={
                 <span style={{ color: 'var(--app-color-subtle-text)' }}>
-                  {user?.email ?? '-'}
+                  {user?.statusMessage ?? '-'}
                 </span>
               }
             >
-              {t('settings.email')}
-            </List.Item>
-            <List.Item
-              clickable={false}
-              extra={
-                <span style={{ color: 'var(--app-color-subtle-text)' }}>
-                  {user?.phone ?? '-'}
-                </span>
-              }
-            >
-              {t('settings.phone')}
+              {t('settings.statusMessage')}
             </List.Item>
           </>
         )}

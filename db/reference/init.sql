@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS users (
   role         TEXT NOT NULL DEFAULT 'rider',
   email        TEXT,
   phone        TEXT,
+  push_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  preferred_language TEXT NOT NULL DEFAULT 'ko' CHECK (preferred_language IN ('ko', 'en')),
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

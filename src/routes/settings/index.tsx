@@ -322,6 +322,7 @@ export default function SettingsPage() {
 
           if (nextLanguage === 'en' || nextLanguage === 'ko') {
             setLang(nextLanguage as AppLanguage);
+            prefMutation.mutate({ preferred_language: nextLanguage });
           }
         }}
       />

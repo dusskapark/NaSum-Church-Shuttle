@@ -1,0 +1,43 @@
+{
+  "name": "nasum-church-shuttle",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.11.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "db:up": "docker compose up -d postgres",
+    "db:seed:dump": "bash scripts/seed-local-db.sh",
+    "db:dump:reference": "bash scripts/dump-reference-db.sh",
+    "db:prepare:neon": "bash scripts/prepare-neon-import.sh"
+  },
+  "dependencies": {
+    "@line/liff": "^2.27.2",
+    "@tanstack/react-query": "^5.97.0",
+    "@tanstack/react-query-devtools": "^5.97.0",
+    "@vis.gl/react-google-maps": "^1.5.4",
+    "antd-mobile": "^5.42.3",
+    "antd-mobile-icons": "^0.3.0",
+    "i18n-js": "4.5.3",
+    "jose": "^5.9.6",
+    "next": "^15.3.1",
+    "pg": "^8.13.3",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/pg": "^8.11.11",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "eruda": "^3.4.3",
+    "typescript": "^5.8.3"
+  }
+}

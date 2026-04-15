@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nasum-church-shuttle-db
+    environment:
+      POSTGRES_DB: nasum_shuttle
+      POSTGRES_USER: shuttle
+      POSTGRES_PASSWORD: shuttle
+    ports:
+      - '5434:5432'
+    volumes:
+      - nasum_shuttle_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U shuttle -d nasum_shuttle']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  nasum_shuttle_data:

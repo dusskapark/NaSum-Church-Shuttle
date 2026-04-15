@@ -1,0 +1,130 @@
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  background: var(--adm-color-background);
+  color: var(--adm-color-text);
+  /* Prevent zoom when keyboard appears */
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Improve layout stability when keyboard appears on iOS Safari */
+html {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+:root {
+  /* Color Variables */
+  --app-color-title: var(--adm-color-text);
+  --app-color-text: var(--adm-color-text);
+  --app-color-subtle-text: var(--adm-color-weak);
+  --app-color-secondary-text: var(--adm-color-light);
+  --app-color-border: var(--adm-color-border);
+  --app-color-surface: var(--adm-color-box);
+  --app-color-surface-muted: color-mix(in srgb, var(--adm-color-box) 92%, var(--adm-color-background));
+  --app-color-link: var(--adm-color-primary);
+  --app-shadow-raised: 0 12px 28px color-mix(in srgb, var(--adm-color-text) 8%, transparent);
+  --app-shadow-toolbar: 0 -8px 24px color-mix(in srgb, var(--adm-color-text) 12%, transparent);
+  --app-map-marker-primary: var(--adm-color-primary);
+  --app-map-marker-muted: var(--adm-color-light);
+  --app-map-marker-danger: var(--adm-color-danger);
+  --app-map-marker-active: color-mix(in srgb, var(--adm-color-primary) 82%, var(--adm-color-background));
+  --app-map-overlay: color-mix(in srgb, var(--app-color-surface) 92%, transparent);
+
+  /* Layout Constants */
+  --app-tab-bar-height: 64px;
+
+  /* Content Area Heights */
+  --app-content-height: calc(100dvh - var(--app-tab-bar-height));
+  --app-content-with-nav: calc(var(--app-content-height) - 56px);
+  --app-content-with-search: calc(var(--app-content-with-nav) - 100px);
+
+  /* Z-Index Scale */
+  --z-content: 1;
+  --z-sticky: 10;
+  --z-overlay: 20;
+  --z-modal: 30;
+  --z-tabbar: 40;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Apply outline to the scan tab (3rd) only */
+.adm-tab-bar-item:nth-child(3) {
+  border: 1.5px solid var(--app-color-border);
+  border-radius: 8px;
+  margin: 4px;
+}
+
+/* Prevent zoom on input fields */
+input[type="search"],
+input[type="text"],
+textarea {
+  font-size: 16px !important;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* List.Item root name ellipsis */
+.adm-list-item-content-main {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Prevent zoom on antd-mobile SearchBar */
+.adm-search-bar-input-box input {
+  font-size: 16px !important;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Map skeleton dark mode: override antd-mobile's hardcoded shimmer colors */
+html[data-prefers-color-scheme=dark] .adm-skeleton.adm-skeleton-animated {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.09) 37%,
+    rgba(255, 255, 255, 0.04) 63%
+  );
+  background-size: 400% 100%;
+}
+
+/* Map tiles dark mode: invert canvas, counter-invert markers to preserve colors */
+html[data-prefers-color-scheme=dark] .mapboxgl-map canvas {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85);
+}
+
+html[data-prefers-color-scheme=dark] .mapboxgl-marker {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Fix: antd-mobile Picker/PickerView columns use use-gesture for drag scrolling.
+   Without touch-action: none, mobile webviews intercept touch events and the
+   picker wheel cannot be scrolled on touch devices (e.g. Grab SuperApp). */
+.adm-picker-column-wheel,
+.adm-picker-view-column-wheel {
+  touch-action: none;
+}

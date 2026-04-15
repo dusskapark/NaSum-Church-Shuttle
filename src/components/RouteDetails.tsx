@@ -13,6 +13,14 @@ import type {
   StopBoardingState,
 } from '@app-types/core';
 
+function formatBoardedCountLabel(template: string, count: number): string {
+  const value = String(count);
+  return template
+    .replace(/%\{count\}/g, value)
+    .replace(/\{count\}/g, value)
+    .replace(/%1/g, value);
+}
+
 interface RouteStepperProps {
   stops?: RouteStopWithPlace[];
   myRouteStopId?: Nullable<string>;
@@ -29,6 +37,7 @@ interface RouteStepperProps {
 function RouteStepper({
   stops = [],
   myRouteStopId = null,
+  selectedRouteStopId = null,
   stopStates,
   arrivedLabel = 'Arrived',
   waitingLabel = 'Waiting',
@@ -76,6 +85,7 @@ function RouteStepper({
         const boardingState = stateMap.get(stop.id);
         const isArrived = boardingState?.status === 'arrived';
         const isMyStop = stop.id === myRouteStopId;
+        const isSelected = stop.id === selectedRouteStopId;
 
         let stepStatus: 'finish' | 'process' | 'wait' | undefined;
         let icon: React.ReactNode | undefined;
@@ -103,9 +113,9 @@ function RouteStepper({
           undefined;
 
         const countStr = boardedCountLabel
-          ? boardedCountLabel.replace(
-              '{count}',
-              String(boardingState?.total_passengers ?? 0),
+          ? formatBoardedCountLabel(
+              boardedCountLabel,
+              boardingState?.total_passengers ?? 0,
             )
           : String(boardingState?.total_passengers ?? 0);
         const boardingInfo = boardingState
@@ -133,8 +143,20 @@ function RouteStepper({
                   onClick={() => onStopSelect?.(stop.id)}
                   style={{
                     cursor: onStopSelect ? 'pointer' : undefined,
-                    color: isMyStop ? 'var(--adm-color-info)' : undefined,
-                    fontWeight: isMyStop ? 600 : undefined,
+                    color: isSelected
+                      ? 'var(--adm-color-primary)'
+                      : isMyStop
+                        ? 'var(--adm-color-info)'
+                        : undefined,
+                    fontWeight: isSelected || isMyStop ? 700 : undefined,
+                    background: isSelected
+                      ? 'color-mix(in srgb, var(--adm-color-primary) 12%, transparent)'
+                      : undefined,
+                    border: isSelected
+                      ? '1px solid color-mix(in srgb, var(--adm-color-primary) 45%, transparent)'
+                      : undefined,
+                    borderRadius: isSelected ? 8 : undefined,
+                    padding: isSelected ? '2px 8px' : undefined,
                     flex: 1,
                   }}
                 >
@@ -252,14 +274,12 @@ export default function HomeRouteDetail({
               </span>
               {boardedCountLabel && (
                 <span style={{ color: 'var(--app-color-secondary-text)' }}>
-                  {boardedCountLabel.replace(
-                    '{count}',
-                    String(
-                      stopStates?.reduce(
-                        (sum, s) => sum + s.total_passengers,
-                        0,
-                      ) ?? 0,
-                    ),
+                  {formatBoardedCountLabel(
+                    boardedCountLabel,
+                    stopStates?.reduce(
+                      (sum, s) => sum + s.total_passengers,
+                      0,
+                    ) ?? 0,
                   )}
                 </span>
               )}

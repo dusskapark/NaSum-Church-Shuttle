@@ -6,11 +6,11 @@ import type { CheckListValue } from 'antd-mobile/es/components/check-list';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Layout from '../../components/Layout';
 import { useRoutes } from '../../hooks/useRoutes';
-import { useGrabUser } from '../../hooks/useGrabUser';
+import { useLineUser } from '../../hooks/useLineUser';
 import { useContainer } from '../../hooks/useContainer';
 import { useTranslation } from '../../lib/useTranslation';
 import { mutateApi } from '../../lib/queries';
-import { SystemWebViewKitModule } from '@grabjs/superapp-sdk';
+import { SystemWebViewKitModule } from '@/shims/superapp-sdk';
 import {
   getMatchingStops,
   getSourceStop,
@@ -31,7 +31,7 @@ export default function StopDetailPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const placeId = searchParams.get('placeId');
-  const { user, loading: grabLoading } = useGrabUser();
+  const { user, loading: lineLoading } = useLineUser();
   const t = useTranslation();
   const { routes, loading: routesLoading } = useRoutes(
     t('common.routeLoadError'),
@@ -259,7 +259,7 @@ export default function StopDetailPage() {
           size="large"
           color="primary"
           style={{ borderRadius: 999 }}
-          disabled={!selectedStop || grabLoading}
+          disabled={!selectedStop || lineLoading}
           loading={registerMutation.isPending}
           onClick={handleRegister}
         >

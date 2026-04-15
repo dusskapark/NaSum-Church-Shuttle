@@ -2,7 +2,7 @@ import {
   AUTH_STORAGE_KEY,
   clearStoredAuth,
   type StoredAuth,
-} from '../hooks/useGrabUser';
+} from '../hooks/useLineUser';
 import { logWarn } from './logger';
 
 function getIdToken(): string | null {

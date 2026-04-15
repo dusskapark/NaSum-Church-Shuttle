@@ -317,17 +317,23 @@ export default function AdminScheduleRouteDetailPage() {
   const handleSaveStop = useCallback(
     (values: StopEditValues) => {
       if (!editingStop || !scheduleId || !routeId) return;
+      const body: Record<string, unknown> = {
+        notes: values.notes.trim() || null,
+        is_pickup_enabled: values.isPickupEnabled,
+        display_name: values.displayName?.trim() || null,
+        is_terminal: values.isTerminal,
+        google_place_id: values.googlePlaceId.trim() || null,
+        stop_id: values.stopId.trim() || null,
+      };
+
+      const trimmedPickupTime = values.pickupTime.trim();
+      if (trimmedPickupTime.length > 0) {
+        body.pickup_time = trimmedPickupTime;
+      }
+
       saveStopMutation.mutate({
         sequence: editingStop.sequence,
-        body: {
-          pickup_time: values.pickupTime || null,
-          notes: values.notes.trim() || null,
-          is_pickup_enabled: values.isPickupEnabled,
-          display_name: values.displayName?.trim() || null,
-          is_terminal: values.isTerminal,
-          google_place_id: values.googlePlaceId.trim() || null,
-          stop_id: values.stopId.trim() || null,
-        },
+        body,
       });
     },
     [editingStop, scheduleId, routeId, saveStopMutation],

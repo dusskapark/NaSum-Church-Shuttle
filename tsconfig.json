@@ -28,9 +28,6 @@
       "@app-types/*": [
         "./src/types/*"
       ],
-      "@grabjs/superapp-sdk": [
-        "./src/shims/superapp-sdk.ts"
-      ],
       "@components/*": [
         "./src/components/*"
       ],

@@ -63,11 +63,11 @@ const ko = {
     description: '셔틀버스 QR 코드를 스캔하여 탑승을 확인하세요.',
     availabilityReady: '이 기기에서 QR 스캔을 사용할 수 있습니다.',
     availabilityLoading: '기기 지원 여부를 확인하고 있습니다...',
-    availabilityLineOnly: 'QR 스캔은 Grab 앱 내부에서만 사용할 수 있습니다.',
+    availabilityLineOnly: 'QR 스캔은 LINE 앱 내부에서만 사용할 수 있습니다.',
     availabilityUnsupported:
       '카메라 권한이 필요합니다. 기기 설정에서 카메라 접근을 허용해 주세요.',
     availabilityExternal:
-      'QR 스캐너를 사용하려면 Grab 앱에서 이 페이지를 열어 주세요.',
+      'QR 스캐너를 사용하려면 LINE 앱에서 이 페이지를 열어 주세요.',
     scanButton: 'QR 스캔',
     scanAgainButton: '다시 스캔',
     scanning: 'QR 스캐너를 여는 중입니다...',
@@ -80,10 +80,10 @@ const ko = {
     openResult: '링크 열기',
     openInApp: '앱에서 열기',
     resultHint: '스캔 결과가 URL이면 바로 열 수 있습니다.',
-    openingGrabApp: 'Grab 앱을 여는 중입니다...',
-    openInGrabDescription:
+    openingLineApp: 'LINE 앱을 여는 중입니다...',
+    openInLineDescription:
       '앱이 자동으로 열리지 않으면 아래 버튼을 눌러주세요.',
-    openInGrabButton: 'Grab 앱 열기',
+    openInLineButton: 'LINE 앱 열기',
   },
   notifications: {
     title: '알림',

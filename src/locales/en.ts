@@ -65,11 +65,11 @@ const en = {
       'Tap the button below to scan the shuttle bus QR code and check in.',
     availabilityReady: 'QR scanning is available on this device.',
     availabilityLoading: 'Checking device availability...',
-    availabilityLineOnly: 'QR scanning is only available inside the Grab app.',
+    availabilityLineOnly: 'QR scanning is only available inside the LINE app.',
     availabilityUnsupported:
       'Camera permission is required. Please enable it in your device settings.',
     availabilityExternal:
-      'Open this page from the Grab app to use the QR scanner.',
+      'Open this page from the LINE app to use the QR scanner.',
     scanButton: 'QR Scan',
     scanAgainButton: 'Scan Again',
     scanning: 'Opening QR scanner...',
@@ -82,10 +82,10 @@ const en = {
     openResult: 'Open Link',
     openInApp: 'Open in App',
     resultHint: 'If the scanned value is a URL, you can open it immediately.',
-    openingGrabApp: 'Opening Grab App...',
-    openInGrabDescription:
+    openingLineApp: 'Opening LINE App...',
+    openInLineDescription:
       "If the app didn't open automatically, tap the button below.",
-    openInGrabButton: 'Open in Grab',
+    openInLineButton: 'Open in LINE',
   },
   notifications: {
     title: 'Notifications',

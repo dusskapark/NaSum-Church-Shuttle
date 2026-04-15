@@ -13,7 +13,7 @@ import Layout from '../../components/Layout';
 import HomeRouteDetail from '../../components/RouteDetails';
 import { useRegistration } from '../../hooks/useRegistration';
 import { useRoutes } from '../../hooks/useRoutes';
-import { useGrabUser } from '../../hooks/useGrabUser';
+import { useLineUser } from '../../hooks/useLineUser';
 import { useHideLoader } from '../../hooks/useHideLoader';
 import { useContainer } from '../../hooks/useContainer';
 import { useRunStatus } from '../../hooks/useRunStatus';
@@ -37,7 +37,7 @@ function getAnchors(): number[] {
 export default function ShuttleHome() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, loading: grabLoading } = useGrabUser();
+  const { user, loading: lineLoading } = useLineUser();
   const { lang } = useAppSettings();
   const t = useTranslation();
   useContainer(t('home.panelTitle'));
@@ -73,7 +73,7 @@ export default function ShuttleHome() {
 
   const panelRouteCode =
     !routesLoading && selectedRouteCode ? selectedRouteCode : null;
-  const isLoading = grabLoading || regLoading || routesLoading;
+  const isLoading = lineLoading || regLoading || routesLoading;
 
   // On first load, auto-navigate to the registered route (replace history so back goes to list)
   useEffect(() => {
@@ -197,7 +197,9 @@ export default function ShuttleHome() {
                   stopCountLabel={t('home.stopCount')}
                   isInService={activeRun?.route_code === panelRoute.route_code}
                   inServiceLabel={t('checkin.inService')}
-                  boardedCountLabel={t('checkin.totalPassengers')}
+                  boardedCountLabel={t('checkin.totalPassengers', {
+                    count: '{count}',
+                  })}
                   myStop={
                     registration?.route.route_code === panelRoute.route_code
                       ? registration.route_stop

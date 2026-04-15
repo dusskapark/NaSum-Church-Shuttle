@@ -55,9 +55,7 @@ if (process.env.NODE_ENV === 'development') {
   );
 }
 
-window.Grab = { config: {} };
-
-// authorize() → reloadScopes() is handled in useGrabUser — no pre-render scope loading needed
+// authorize() → reloadScopes() is handled in useLineUser — no pre-render scope loading needed
 const container = document.getElementById('root');
 if (container) {
   createRoot(container).render(

@@ -112,18 +112,9 @@ html[data-prefers-color-scheme=dark] .adm-skeleton.adm-skeleton-animated {
   background-size: 400% 100%;
 }
 
-/* Map tiles dark mode: invert canvas, counter-invert markers to preserve colors */
-html[data-prefers-color-scheme=dark] .mapboxgl-map canvas {
-  filter: invert(1) hue-rotate(180deg) brightness(0.85);
-}
-
-html[data-prefers-color-scheme=dark] .mapboxgl-marker {
-  filter: invert(1) hue-rotate(180deg);
-}
-
 /* Fix: antd-mobile Picker/PickerView columns use use-gesture for drag scrolling.
    Without touch-action: none, mobile webviews intercept touch events and the
-   picker wheel cannot be scrolled on touch devices (e.g. Grab SuperApp). */
+   picker wheel cannot be scrolled on touch devices (e.g. LINE SuperApp). */
 .adm-picker-column-wheel,
 .adm-picker-view-column-wheel {
   touch-action: none;

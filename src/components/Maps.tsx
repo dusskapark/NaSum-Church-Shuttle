@@ -7,6 +7,7 @@ import {
 } from '@vis.gl/react-google-maps';
 import { CSSProperties, useEffect, useMemo, useState } from 'react';
 import { Skeleton, Toast } from 'antd-mobile';
+import { useAppSettings } from '../lib/app-settings';
 import type {
   Nullable,
   PlaceSummary,
@@ -19,6 +20,7 @@ import type {
 const FOCUSED_ZOOM = 14;
 const DEFAULT_CENTER = { lat: 1.3521, lng: 103.8198 };
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+const GOOGLE_MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID ?? 'DEMO_MAP_ID';
 
 function MapSkeleton() {
   return (
@@ -65,16 +67,17 @@ function MapViewportSync({
   useEffect(() => {
     if (!map || !window.google) return;
 
+    // Focused stop selection should take precedence over route-wide fitBounds.
+    if (center) {
+      map.panTo(center);
+      if (zoom) map.setZoom(zoom);
+      return;
+    }
+
     if (points && points.length > 1) {
       const bounds = new window.google.maps.LatLngBounds();
       points.forEach((point) => bounds.extend(point));
       map.fitBounds(bounds, 48);
-      return;
-    }
-
-    if (center) {
-      map.panTo(center);
-      if (zoom) map.setZoom(zoom);
     }
   }, [center, map, points, zoom]);
 
@@ -153,6 +156,7 @@ function MapFrame({
   onLoad?: () => void;
 }) {
   const [loaded, setLoaded] = useState(false);
+  const { isDark } = useAppSettings();
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
@@ -161,9 +165,10 @@ function MapFrame({
         <Map
           defaultCenter={defaultCenter}
           defaultZoom={defaultZoom}
+          colorScheme={isDark ? 'DARK' : 'LIGHT'}
           gestureHandling="greedy"
           disableDefaultUI
-          mapId="nasum-church-shuttle"
+          mapId={GOOGLE_MAP_ID}
           onTilesLoaded={() => {
             setLoaded(true);
             onLoad?.();
@@ -254,20 +259,18 @@ export function ShuttleMap({
       />
       {stops.map((stop, index) => {
         const boarded = stopStateByStopId[stop.id];
-        const hasBoarded = runActive && boarded !== undefined && boarded > 0;
-        const isMyStop = myStop?.id === stop.id;
+        const label = String(runActive ? boarded ?? 0 : index + 1);
+
         return (
           <AdvancedMarker
             key={stop.id}
             position={{ lat: stop.place.lat, lng: stop.place.lng }}
           >
             <MarkerBadge
-              borderColor={
-                runActive || isMyStop ? colors.primary : colors.secondary
-              }
+              borderColor={runActive ? colors.primary : colors.secondary}
               color={runActive ? colors.primary : colors.secondary}
-              filled={isMyStop || hasBoarded}
-              label={runActive ? boarded ?? 0 : index + 1}
+              filled={myStop?.id === stop.id}
+              label={Number(label)}
             />
           </AdvancedMarker>
         );

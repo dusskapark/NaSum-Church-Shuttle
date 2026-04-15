@@ -1,12 +1,12 @@
 import { type ReactNode, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Toast } from 'antd-mobile';
-import { useGrabUser } from '../hooks/useGrabUser';
+import { useLineUser } from '../hooks/useLineUser';
 import { useTranslation } from '../lib/useTranslation';
 import { canAccessAdmin } from '../lib/roleUtils';
 
 export function RequireAdmin({ children }: { children: ReactNode }) {
-  const { user, isReady } = useGrabUser();
+  const { user, isReady } = useLineUser();
   const t = useTranslation();
   const navigate = useNavigate();
   const toastShownRef = useRef(false);

@@ -10,10 +10,10 @@ import {
   ScanningOutline,
 } from 'antd-mobile-icons';
 import { useQuery } from '@tanstack/react-query';
-import { ContainerModule } from '@grabjs/superapp-sdk';
+import { ContainerModule } from '@/shims/superapp-sdk';
 import { useTranslation } from '../lib/useTranslation';
 import { fetchApi } from '../lib/queries';
-import { useGrabUser } from '../hooks/useGrabUser';
+import { useLineUser } from '../hooks/useLineUser';
 import type { AppNotification } from '@app-types/core';
 import { DEV_NOTIFICATIONS } from '../routes/notifications/_devData';
 
@@ -76,7 +76,7 @@ export default function Layout({
 }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isReady } = useGrabUser();
+  const { isReady } = useLineUser();
 
   const { data: notifications } = useQuery<AppNotification[]>({
     queryKey: ['notifications'],
@@ -103,7 +103,7 @@ export default function Layout({
       }
       containerModule.hideRefreshButton().catch(() => {});
     } catch {
-      // Not in Grab MiniApp context — ignore
+      // Not in LINE MiniApp context — ignore
     }
   }, [showTabBar]);
   const t = useTranslation();

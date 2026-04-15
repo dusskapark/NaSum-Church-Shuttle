@@ -42,7 +42,14 @@ export async function verifyLineIdToken(
 
   if (!response.ok) {
     const text = await response.text().catch(() => '');
-    throw new Error(`LINE token verification failed: ${response.status} ${text}`);
+    const err = new Error(
+      `LINE token verification failed: ${response.status} ${text}`,
+    ) as Error & { code?: string; status?: number };
+    err.status = response.status;
+    if (/IdToken expired/i.test(text)) {
+      err.code = 'LINE_ID_TOKEN_EXPIRED';
+    }
+    throw err;
   }
 
   const data = (await response.json()) as VerifyIdTokenResponse;

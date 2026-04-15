@@ -5,7 +5,7 @@ import {
   isSuccess,
   isError,
   isNoContent,
-} from '@grabjs/superapp-sdk';
+} from '@/shims/superapp-sdk';
 
 // Create singleton instance
 const containerModule = new ContainerModule();

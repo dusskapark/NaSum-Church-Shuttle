@@ -7,7 +7,7 @@ export interface RoutePathPoint {
   lng: number;
 }
 
-export interface GrabUser {
+export interface LineUser {
   userId: string;
   displayName: string;
   pictureUrl: Nullable<string>;

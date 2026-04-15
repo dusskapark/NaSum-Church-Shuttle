@@ -1,14 +1,17 @@
 import { Suspense, useEffect, useMemo } from 'react';
 import { RouterProvider } from 'react-router-dom';
-import { ConfigProvider, Skeleton } from 'antd-mobile';
+import { ConfigProvider, Skeleton, unstableSetRender } from 'antd-mobile';
+import { createRoot, type Root } from 'react-dom/client';
 import enUS from 'antd-mobile/es/locales/en-US';
 import koKR from 'antd-mobile/es/locales/ko-KR';
 import createAppRouter from './routes';
-import { GrabUserProvider } from './hooks/useGrabUser';
+import { LineUserProvider } from './hooks/useLineUser';
 import { AppSettingsProvider, useAppSettings } from './lib/app-settings';
 import { useAppLoader } from './hooks/useAppLoader';
 import './globalStyles.css';
 import { injectDesignTokens } from './styles/inject-duxton-tokens';
+
+const antdMobileRoots = new WeakMap<Element | DocumentFragment, Root>();
 
 function PageSkeleton() {
   return (
@@ -27,18 +30,28 @@ function AppContent() {
 
   useEffect(() => {
     injectDesignTokens();
+    unstableSetRender((node, container) => {
+      const existingRoot = antdMobileRoots.get(container);
+      const root = existingRoot ?? createRoot(container);
+      antdMobileRoots.set(container, root);
+      root.render(node);
+      return async () => {
+        root.unmount();
+        antdMobileRoots.delete(container);
+      };
+    });
   }, []);
 
   return (
     <ConfigProvider locale={lang === 'ko' ? koKR : enUS}>
-      <GrabUserProvider>
+      <LineUserProvider>
         <Suspense fallback={<PageSkeleton />}>
           <RouterProvider
             future={{ v7_startTransition: true }}
             router={router}
           />
         </Suspense>
-      </GrabUserProvider>
+      </LineUserProvider>
     </ConfigProvider>
   );
 }

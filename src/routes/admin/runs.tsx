@@ -797,6 +797,12 @@ export default function AdminRunsPage() {
     [t],
   );
 
+  const handleCloseResults = useCallback(() => {
+    setViewingResultTitle('');
+    setViewingResult(null);
+    setResultsLoading(false);
+  }, []);
+
   const allStopMap = useMemo(() => {
     const m = new Map<string, string>();
     routes.forEach((route) => {
@@ -1195,6 +1201,8 @@ export default function AdminRunsPage() {
       <Popup
         visible={isResultsOpen}
         position="bottom"
+        onMaskClick={handleCloseResults}
+        onClose={handleCloseResults}
         bodyStyle={{
           height: '100vh',
           display: 'flex',
@@ -1203,6 +1211,23 @@ export default function AdminRunsPage() {
         }}
         destroyOnClose
       >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderBottom: '1px solid var(--app-color-border)',
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ fontWeight: 600, minWidth: 0, marginRight: 8 }}>
+            {viewingResultTitle || t('admin.viewResults')}
+          </div>
+          <Button size="small" fill="outline" onClick={handleCloseResults}>
+            ✕
+          </Button>
+        </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {resultsLoading ? (
             <div style={{ padding: '16px' }}>

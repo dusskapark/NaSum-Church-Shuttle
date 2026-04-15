@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { LocaleModule } from '@grabjs/superapp-sdk';
+import { LocaleModule } from '@/shims/superapp-sdk';
 import i18n from '../locales';
 
 export type AppLanguage = 'en' | 'ko';
@@ -18,8 +18,8 @@ interface AppSettingsContextValue {
   toggleTheme: () => void;
 }
 
-const LANGUAGE_KEY = 'grab-shuttle:language';
-const DARK_MODE_KEY = 'grab-shuttle:dark-mode';
+const LANGUAGE_KEY = 'line-shuttle:language';
+const DARK_MODE_KEY = 'line-shuttle:dark-mode';
 
 const AppSettingsContext = createContext<AppSettingsContextValue | null>(null);
 
@@ -52,7 +52,7 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
   });
   const [isDark, setIsDarkState] = useState<boolean>(getPreferredDarkMode);
 
-  // Sync i18n locale with Grab app language on first load (no stored preference)
+  // Sync i18n locale with LINE app language on first load (no stored preference)
   useEffect(() => {
     const stored = window.localStorage.getItem(LANGUAGE_KEY);
     if (stored) {

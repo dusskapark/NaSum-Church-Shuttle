@@ -5,7 +5,6 @@ import {
   List,
   Popup,
   Skeleton,
-  Tabs,
   Tag,
   Toast,
 } from 'antd-mobile';
@@ -29,7 +28,7 @@ import { useAppSettings } from '../../lib/app-settings';
 import {
   getApiBaseUrl,
   getAbsoluteApiBaseUrl,
-  buildConsentDeeplink,
+  buildLiffPermalink,
 } from '../../constants/appConfigs';
 import { authedFetch } from '../../lib/api';
 import { fetchApi, mutateApi } from '../../lib/queries';
@@ -46,7 +45,7 @@ import {
   ScopeModule,
   isSuccess,
   isError,
-} from '@grabjs/superapp-sdk';
+} from '@/shims/superapp-sdk';
 
 // ── QR URL builder moved to appConfigs.ts ────────────────────────────────────
 
@@ -221,15 +220,87 @@ async function downloadScheduleMarkdown(
   scheduleId: string,
   scheduleName: string,
 ): Promise<void> {
-  // Request a PDF token — the server generates the PDF from DB data and returns
-  // a short-lived blob token. No client-side conversion needed.
-  console.log('[Download] Requesting PDF token for schedule:', scheduleId);
-  const tokenUrl = `${getApiBaseUrl()}/api/v1/admin/schedules/${scheduleId}/download-token/pdf`;
-  console.log('[Download] Token endpoint:', tokenUrl);
+  const md = {
+    esc(value: string): string {
+      return value.replace(/\|/g, '\\|').replace(/\n/g, ' ').trim();
+    },
+    yn(value: boolean): string {
+      return value ? 'Yes' : 'No';
+    },
+  };
 
-  const tokenRes = await authedFetch(tokenUrl, { method: 'POST' });
-  console.log('[Download] Token response status:', tokenRes.status);
+  const scheduleRes = await authedFetch(
+    `${getApiBaseUrl()}/api/v1/admin/schedules/${scheduleId}`,
+  );
+  if (!scheduleRes.ok) {
+    throw new Error(`Schedule fetch failed: ${scheduleRes.status}`);
+  }
+  const schedule = (await scheduleRes.json()) as {
+    name: string;
+    routes: Array<{
+      route_code: string;
+      display_name: string | null;
+      route_name: string | null;
+      google_maps_url: string | null;
+      stops_snapshot: Array<{
+        sequence: number;
+        place_name: string;
+        place_display_name: string | null;
+        pickup_time: string | null;
+        is_pickup_enabled: boolean;
+        stop_id: string | null;
+        is_terminal: boolean;
+        change_type: string;
+      }>;
+    }>;
+  };
 
+  const lines: string[] = [];
+  lines.push(`# Shuttle Schedule - ${md.esc(schedule.name)}`);
+  lines.push('');
+  for (const route of schedule.routes) {
+    const routeTitle = route.display_name ?? route.route_name ?? route.route_code;
+    lines.push(`## ${md.esc(routeTitle)} (${md.esc(route.route_code)})`);
+    lines.push(
+      `Google Maps URL: ${route.google_maps_url ? route.google_maps_url : '-'}`,
+    );
+    lines.push('');
+    lines.push(
+      '| Seq | Stop | Pickup Time | Pickup Enabled | Stop ID | Terminal | Change |',
+    );
+    lines.push('| ---: | --- | --- | :---: | :---: | :---: | :---: |');
+    const orderedStops = [...route.stops_snapshot].sort(
+      (a, b) => a.sequence - b.sequence,
+    );
+    for (const stop of orderedStops) {
+      const stopName = stop.place_display_name ?? stop.place_name;
+      const pickup = stop.pickup_time ?? '-';
+      const stopId = stop.stop_id ?? '-';
+      lines.push(
+        `| ${stop.sequence} | ${md.esc(stopName)} | ${md.esc(pickup)} | ${md.yn(stop.is_pickup_enabled)} | ${md.esc(stopId)} | ${md.yn(stop.is_terminal)} | ${md.esc(stop.change_type)} |`,
+      );
+    }
+    lines.push('');
+  }
+  const markdown = `${lines.join('\n')}\n`;
+
+  const bytes = new TextEncoder().encode(markdown);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  const base64 = btoa(binary);
+
+  const tokenRes = await authedFetch(
+    `${getApiBaseUrl()}/api/v1/admin/download-tokens/blob`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        data: base64,
+        mimeType: 'text/markdown; charset=utf-8',
+        filename: `shuttle-${scheduleName}.md`,
+      }),
+    },
+  );
   if (!tokenRes.ok) {
     const body = await tokenRes.text().catch(() => '');
     throw new Error(`Token creation failed: ${tokenRes.status} ${body}`);
@@ -239,12 +310,10 @@ async function downloadScheduleMarkdown(
     filename: string;
     downloadUrl: string;
   };
-  const pdfFilename = filename ?? `shuttle-${scheduleName}.pdf`;
-  console.log('[Download] Got token, filename:', pdfFilename);
+  const outputFilename = filename ?? `shuttle-${scheduleName}.md`;
 
   const fileUrl = `${getAbsoluteApiBaseUrl()}${downloadUrl}`;
-  console.log('[Download] Passing PDF to FileModule:', fileUrl);
-  await downloadViaFileModule(fileUrl, pdfFilename);
+  await downloadViaFileModule(fileUrl, outputFilename);
 }
 
 // ── Strings ──────────────────────────────────────────────────────────────────
@@ -259,7 +328,6 @@ const STRINGS = {
     incompleteStops: (n: number) => `${n} missing time`,
     inactive: 'Inactive',
     latestTag: 'latest',
-    download: '↓',
     draftInProgress: 'Draft in progress',
     continueEditing: 'Continue Editing →',
     createScheduleError: 'Failed to create schedule.',
@@ -278,7 +346,6 @@ const STRINGS = {
     incompleteStops: (n: number) => `시간 미입력 ${n}개`,
     inactive: '비활성',
     latestTag: 'latest',
-    download: '↓ 다운로드',
     draftInProgress: 'Draft 진행 중',
     continueEditing: '계속 편집 →',
     createScheduleError: '스케줄 생성에 실패했습니다.',
@@ -292,26 +359,12 @@ const STRINGS = {
 
 // ── QR Tab Component ──────────────────────────────────────────────────────────
 
-function QrEnvironmentTab({
-  env,
+function QrCodePanel({
   routeCode,
 }: {
-  env: 'qa' | 'prod';
   routeCode: string;
 }) {
-  const envConfig = {
-    qa: {
-      label: 'Staging Environment • grab-qa://',
-      filenameSuffix: 'staging',
-    },
-    prod: {
-      label: 'Production Environment • grab://',
-      filenameSuffix: 'production',
-    },
-  };
-
-  const config = envConfig[env];
-  const deeplink = buildConsentDeeplink(env, { routeCode });
+  const deeplink = buildLiffPermalink('prod', { routeCode });
 
   return (
     <div style={{ padding: '12px 0' }}>
@@ -324,7 +377,7 @@ function QrEnvironmentTab({
           lineHeight: 1.4,
         }}
       >
-        {config.label}
+        https://liff.line.me/
       </div>
 
       <div>
@@ -356,7 +409,7 @@ function QrEnvironmentTab({
               onClick={() =>
                 downloadQr(
                   deeplink,
-                  `${routeCode}-${config.filenameSuffix}-qr.png`,
+                  `${routeCode}-qr.png`,
                 )
               }
               style={{ flex: 1 }}
@@ -611,7 +664,7 @@ export default function AdminRoutesListPage() {
                           ).catch(() => {})
                         }
                       >
-                        {t.download}
+                        <DownlandOutline />
                       </Button>
                     }
                   >
@@ -639,7 +692,7 @@ export default function AdminRoutesListPage() {
                           handleDownload(s.id, s.name).catch(() => {})
                         }
                       >
-                        {t.download}
+                        <DownlandOutline />
                       </Button>
                     }
                   >
@@ -886,18 +939,7 @@ export default function AdminRoutesListPage() {
             >
               {qrRoute.code}
             </div>
-            <Tabs
-              defaultActiveKey="qa"
-              style={{ '--content-padding': '0 0 12px 0' }}
-            >
-              <Tabs.Tab title="Staging" key="qa">
-                <QrEnvironmentTab env="qa" routeCode={qrRoute.code} />
-              </Tabs.Tab>
-
-              <Tabs.Tab title="Production" key="prod">
-                <QrEnvironmentTab env="prod" routeCode={qrRoute.code} />
-              </Tabs.Tab>
-            </Tabs>
+            <QrCodePanel routeCode={qrRoute.code} />
             <Button
               block
               size="middle"

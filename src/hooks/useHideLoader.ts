@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ContainerModule, SplashScreenModule } from '@grabjs/superapp-sdk';
+import { ContainerModule, SplashScreenModule } from '@/shims/superapp-sdk';
 
 const SAFETY_TIMEOUT_MS = 10000;
 
@@ -10,7 +10,7 @@ const splashScreenModule = new SplashScreenModule();
 function safeHideLoader(): void {
   try {
     const result = containerModule.hideLoader();
-    // hideLoader() may not return a Promise outside the Grab MiniApp context
+    // hideLoader() may not return a Promise outside the LINE MiniApp context
     if (result && typeof result.catch === 'function') {
       result.catch(() => {});
     }
@@ -27,21 +27,20 @@ function safeHideLoader(): void {
       dismissed.catch(() => {});
     }
   } catch {
-    // Not in Grab MiniApp context — ignore
+    // Not in LINE MiniApp context — ignore
   }
 }
 
 /**
- * Hides the native Grab MiniApp loader once the app is ready.
+ * Hides the native LINE MiniApp loader once the app is ready.
  *
- * Works together with `fullNativeLoader: true` in CXMiniAppConfig
- * (https://experiments.grab.com/t/variables/CXMiniAppConfig).
+ * Works together with native loader configuration in the container host.
  *
  * When fullNativeLoader is enabled, the native splash screen stays visible
  * until hideLoader() is called — preventing users from seeing any intermediate
- * loading state (GrabMaps "Loading...", skeleton flashes, etc.)
+ * loading state (Map "Loading...", skeleton flashes, etc.)
  *
- * Outside the Grab MiniApp context (local dev, browser), hideLoader() is a
+ * Outside the LINE MiniApp context (local dev, browser), hideLoader() is a
  * no-op and errors are silently ignored.
  */
 export function useHideLoader(isReady: boolean): void {

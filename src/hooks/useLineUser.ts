@@ -8,22 +8,22 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { ProfileModule } from '@grabjs/superapp-sdk';
+import { ProfileModule } from '@/shims/superapp-sdk';
 import { getLiff } from '../lib/liff';
 import { logError, logInfo, logWarn } from '../lib/logger';
-import type { GrabUser, Nullable, UserRole } from '@app-types/core';
+import type { LineUser, Nullable, UserRole } from '@app-types/core';
 import { getApiBaseUrl } from '../constants/appConfigs';
 import { resetAuthExpiredPending } from '../lib/api';
 
-interface UseGrabUserResult {
-  user: Nullable<GrabUser>;
+interface UseLineUserResult {
+  user: Nullable<LineUser>;
   loading: boolean;
   error: Nullable<unknown>;
   isInClient: boolean;
   isReady: boolean;
 }
 
-const GRAB_USER_CONTEXT_DEFAULT: UseGrabUserResult = {
+const LINE_USER_CONTEXT_DEFAULT: UseLineUserResult = {
   user: null,
   loading: true,
   error: null,
@@ -31,11 +31,11 @@ const GRAB_USER_CONTEXT_DEFAULT: UseGrabUserResult = {
   isReady: false,
 };
 
-const GrabUserContext = createContext<UseGrabUserResult>(
-  GRAB_USER_CONTEXT_DEFAULT,
+const LineUserContext = createContext<UseLineUserResult>(
+  LINE_USER_CONTEXT_DEFAULT,
 );
 
-export const AUTH_STORAGE_KEY = 'grab-shuttle:auth';
+export const AUTH_STORAGE_KEY = 'line-shuttle:auth';
 const DEV_BYPASS_TOKEN = 'dev-bypass-local-admin';
 
 export interface StoredAuth {
@@ -78,7 +78,7 @@ function getStoredAuth(): StoredAuth | null {
   }
 }
 
-function toGrabUser(auth: StoredAuth): GrabUser {
+function toLineUser(auth: StoredAuth): LineUser {
   return {
     userId: auth.userId,
     displayName: auth.displayName,
@@ -90,8 +90,37 @@ function toGrabUser(auth: StoredAuth): GrabUser {
   };
 }
 
-function useProvideGrabUser(): UseGrabUserResult {
-  const [user, setUser] = useState<Nullable<GrabUser>>(null);
+function normalizeReturnToPath(rawPath: string): string {
+  if (typeof window === 'undefined') return rawPath;
+
+  try {
+    let url = new URL(rawPath, window.location.origin);
+
+    for (let i = 0; i < 4; i += 1) {
+      const state = url.searchParams.get('liff.state');
+      if (!state) break;
+
+      const decoded = decodeURIComponent(state);
+      const nested = decoded.startsWith('?') ? decoded.slice(1) : decoded;
+
+      if (nested.startsWith('liff.state=')) {
+        url = new URL(`/?${nested}`, window.location.origin);
+        continue;
+      }
+
+      url = nested.startsWith('http')
+        ? new URL(nested)
+        : new URL(nested, window.location.origin);
+    }
+
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return rawPath;
+  }
+}
+
+function useProvideLineUser(): UseLineUserResult {
+  const [user, setUser] = useState<Nullable<LineUser>>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Nullable<unknown>>(null);
   const [isInClient, setIsInClient] = useState(false);
@@ -126,15 +155,36 @@ function useProvideGrabUser(): UseGrabUserResult {
           idToken: DEV_BYPASS_TOKEN,
         };
         window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(devAuth));
-        setUser(toGrabUser(devAuth));
+        setUser(toLineUser(devAuth));
         setIsReady(true);
         return;
       }
 
       const stored = getStoredAuth();
       if (stored) {
-        setUser(toGrabUser(stored));
+        setUser(toLineUser(stored));
         setIsReady(true);
+
+        // Refresh backend session to keep role/profile in sync with server-side changes.
+        if (liff?.isLoggedIn()) {
+          try {
+            const refreshed = await storeAuthFromBackend();
+            setUser(toLineUser(refreshed));
+          } catch (refreshErr) {
+            if (
+              refreshErr instanceof Error &&
+              refreshErr.message.includes('line-auth expired: redirecting')
+            ) {
+              throw refreshErr;
+            }
+            logWarn('[auth] failed to refresh stored auth, using cached auth', {
+              error:
+                refreshErr instanceof Error
+                  ? refreshErr.message
+                  : String(refreshErr),
+            });
+          }
+        }
 
         const profileModule = new ProfileModule();
         const emailResult = await profileModule.fetchEmail().catch(() => null);
@@ -154,8 +204,8 @@ function useProvideGrabUser(): UseGrabUserResult {
 
       if (!liff.isLoggedIn()) {
         sessionStorage.setItem(
-          'grab:returnTo',
-          window.location.pathname + window.location.search,
+          'line:returnTo',
+          normalizeReturnToPath(window.location.pathname + window.location.search),
         );
         liff.login({
           redirectUri: `${window.location.origin}/oauth-callback`,
@@ -164,9 +214,15 @@ function useProvideGrabUser(): UseGrabUserResult {
       }
 
       const auth = await storeAuthFromBackend();
-      setUser(toGrabUser(auth));
+      setUser(toLineUser(auth));
       setIsReady(true);
     } catch (err) {
+      if (
+        err instanceof Error &&
+        err.message.includes('line-auth expired: redirecting')
+      ) {
+        return;
+      }
       logError('[auth] LIFF auth error', err);
       setError(err);
     } finally {
@@ -200,13 +256,13 @@ function useProvideGrabUser(): UseGrabUserResult {
   return { user, loading, error, isInClient, isReady };
 }
 
-export function GrabUserProvider({ children }: { children: ReactNode }) {
-  const value = useProvideGrabUser();
-  return createElement(GrabUserContext.Provider, { value }, children);
+export function LineUserProvider({ children }: { children: ReactNode }) {
+  const value = useProvideLineUser();
+  return createElement(LineUserContext.Provider, { value }, children);
 }
 
-export function useGrabUser(): UseGrabUserResult {
-  return useContext(GrabUserContext);
+export function useLineUser(): UseLineUserResult {
+  return useContext(LineUserContext);
 }
 
 export function clearStoredAuth(): void {
@@ -247,6 +303,25 @@ export async function storeAuthFromBackend(): Promise<StoredAuth> {
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
+    if (
+      res.status === 401 &&
+      /LINE_ID_TOKEN_EXPIRED|IdToken expired|expired/i.test(body)
+    ) {
+      sessionStorage.setItem(
+        'line:returnTo',
+        normalizeReturnToPath(window.location.pathname + window.location.search),
+      );
+      try {
+        // Refresh LIFF login when backend rejects an expired LINE ID token.
+        liff.logout();
+      } catch {
+        // ignore logout errors and continue login attempt
+      }
+      liff.login({
+        redirectUri: `${window.location.origin}/oauth-callback`,
+      });
+      throw new Error('line-auth expired: redirecting to LINE login');
+    }
     throw new Error(`line-auth failed: ${res.status} ${body}`);
   }
 

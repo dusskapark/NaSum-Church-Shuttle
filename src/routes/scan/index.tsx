@@ -13,9 +13,9 @@ import {
 } from 'antd-mobile';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Layout from '../../components/Layout';
-import { useGrabUser } from '../../hooks/useGrabUser';
+import { useLineUser } from '../../hooks/useLineUser';
 import { useContainer } from '../../hooks/useContainer';
-import { CameraModule, LocationModule } from '@grabjs/superapp-sdk';
+import { CameraModule, LocationModule } from '@/shims/superapp-sdk';
 import { useTranslation } from '../../lib/useTranslation';
 import {
   getDistanceInKm,
@@ -25,7 +25,7 @@ import {
 } from '../../lib/routeSelectors';
 import { canManageRun } from '../../lib/roleUtils';
 import {
-  buildConsentDeeplink,
+  buildLiffPermalink,
   getCurrentEnv,
 } from '../../constants/appConfigs';
 import { fetchApi, mutateApi } from '../../lib/queries';
@@ -62,6 +62,35 @@ function getStopLabel(stop: RouteStopWithPlace): string {
   return stop.place.display_name?.trim() || stop.place.name;
 }
 
+function extractRouteCodeFromUrl(scannedUrl: URL): string | null {
+  const directRouteCode = scannedUrl.searchParams.get('routeCode');
+  if (directRouteCode) return directRouteCode;
+
+  const liffState = scannedUrl.searchParams.get('liff.state');
+  if (liffState) {
+    try {
+      const stateUrl = liffState.startsWith('http')
+        ? new URL(liffState)
+        : new URL(liffState, 'https://dummy.local');
+      const stateRouteCode = stateUrl.searchParams.get('routeCode');
+      if (stateRouteCode) return stateRouteCode;
+    } catch {
+      // Ignore malformed liff.state and continue fallback parsing.
+    }
+  }
+
+  const sessionParamsStr = scannedUrl.searchParams.get('sessionParams');
+  if (!sessionParamsStr) return null;
+  try {
+    const sessionParams = JSON.parse(decodeURIComponent(sessionParamsStr));
+    return typeof sessionParams?.routeCode === 'string'
+      ? sessionParams.routeCode
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── types ────────────────────────────────────────────────────────────────────
 
 type CheckinPhase = 'idle' | 'confirm' | 'submitting' | 'success' | 'error';
@@ -69,7 +98,7 @@ type CheckinPhase = 'idle' | 'confirm' | 'submitting' | 'success' | 'error';
 // ─── component ───────────────────────────────────────────────────────────────
 
 export default function ScanPage() {
-  const { user, loading: grabLoading, isInClient, isReady } = useGrabUser();
+  const { user, loading: lineLoading, isInClient, isReady } = useLineUser();
   const t = useTranslation();
 
   const { sessionParams } = useContainer(t('scan.title'));
@@ -94,6 +123,7 @@ export default function ScanPage() {
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanStatus, setScanStatus] = useState<'warning' | 'error'>('warning');
   const hasAutoStartedRef = useRef(false);
+  const hasAutoRedirectedRef = useRef<string | null>(null);
   const userPickedStopRef = useRef(false);
 
   // ── registered stop (used to pre-select stop after scan) ─────────────────
@@ -376,59 +406,15 @@ export default function ScanPage() {
         return;
       }
 
-      // Parse app scheme URLs (grab:// or grab-qa://)
+      // Parse LIFF permalink or app web URL and extract routeCode
       try {
         const scannedUrl = new URL(value);
-
-        // Check if it's a Grab app scheme
-        if (
-          scannedUrl.protocol === 'grab:' ||
-          scannedUrl.protocol === 'grab-qa:'
-        ) {
-          console.log('[Scan] App scheme detected:', scannedUrl.toString());
-
-          // Extract sessionParams from the URL
-          const sessionParamsStr = scannedUrl.searchParams.get('sessionParams');
-          if (sessionParamsStr) {
-            try {
-              const sessionParams = JSON.parse(
-                decodeURIComponent(sessionParamsStr),
-              );
-              const routeCode = sessionParams?.routeCode;
-
-              if (routeCode) {
-                console.log(
-                  '[Scan] RouteCode extracted from sessionParams:',
-                  routeCode,
-                );
-                setSearchParams({ routeCode });
-                return;
-              }
-            } catch (parseErr) {
-              console.warn('[Scan] Failed to parse sessionParams:', parseErr);
-            }
-          }
-
-          // Fallback: check for routeCode in URL parameters
-          const routeCodeParam = scannedUrl.searchParams.get('routeCode');
-          if (routeCodeParam) {
-            console.log(
-              '[Scan] RouteCode extracted from URL params:',
-              routeCodeParam,
-            );
-            setSearchParams({ routeCode: routeCodeParam });
-            return;
-          }
-
-          // App scheme detected but no routeCode found
-          setScanStatus('warning');
-          setScanError(
-            `${t('scan.lastResult')}: App link detected but no route code found`,
-          );
+        const extractedRouteCode = extractRouteCodeFromUrl(scannedUrl);
+        if (extractedRouteCode) {
+          setSearchParams({ routeCode: extractedRouteCode });
           return;
         }
 
-        // Not a Grab app scheme - invalid QR code
         setScanStatus('warning');
         setScanError(
           `${t('scan.lastResult')}: Invalid QR code format. Please scan a valid shuttle bus QR code.`,
@@ -437,7 +423,7 @@ export default function ScanPage() {
         // Not a valid URL at all
         setScanStatus('warning');
         setScanError(
-          `${t('scan.lastResult')}: Invalid QR code format. Expected Grab app link.`,
+          `${t('scan.lastResult')}: Invalid QR code format. Expected LIFF permalink.`,
         );
       }
     } catch (error) {
@@ -458,14 +444,14 @@ export default function ScanPage() {
     if (routeCode) return;
 
     // Wait for prerequisites (isReady ensures scopes are loaded)
-    if (grabLoading || !isInClient || !isReady) return;
+    if (lineLoading || !isInClient || !isReady) return;
 
     // Don't auto-start multiple times
     if (hasAutoStartedRef.current) return;
 
     hasAutoStartedRef.current = true;
     handleScan().catch(() => {});
-  }, [handleScan, isInClient, grabLoading, routeCode, isReady]);
+  }, [handleScan, isInClient, lineLoading, routeCode, isReady]);
 
   // Dev bypass: localhost or ?dev=true skips the isInClient / redirect guards.
   const devBypass =
@@ -473,19 +459,24 @@ export default function ScanPage() {
     (window.location.hostname === 'localhost' ||
       new URLSearchParams(window.location.search).get('dev') === 'true');
 
-  // External browser: auto-launch Grab when routeCode is present.
-  // Fires once grabLoading is false so we're certain isInClient is final.
+  // External browser: auto-launch LINE app when routeCode is present.
+  // Fires once lineLoading is false so we're certain isInClient is final.
   useEffect(() => {
     if (!routeCode) return;
-    if (grabLoading) return;
+    if (lineLoading) return;
     if (isInClient) return;
     if (devBypass) return;
-    const sessionParamsToPass = routeCode ? { routeCode } : undefined;
-    window.location.href = buildConsentDeeplink(
+    const sessionParamsToPass = { routeCode };
+    const deeplink = buildLiffPermalink(
       getCurrentEnv(),
       sessionParamsToPass,
     );
-  }, [routeCode, isInClient, grabLoading, devBypass]);
+    // Prevent duplicate redirects in dev StrictMode and transient rerenders.
+    if (hasAutoRedirectedRef.current === deeplink) return;
+    hasAutoRedirectedRef.current = deeplink;
+    if (window.location.href === deeplink) return;
+    window.location.replace(deeplink);
+  }, [routeCode, isInClient, lineLoading, devBypass]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
@@ -494,9 +485,9 @@ export default function ScanPage() {
   // ── State A: routeCode present ────────────────────────────────────────────
   if (routeCode) {
     // External browser: show fallback after auto-redirect attempt
-    if (!grabLoading && !isInClient && !devBypass) {
+    if (!lineLoading && !isInClient && !devBypass) {
       const sessionParamsForFallback = routeCode ? { routeCode } : undefined;
-      const deeplink = buildConsentDeeplink(
+      const deeplink = buildLiffPermalink(
         getCurrentEnv(),
         sessionParamsForFallback,
       );
@@ -504,9 +495,9 @@ export default function ScanPage() {
         <Layout showTabBar={false}>
           <ResultPage
             status="info"
-            title={t('scan.openingGrabApp')}
-            description={t('scan.openInGrabDescription')}
-            primaryButtonText={t('scan.openInGrabButton')}
+            title={t('scan.openingLineApp')}
+            description={t('scan.openInLineDescription')}
+            primaryButtonText={t('scan.openInLineButton')}
             onPrimaryButtonClick={() => {
               window.location.href = deeplink;
             }}
@@ -793,7 +784,7 @@ export default function ScanPage() {
 
   // ── State B: no routeCode — QR scanner ───────────────────────────────────
 
-  if (!grabLoading && isReady && !isInClient) {
+  if (!lineLoading && isReady && !isInClient) {
     return (
       <Layout showTabBar={false}>
         <ResultPage

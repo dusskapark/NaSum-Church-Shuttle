@@ -13,7 +13,7 @@ import { useMutation } from '@tanstack/react-query';
 import Layout from '../../components/Layout';
 import { canAccessAdmin } from '../../lib/roleUtils';
 import { useRegistration } from '../../hooks/useRegistration';
-import { useGrabUser, clearStoredAuth } from '../../hooks/useGrabUser';
+import { useLineUser, clearStoredAuth } from '../../hooks/useLineUser';
 import { useContainer } from '../../hooks/useContainer';
 import { useAppSettings, type AppLanguage } from '../../lib/app-settings';
 import { copyTextToClipboard } from '../../lib/copy-to-clipboard';
@@ -21,12 +21,12 @@ import { useTranslation } from '../../lib/useTranslation';
 import { getRouteLabel } from '../../lib/routeSelectors';
 import { mutateApi } from '../../lib/queries';
 
-const PUSH_PREF_KEY = 'grab-shuttle:push-notifications-enabled';
+const PUSH_PREF_KEY = 'line-shuttle:push-notifications-enabled';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, loading: grabLoading, isReady } = useGrabUser();
-  const showProfileSkeleton = grabLoading;
+  const { user, loading: lineLoading, isReady } = useLineUser();
+  const showProfileSkeleton = lineLoading;
   const isAdmin = isReady && !!user && canAccessAdmin(user.role);
   const { lang, setLang, isDark, toggleTheme } = useAppSettings();
   const t = useTranslation();
@@ -56,7 +56,7 @@ export default function SettingsPage() {
       return storedValue === null ? true : storedValue === 'true';
     })();
 
-  const isLoading = grabLoading || registrationLoading;
+  const isLoading = lineLoading || registrationLoading;
 
   const listStyle = {
     '--border-radius': '12px',

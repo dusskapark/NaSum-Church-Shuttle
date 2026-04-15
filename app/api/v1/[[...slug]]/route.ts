@@ -10,6 +10,7 @@ import {
   resolveWaypoint,
   type PlaceResult,
 } from '@/server/google-places';
+import { notifyApproachingUsers } from '@/server/notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -1066,6 +1067,7 @@ async function handleCheckinPost(request: NextRequest) {
         [idempotencyKey],
       )
       .then((res) => res.rows[0]!);
+    const isNewCheckin = row.id === newId;
     const count = await client
       .query<{ total: bigint | number }>(
         `SELECT COALESCE(SUM(1 + additional_passengers), 0) AS total
@@ -1076,6 +1078,7 @@ async function handleCheckinPost(request: NextRequest) {
 
     return {
       success: true,
+      is_new_checkin: isNewCheckin,
       checkin_id: row.id,
       stop_state: {
         route_stop_id: body.route_stop_id,
@@ -1090,7 +1093,23 @@ async function handleCheckinPost(request: NextRequest) {
     return error(status, message);
   });
 
-  return response instanceof NextResponse ? response : json(response);
+  if (response instanceof NextResponse) return response;
+
+  if (response.is_new_checkin) {
+    notifyApproachingUsers(body.run_id, body.route_stop_id).catch((caught) => {
+      console.error('[checkin] notifyApproachingUsers failed', {
+        runId: body.run_id,
+        routeStopId: body.route_stop_id,
+        message: caught instanceof Error ? caught.message : String(caught),
+      });
+    });
+  }
+
+  return json({
+    success: true,
+    checkin_id: response.checkin_id,
+    stop_state: response.stop_state,
+  });
 }
 
 async function handleCheckinMe(request: NextRequest) {
@@ -1237,20 +1256,53 @@ async function handleMePreferences(request: NextRequest) {
 
   const body = (await request.json()) as {
     push_notifications_enabled?: boolean;
+    preferred_language?: 'ko' | 'en';
   };
 
-  if (typeof body.push_notifications_enabled !== 'boolean') {
-    return error(400, 'push_notifications_enabled must be a boolean');
+  const updates: string[] = [];
+  const params: unknown[] = [];
+  let index = 1;
+
+  if (body.push_notifications_enabled !== undefined) {
+    if (typeof body.push_notifications_enabled !== 'boolean') {
+      return error(400, 'push_notifications_enabled must be a boolean');
+    }
+    updates.push(`push_notifications_enabled = $${index++}`);
+    params.push(body.push_notifications_enabled);
   }
 
-  await query(
-    `UPDATE users SET push_notifications_enabled = $1 WHERE id = $2`,
-    [body.push_notifications_enabled, actor.userId],
+  if (body.preferred_language !== undefined) {
+    if (body.preferred_language !== 'ko' && body.preferred_language !== 'en') {
+      return error(400, "preferred_language must be 'ko' or 'en'");
+    }
+    updates.push(`preferred_language = $${index++}`);
+    params.push(body.preferred_language);
+  }
+
+  if (updates.length === 0) {
+    return error(
+      400,
+      'At least one of push_notifications_enabled or preferred_language is required',
+    );
+  }
+
+  params.push(actor.userId);
+  const updated = await queryOne<{
+    push_notifications_enabled: boolean;
+    preferred_language: 'ko' | 'en';
+  }>(
+    `UPDATE users
+     SET ${updates.join(', ')}
+     WHERE id = $${index}
+     RETURNING push_notifications_enabled, preferred_language`,
+    params,
   );
+  if (!updated) return error(404, 'User not found');
 
   return json({
     success: true,
-    push_notifications_enabled: body.push_notifications_enabled,
+    push_notifications_enabled: updated.push_notifications_enabled,
+    preferred_language: updated.preferred_language,
   });
 }
 
@@ -2455,6 +2507,16 @@ async function handleAdminRuns(request: NextRequest, runId?: string, suffix?: st
         actor.userId,
       ],
     );
+
+    if (body.status === 'arrived') {
+      notifyApproachingUsers(runId, stopId).catch((caught) => {
+        console.error('[admin-runs] notifyApproachingUsers failed', {
+          runId,
+          stopId,
+          message: caught instanceof Error ? caught.message : String(caught),
+        });
+      });
+    }
 
     return json({
       run_id: runId,

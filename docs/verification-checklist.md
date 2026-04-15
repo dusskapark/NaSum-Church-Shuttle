@@ -4,19 +4,19 @@
 Bring the migrated app to a state where:
 - the app starts in local dev with `.env.local`
 - LIFF-only flows have a development bypass
-- local Postgres can be seeded from the reference dump
+- Neon DB can be reset and seeded from the latest local dataset
 - core rider/admin pages render with real seeded data
 - no blocking runtime errors remain in browser console for covered paths
 
 ## Environment Under Test
 - Frontend/runtime: local `next dev`
-- Database: local Docker Postgres seeded from `reference/check-in-shuttle-buses-api/dump.sql`
+- Database: Neon Postgres (`DATABASE_URL`/`DIRECT_URL`)
 - Auth mode: development bypass when LIFF is unavailable
 - Browser validation: CDP/Chrome DevTools
 
 ## Pass Criteria
-1. `docker compose up -d postgres` succeeds and DB is healthy.
-2. `scripts/seed-local-db.sh` imports the reference dump without fatal SQL errors.
+1. Neon target DB is reachable via `DIRECT_URL`.
+2. Latest dataset import into Neon completes without fatal SQL errors.
 3. `next dev` starts successfully with local env values.
 4. `/` renders route list/map shell without crashing.
 5. `/search` renders stations from seeded DB.

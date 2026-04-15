@@ -5,11 +5,11 @@ Date: 2026-04-15
 ## Environment
 - Dev server: `next dev`
 - Auth mode: localhost development bypass
-- Database: local Docker Postgres on `127.0.0.1:5434`
-- Seed source: `reference/check-in-shuttle-buses-api/dump.sql` + `db/reference/migrations/*.sql`
+- Database: Neon Postgres (`DIRECT_URL`)
+- Seed source: latest local dataset exported and imported to Neon
 
 ## Verified
-- `GET /api/v1/routes` returns seeded route data from local Postgres
+- `GET /api/v1/routes` returns seeded route data from Neon
 - `/` renders route list and Google Map with seeded route data
 - `/search` renders seeded stop catalog
 - `/stops?placeId=...` renders stop detail and route choices
@@ -28,4 +28,4 @@ Date: 2026-04-15
 ## Notes
 - React Router still emits a future-flag warning in development. This is non-blocking and does not affect runtime correctness.
 - Localhost intentionally bypasses LIFF login and uses a local dev token.
-- Server DB access in development intentionally prefers the local Docker Postgres database over `.env.local` Neon settings.
+- Server DB access uses `DATABASE_URL` only.

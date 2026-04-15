@@ -3,7 +3,6 @@ import { z } from 'zod';
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1).optional(),
   DIRECT_URL: z.string().min(1).optional(),
-  LOCAL_DATABASE_URL: z.string().min(1).optional(),
   GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
@@ -20,7 +19,6 @@ const envSchema = z.object({
 export const env = envSchema.parse({
   DATABASE_URL: process.env.DATABASE_URL,
   DIRECT_URL: process.env.DIRECT_URL,
-  LOCAL_DATABASE_URL: process.env.LOCAL_DATABASE_URL,
   GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,

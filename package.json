@@ -8,11 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "db:up": "docker compose up -d postgres",
-    "db:seed:dump": "bash scripts/seed-local-db.sh",
-    "db:dump:reference": "bash scripts/dump-reference-db.sh",
-    "db:prepare:neon": "bash scripts/prepare-neon-import.sh"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@line/liff": "^2.27.2",

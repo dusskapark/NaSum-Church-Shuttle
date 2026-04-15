@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { LocaleModule, isSuccess, isError } from '@grabjs/superapp-sdk';
+import { LocaleModule } from '@grabjs/superapp-sdk';
 import i18n from '../locales';
 
 export type AppLanguage = 'en' | 'ko';
@@ -24,6 +24,9 @@ const DARK_MODE_KEY = 'grab-shuttle:dark-mode';
 const AppSettingsContext = createContext<AppSettingsContextValue | null>(null);
 
 function getPreferredLanguage(): AppLanguage {
+  if (typeof window === 'undefined') {
+    return 'en';
+  }
   const stored = window.localStorage.getItem(LANGUAGE_KEY);
   if (stored === 'en' || stored === 'ko') return stored;
 
@@ -31,6 +34,9 @@ function getPreferredLanguage(): AppLanguage {
 }
 
 function getPreferredDarkMode(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
   const stored = window.localStorage.getItem(DARK_MODE_KEY);
   if (stored === 'true') return true;
   if (stored === 'false') return false;
@@ -57,12 +63,16 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
     const locale = new LocaleModule();
     locale
       .getLanguageLocaleIdentifier()
-      .then(async (response) => {
+      .then(async (response: {
+        status_code: number;
+        result?: string;
+        error?: string;
+      }) => {
         console.log(
           '[LocaleModule] getLanguageLocaleIdentifier response:',
           response,
         );
-        if (isSuccess(response)) {
+        if (response.status_code === 200 && response.result) {
           // response.result may be ICU format e.g. "en_US@rg=sgzzzz" — use Intl.Locale to extract language
           const { language } = new Intl.Locale(response.result);
           const detected: AppLanguage = language === 'ko' ? 'ko' : 'en';
@@ -76,7 +86,7 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
           );
           setLangState(detected);
           i18n.locale = detected;
-        } else if (isError(response)) {
+        } else if (response.status_code >= 400) {
           console.error(
             `[LocaleModule] Error ${response.status_code}: ${response.error}`,
           );

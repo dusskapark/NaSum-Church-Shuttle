@@ -56,7 +56,12 @@ const css = [
   buildCssRule("html[data-prefers-color-scheme='dark']", darkVars),
 ].join('\n\n');
 
-const style = document.createElement('style');
-style.id = 'duxton-tokens';
-style.textContent = css;
-document.head.appendChild(style);
+export function injectDesignTokens(): void {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('duxton-tokens')) return;
+
+  const style = document.createElement('style');
+  style.id = 'duxton-tokens';
+  style.textContent = css;
+  document.head.appendChild(style);
+}

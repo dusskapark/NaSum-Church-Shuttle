@@ -6,6 +6,12 @@ let liffPromise: Promise<Liff | null> | null = null;
 
 function getLiffId(): string | undefined {
   if (typeof window === 'undefined') return undefined;
+  if (
+    process.env.NODE_ENV === 'development' &&
+    window.location.hostname === 'localhost'
+  ) {
+    return undefined;
+  }
   if (window.location.hostname === 'localhost') {
     return process.env.NEXT_PUBLIC_LIFF_ID_DEV ?? process.env.NEXT_PUBLIC_LIFF_ID;
   }
@@ -20,9 +26,7 @@ export async function getLiff(): Promise<Liff | null> {
     .then(async ({ default: liff }) => {
       const liffId = getLiffId();
       if (!liffId) return null;
-      if (!liff.isInitialized()) {
-        await liff.init({ liffId });
-      }
+      await liff.init({ liffId });
       return liff;
     })
     .catch(() => null);

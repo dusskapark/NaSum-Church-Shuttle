@@ -88,7 +88,7 @@ export class ContainerModule {
     return { status_code: 200, result: true };
   }
 
-  async setBackgroundColor(): Promise<ResultShape<boolean>> {
+  async setBackgroundColor(_color?: string): Promise<ResultShape<boolean>> {
     return { status_code: 200, result: true };
   }
 
@@ -109,13 +109,18 @@ export class ScopeModule {
     return { status_code: 200, result: true };
   }
 
-  async hasAccessTo(): Promise<ResultShape<{ hasAccess: boolean }>> {
+  async hasAccessTo(
+    _module?: string,
+    _method?: string,
+  ): Promise<ResultShape<{ hasAccess: boolean }>> {
     return { status_code: 200, result: { hasAccess: true } };
   }
 }
 
 export class CameraModule {
-  async scanQRCode(): Promise<ResultShape<{ qrCode: string }>> {
+  async scanQRCode(
+    _options?: { title?: string },
+  ): Promise<ResultShape<{ qrCode: string }>> {
     const liff = await getLiff();
     if (!liff) return { status_code: 501, error: 'LIFF unavailable' };
     if (liff.isApiAvailable('scanCodeV2')) {

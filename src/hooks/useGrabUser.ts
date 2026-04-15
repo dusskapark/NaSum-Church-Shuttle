@@ -36,6 +36,7 @@ const GrabUserContext = createContext<UseGrabUserResult>(
 );
 
 export const AUTH_STORAGE_KEY = 'grab-shuttle:auth';
+const DEV_BYPASS_TOKEN = 'dev-bypass-local-admin';
 
 export interface StoredAuth {
   userId: string;
@@ -106,7 +107,12 @@ function useProvideGrabUser(): UseGrabUserResult {
       const inClient = !!liff?.isInClient();
       setIsInClient(inClient);
 
-      if (process.env.NODE_ENV === 'development' && !liff) {
+      const isLocalDev =
+        process.env.NODE_ENV === 'development' &&
+        typeof window !== 'undefined' &&
+        window.location.hostname === 'localhost';
+
+      if (isLocalDev) {
         const devAuth: StoredAuth = {
           userId: 'dev-user-001',
           displayName: 'Developer (admin)',
@@ -114,11 +120,7 @@ function useProvideGrabUser(): UseGrabUserResult {
           email: 'dev@example.com',
           phone: null,
           role: 'admin',
-          idToken: [
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
-            'eyJzdWIiOiJkZXYtdXNlci0wMDEiLCJleHAiOjk5OTk5OTk5OTl9',
-            'dev-signature',
-          ].join('.'),
+          idToken: DEV_BYPASS_TOKEN,
         };
         window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(devAuth));
         setUser(toGrabUser(devAuth));

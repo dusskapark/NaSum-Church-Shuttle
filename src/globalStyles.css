@@ -1,6 +1,6 @@
 :root {
-  --default-button-bg: #d9fcde; /* colorBrandPrimarySoftest */
-  --default-border-color: #dbdbdb; /* colorOutlineSoft */
+  --default-button-bg: #d9fcde;
+  --default-border-color: #dbdbdb;
 }
 
 body,
@@ -9,7 +9,7 @@ html {
   height: 100%;
   font-size: 14px;
   background-color: #f8f8f8;
-  font-family: 'Inter Variable', Inter, Arial, san-serif;
+  font-family: 'Inter Variable', Inter, Arial, sans-serif;
 }
 
 body {

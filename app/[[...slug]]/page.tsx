@@ -1,6 +1,4 @@
-import dynamic from 'next/dynamic';
-
-const MiniAppPage = dynamic(() => import('@/spa/MiniAppPage'), { ssr: false });
+import MiniAppPage from '@/spa/MiniAppPage';
 
 export default function CatchAllPage() {
   return <MiniAppPage />;

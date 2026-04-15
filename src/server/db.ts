@@ -1,8 +1,18 @@
 import { Pool, type PoolClient } from 'pg';
 import { env } from './env';
 
+function resolveConnectionString() {
+  if (process.env.NODE_ENV !== 'production') {
+    return (
+      env.LOCAL_DATABASE_URL ??
+      'postgres://shuttle:shuttle@127.0.0.1:5434/nasum_shuttle?sslmode=disable'
+    );
+  }
+  return env.DATABASE_URL;
+}
+
 const pool = new Pool({
-  connectionString: env.DATABASE_URL,
+  connectionString: resolveConnectionString(),
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,

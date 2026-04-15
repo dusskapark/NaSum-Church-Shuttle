@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { ConfigProvider, Skeleton } from 'antd-mobile';
 import enUS from 'antd-mobile/es/locales/en-US';
@@ -7,8 +7,8 @@ import createAppRouter from './routes';
 import { GrabUserProvider } from './hooks/useGrabUser';
 import { AppSettingsProvider, useAppSettings } from './lib/app-settings';
 import { useAppLoader } from './hooks/useAppLoader';
-import './globalStyles.less';
-import './styles/inject-duxton-tokens';
+import './globalStyles.css';
+import { injectDesignTokens } from './styles/inject-duxton-tokens';
 
 function PageSkeleton() {
   return (
@@ -25,11 +25,18 @@ function AppContent() {
 
   useAppLoader();
 
+  useEffect(() => {
+    injectDesignTokens();
+  }, []);
+
   return (
     <ConfigProvider locale={lang === 'ko' ? koKR : enUS}>
       <GrabUserProvider>
         <Suspense fallback={<PageSkeleton />}>
-          <RouterProvider router={router} />
+          <RouterProvider
+            future={{ v7_startTransition: true }}
+            router={router}
+          />
         </Suspense>
       </GrabUserProvider>
     </ConfigProvider>

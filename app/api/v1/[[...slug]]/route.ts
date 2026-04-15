@@ -548,14 +548,26 @@ async function handleCheckinPost(request: NextRequest) {
       );
     }
 
-    const identity = await client
+    let identity = await client
       .query<{ id: string; user_id: string }>(
         `SELECT id, user_id FROM user_identities WHERE provider = 'line' AND provider_uid = $1`,
         [actor.providerUid],
       )
       .then((res) => res.rows[0] ?? null);
     if (!identity) {
-      throw Object.assign(new Error('User identity not found'), { status: 404 });
+      await client.query(
+        `INSERT INTO users (id, display_name, role)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (id) DO NOTHING`,
+        [actor.userId, 'Developer (admin)', actor.role],
+      );
+      await client.query(
+        `INSERT INTO user_identities (id, user_id, provider, provider_uid)
+         VALUES ($1, $2, 'line', $3)
+         ON CONFLICT (provider, provider_uid) DO NOTHING`,
+        [randomUUID(), actor.userId, actor.providerUid],
+      );
+      identity = { id: randomUUID(), user_id: actor.userId };
     }
 
     const idempotencyKey = `${identity.user_id}:${body.run_id}`;
@@ -619,14 +631,18 @@ async function handleCheckinMe(request: NextRequest) {
     `SELECT user_id FROM user_identities WHERE provider = 'line' AND provider_uid = $1`,
     [actor.providerUid],
   );
-  if (!identity) return error(404, 'Not checked in');
+  if (!identity) {
+    return new NextResponse(null, { status: 204 });
+  }
 
   const idempotencyKey = `${identity.user_id}:${runId}`;
   const row = await queryOne<{ id: string; route_stop_id: string }>(
     `SELECT id, route_stop_id FROM scan_events WHERE idempotency_key = $1`,
     [idempotencyKey],
   );
-  if (!row) return error(404, 'Not checked in');
+  if (!row) {
+    return new NextResponse(null, { status: 204 });
+  }
 
   const count = await queryOne<{ total: bigint | number }>(
     `SELECT COALESCE(SUM(1 + additional_passengers), 0) AS total

@@ -14,4 +14,8 @@ docker compose -f "$ROOT_DIR/docker-compose.yml" up -d postgres >/dev/null
 docker exec "$CONTAINER_NAME" sh -lc 'until pg_isready -U shuttle -d nasum_shuttle >/dev/null 2>&1; do sleep 1; done'
 docker exec -i "$CONTAINER_NAME" psql -U shuttle -d nasum_shuttle < "$DUMP_FILE"
 
+for migration in "$ROOT_DIR"/db/reference/migrations/*.sql; do
+  docker exec -i "$CONTAINER_NAME" psql -v ON_ERROR_STOP=1 -U shuttle -d nasum_shuttle < "$migration"
+done
+
 echo "Seeded local database from $DUMP_FILE"

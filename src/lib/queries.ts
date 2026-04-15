@@ -5,6 +5,7 @@ import { getApiBaseUrl } from '../constants/appConfigs';
 export async function fetchApi<T>(path: string): Promise<T> {
   const res = await authedFetch(`${getApiBaseUrl()}${path}`);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (res.status === 204) return null as T;
   return res.json();
 }
 

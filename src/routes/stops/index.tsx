@@ -89,12 +89,12 @@ export default function StopDetailPage() {
   function handleRegister(): void {
     if (!user || !selectedStop) return;
     registerMutation.mutate({
-      provider: 'grab',
       provider_uid: user.userId,
       display_name: user.displayName,
       picture_url: user.pictureUrl,
       route_code: selectedStop.routeCode,
       route_stop_id: selectedStop.routeStopId,
+      provider: 'line',
     });
   }
 

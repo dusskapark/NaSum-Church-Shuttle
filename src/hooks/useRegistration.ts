@@ -25,7 +25,7 @@ export function useRegistration(
     queryKey: ['registration', providerUid],
     queryFn: () =>
       fetchApi<RegisteredUserResponse>(
-        `/api/v1/user-registration?provider=grab&provider_uid=${encodeURIComponent(providerUid!)}`,
+        `/api/v1/user-registration?provider=line&provider_uid=${encodeURIComponent(providerUid!)}`,
       ),
     enabled: !!providerUid,
   });

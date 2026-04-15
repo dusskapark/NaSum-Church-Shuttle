@@ -2,8 +2,9 @@ import type { NextConfig } from 'next';
 import path from 'node:path';
 
 const nextConfig: NextConfig = {
+  typedRoutes: false,
   experimental: {
-    typedRoutes: false,
+    useWasmBinary: true,
   },
   webpack(config) {
     config.resolve.alias = {

@@ -102,7 +102,7 @@ export default function ScanPage() {
     queryKey: ['registration', user?.userId],
     queryFn: () =>
       fetchApi<RegisteredUserResponse>(
-        `/api/v1/user-registration?provider=grab&provider_uid=${encodeURIComponent(user!.userId)}`,
+        `/api/v1/user-registration?provider=line&provider_uid=${encodeURIComponent(user!.userId)}`,
       ),
     enabled: isReady && !!user?.userId,
   });
@@ -152,12 +152,16 @@ export default function ScanPage() {
         const me = await fetchApi<MyCheckinResponse>(
           `/api/v1/checkin/me?run_id=${encodeURIComponent(data.run.id)}`,
         );
-        setCheckinResult({
-          success: true,
-          checkin_id: me.checkin_id,
-          stop_state: me.stop_state,
-        });
-        setPhase('success');
+        if (me) {
+          setCheckinResult({
+            success: true,
+            checkin_id: me.checkin_id,
+            stop_state: me.stop_state,
+          });
+          setPhase('success');
+        } else {
+          setPhase('confirm');
+        }
       } catch {
         // no existing check-in — fall through to confirm
         setPhase('confirm');
@@ -291,7 +295,7 @@ export default function ScanPage() {
       run_id: runInfo.run.id,
       route_stop_id: selectedStop.id,
       provider_uid: user.userId,
-      provider: 'grab',
+      provider: 'line',
       display_name: user.displayName,
       picture_url: user.pictureUrl,
       additional_passengers: additionalPassengers,
@@ -315,7 +319,7 @@ export default function ScanPage() {
     onError: () => Toast.show({ content: t('checkin.error'), icon: 'fail' }),
   });
 
-  const handleStartRun = useCallback(async () => {
+  const handleStartRun = useCallback(() => {
     if (!routeCode || !user) return;
     startRunMutation.mutate(routeCode);
   }, [routeCode, user, startRunMutation]);
@@ -333,7 +337,7 @@ export default function ScanPage() {
     onError: () => Toast.show({ content: t('checkin.error'), icon: 'fail' }),
   });
 
-  const handleEndRun = useCallback(async () => {
+  const handleEndRun = useCallback(() => {
     if (!runInfo || !user) return;
     endRunMutation.mutate(runInfo.run.id);
   }, [runInfo, user, endRunMutation]);
@@ -365,7 +369,7 @@ export default function ScanPage() {
         return;
       }
 
-      const value = result.result.qrCode;
+      const value = result.result?.qrCode;
       if (!value) {
         setScanStatus('warning');
         setScanError(t('scan.scanCancelled'));

@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "es2022"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es2022"
+    ],
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
@@ -15,17 +19,42 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@app-types": ["./src/types/index.ts"],
-      "@app-types/*": ["./src/types/*"],
-      "@components/*": ["./src/components/*"],
-      "@constants/*": ["./src/constants/*"],
-      "@hooks/*": ["./src/hooks/*"],
-      "@routes/*": ["./src/routes/*"],
-      "@server/*": ["./src/server/*"],
-      "@shared/*": ["./src/shared/*"],
-      "@shims/*": ["./src/shims/*"],
-      "@src/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@app-types": [
+        "./src/types/index.ts"
+      ],
+      "@app-types/*": [
+        "./src/types/*"
+      ],
+      "@grabjs/superapp-sdk": [
+        "./src/shims/superapp-sdk.ts"
+      ],
+      "@components/*": [
+        "./src/components/*"
+      ],
+      "@constants/*": [
+        "./src/constants/*"
+      ],
+      "@hooks/*": [
+        "./src/hooks/*"
+      ],
+      "@routes/*": [
+        "./src/routes/*"
+      ],
+      "@server/*": [
+        "./src/server/*"
+      ],
+      "@shared/*": [
+        "./src/shared/*"
+      ],
+      "@shims/*": [
+        "./src/shims/*"
+      ],
+      "@src/*": [
+        "./src/*"
+      ]
     },
     "plugins": [
       {
@@ -33,6 +62,16 @@
       }
     ]
   },
-  "include": ["next-env.d.ts", "app/**/*.ts", "app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules", "reference"]
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "reference"
+  ]
 }

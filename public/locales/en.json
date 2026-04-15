@@ -1,0 +1,69 @@
+{
+  "common": {
+    "actions": "Actions",
+    "back": "Back",
+    "create": "Create",
+    "edit": "Edit",
+    "errors": {
+      "INVALID_HEADER": "Invalid header: {{attr}}."
+    },
+    "refresh": "Refresh",
+    "save": "Save",
+    "view": "View"
+  },
+  "sessions": {
+    "backToLoginPage": "Back To Login Page",
+    "checkMailbox": "Check your mailbox",
+    "checkMailboxMessage": "A link to reset your password has been sent to your e-mail if it is valid.",
+    "email": "Email address",
+    "errors": {
+      "10005": "You are not registered on this application. Please contact tech support.",
+      "email": "Invalid email format.",
+      "failedToLogin": "Failed to login.",
+      "failedToObtainJWT": "Failed to obtain the JWT.",
+      "length": {
+        "maximum": "Length must be less than {{max}} characters.",
+        "minimum": "Length must be at least {{min}} characters."
+      },
+      "passwordMismatch": "The passwords do not match.",
+      "passwordStrength": "Password is not strong enough.",
+      "presence": "{{attr}} cannot be blank.",
+      "resetPasswordFailure": "Failed to reset password.",
+      "setPasswordFailure": "Failed to set password."
+    },
+    "forgotPassword": "Forgot Password",
+    "login": "Login",
+    "loginWithGoogle": "Login With Google",
+    "loginWithJumpcloud": "Login With JumpCloud",
+    "logout": "Logout",
+    "or": "Or",
+    "password": "Password",
+    "passwordAgain": "Password again",
+    "passwordStrength": {
+      "medium": "Medium",
+      "strong": "Strong",
+      "weak": "Weak"
+    },
+    "redirectToLogin": "Redirecting to login page...",
+    "requestPasswordReset": "Request Password Reset",
+    "requestPasswordResetDone": "A password reset mail have been sent to the email address.",
+    "setPassword": "Set password",
+    "setPasswordSuccess": "Your password is set!",
+    "username": "Username"
+  },
+  "users": {
+    "edit": "Edit User",
+    "fields": {
+      "city": "City",
+      "email": "Email",
+      "locale": "Locale",
+      "locked": "Locked",
+      "password": "Password",
+      "role": "Role",
+      "verified": "(Verified)"
+    },
+    "index": "Users",
+    "new": "Create User",
+    "show": "User Details"
+  }
+}

@@ -33,7 +33,7 @@ interface UseGoogleMapsProps {
 }
 
 interface UseGoogleMapsReturn {
-  mapRef: React.RefObject<HTMLDivElement | null>
+  mapRef: React.RefObject<HTMLDivElement>
   map: google.maps.Map | null
   isLoading: boolean
   error: string | null

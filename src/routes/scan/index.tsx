@@ -15,7 +15,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Layout from '../../components/Layout';
 import { useLineUser } from '../../hooks/useLineUser';
 import { useContainer } from '../../hooks/useContainer';
-import { CameraModule, LocationModule } from '@/shims/superapp-sdk';
+import { getLiff } from '../../lib/liff';
 import { useTranslation } from '../../lib/useTranslation';
 import {
   getDistanceInKm,
@@ -40,11 +40,39 @@ import type {
   Nullable,
 } from '@app-types/core';
 
-// Create singleton instances
-const cameraModule = new CameraModule();
-const locationModule = new LocationModule();
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
+
+async function scanQRCode(): Promise<string | null> {
+  const liff = await getLiff();
+  if (!liff || !liff.isApiAvailable('scanCodeV2')) {
+    throw new Error('SCAN_UNAVAILABLE');
+  }
+
+  const result = await liff.scanCodeV2();
+  return result?.value ?? null;
+}
+
+async function getCurrentCoordinates(): Promise<Coordinates | null> {
+  if (!navigator.geolocation) {
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      () => {
+        resolve(null);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 },
+    );
+  });
+}
 
 function getNearestStop(
   stops: RouteStopWithPlace[],
@@ -219,34 +247,11 @@ export default function ScanPage() {
 
     async function getCurrentLocation() {
       setGpsLoading(true);
-      console.log('[Location] getCoordinate starting...');
       try {
-        const result = await locationModule.getCoordinate();
-        console.log('[Location] getCoordinate result:', JSON.stringify(result));
-
-        if (result.status_code === 200 && result.result) {
-          // SDK returns latitude/longitude (not lat/lng)
-          const raw = result.result as {
-            latitude?: number;
-            longitude?: number;
-            lat?: number;
-            lng?: number;
-          };
-          const lat = raw.latitude ?? raw.lat;
-          const lng = raw.longitude ?? raw.lng;
-          console.log('[Location] coordinates:', { lat, lng });
-          if (lat != null && lng != null) {
-            setCoords({ lat, lng });
-          }
-        } else if (result.status_code === 403) {
-          console.warn(
-            '[Location] permission denied (403) — user may need to grant location access',
-          );
-        } else {
-          console.warn('[Location] unexpected status:', result.status_code);
+        const nextCoords = await getCurrentCoordinates();
+        if (nextCoords) {
+          setCoords(nextCoords);
         }
-      } catch (err) {
-        console.error('[Location] getCoordinate failed:', err);
       } finally {
         setGpsLoading(false);
       }
@@ -384,22 +389,7 @@ export default function ScanPage() {
         return;
       }
 
-      const result = await cameraModule.scanQRCode({
-        title: t('scan.scanButton'),
-      });
-
-      if (result.status_code === 204) {
-        setScanStatus('warning');
-        setScanError(t('scan.scanCancelled'));
-        return;
-      }
-      if (result.status_code === 403) {
-        setScanStatus('error');
-        setScanError(t('scan.availabilityUnsupported'));
-        return;
-      }
-
-      const value = result.result?.qrCode;
+      const value = await scanQRCode();
       if (!value) {
         setScanStatus('warning');
         setScanError(t('scan.scanCancelled'));
@@ -427,12 +417,17 @@ export default function ScanPage() {
         );
       }
     } catch (error) {
-      const message =
-        error instanceof Error && error.message
-          ? `${t('scan.scanFailed')} ${error.message}`
-          : t('scan.scanFailed');
-      setScanStatus('error');
-      setScanError(message);
+      if (error instanceof Error && error.message === 'SCAN_UNAVAILABLE') {
+        setScanStatus('error');
+        setScanError(t('scan.availabilityUnsupported'));
+      } else {
+        const message =
+          error instanceof Error && error.message
+            ? `${t('scan.scanFailed')} ${error.message}`
+            : t('scan.scanFailed');
+        setScanStatus('error');
+        setScanError(message);
+      }
     } finally {
       setIsScanning(false);
     }

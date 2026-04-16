@@ -8,7 +8,6 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { ProfileModule } from '@/shims/superapp-sdk';
 import { getLiff } from '../lib/liff';
 import { logError, logInfo, logWarn } from '../lib/logger';
 import type { LineUser, Nullable, UserRole } from '@app-types/core';
@@ -186,12 +185,9 @@ function useProvideLineUser(): UseLineUserResult {
           }
         }
 
-        const profileModule = new ProfileModule();
-        const emailResult = await profileModule.fetchEmail().catch(() => null);
-        if (emailResult?.status_code === 200 && emailResult.result?.email) {
-          setUser((prev) =>
-            prev ? { ...prev, email: emailResult.result.email ?? null } : prev,
-          );
+        const emailFromToken = liff?.getDecodedIDToken()?.email ?? null;
+        if (emailFromToken) {
+          setUser((prev) => (prev ? { ...prev, email: emailFromToken } : prev));
         }
         return;
       }

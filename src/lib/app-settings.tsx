@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { LocaleModule } from '@/shims/superapp-sdk';
+import { getLiff } from './liff';
 import i18n from '../locales';
 
 export type AppLanguage = 'en' | 'ko';
@@ -60,37 +60,21 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
       console.log('[AppSettings] Loaded language from localStorage:', stored);
       return;
     }
-    const locale = new LocaleModule();
-    locale
-      .getLanguageLocaleIdentifier()
-      .then(async (response: {
-        status_code: number;
-        result?: string;
-        error?: string;
-      }) => {
-        console.log(
-          '[LocaleModule] getLanguageLocaleIdentifier response:',
-          response,
-        );
-        if (response.status_code === 200 && response.result) {
-          // response.result may be ICU format e.g. "en_US@rg=sgzzzz" — use Intl.Locale to extract language
-          const { language } = new Intl.Locale(response.result);
-          const detected: AppLanguage = language === 'ko' ? 'ko' : 'en';
-          console.log(
-            '[LocaleModule] parsed locale:',
-            response.result,
-            '→ language:',
-            language,
-            '→ lang:',
-            detected,
-          );
-          setLangState(detected);
-          i18n.locale = detected;
-        } else if (response.status_code >= 400) {
-          console.error(
-            `[LocaleModule] Error ${response.status_code}: ${response.error}`,
-          );
-        }
+
+    getLiff()
+      .then((liff) => {
+        const appLanguage = (liff as { getAppLanguage?: () => string } | null)
+          ?.getAppLanguage?.();
+        const locale =
+          appLanguage ??
+          liff?.getLanguage?.() ??
+          window.navigator.language ??
+          window.navigator.languages?.[0] ??
+          'en';
+        const { language } = new Intl.Locale(locale);
+        const detected: AppLanguage = language === 'ko' ? 'ko' : 'en';
+        setLangState(detected);
+        i18n.locale = detected;
       })
       .catch(() => {});
   }, []);

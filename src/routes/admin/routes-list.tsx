@@ -40,12 +40,7 @@ import type {
 } from '@app-types/admin';
 
 // ────────────────────────────────────────────────────────────────────────────
-import {
-  FileModule,
-  ScopeModule,
-  isSuccess,
-  isError,
-} from '@/shims/superapp-sdk';
+import { getLiff } from '../../lib/liff';
 
 // ── QR URL builder moved to appConfigs.ts ────────────────────────────────────
 
@@ -131,39 +126,23 @@ function fallbackCopyText(text: string): void {
   }
 }
 
-async function downloadViaFileModule(
-  fileUrl: string,
-  filename: string,
-): Promise<void> {
-  console.log('[Download] FileModule.downloadFile:', filename, fileUrl);
-
-  const scopeModule = new ScopeModule();
-
-  // Always reload first to ensure latest scope state
-  const reloadResult = await scopeModule.reloadScopes();
-  console.log('[Download] reloadScopes result:', JSON.stringify(reloadResult));
-
-  const access = await scopeModule.hasAccessTo('FileModule', 'downloadFile');
-  console.log('[Download] hasAccessTo (after reload):', JSON.stringify(access));
-  // hasAccess raw value for clarity
-  console.log(
-    '[Download] hasAccess value:',
-    (access as { result?: { hasAccess?: boolean } | boolean }).result,
-  );
-
-  const fileModule = new FileModule();
-  console.log('[Download] FileModule.downloadFile args:', {
-    fileUrl,
-    fileName: filename,
-  });
-  const result = await fileModule.downloadFile({ fileUrl, fileName: filename });
-  console.log('[Download] FileModule result:', JSON.stringify(result));
-
-  if (isSuccess(result)) {
-    Toast.show({ content: 'Downloaded', icon: 'success' });
-  } else if (isError(result)) {
-    throw new Error(result.error || 'FileModule.downloadFile failed');
+async function downloadFile(fileUrl: string, filename: string): Promise<void> {
+  const liff = await getLiff();
+  if (liff) {
+    liff.openWindow({ url: fileUrl, external: true });
+    Toast.show({ content: 'Opened download in browser', icon: 'success' });
+    return;
   }
+
+  const anchor = document.createElement('a');
+  anchor.href = fileUrl;
+  anchor.download = filename;
+  anchor.rel = 'noopener';
+  anchor.target = '_blank';
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  Toast.show({ content: 'Downloaded', icon: 'success' });
 }
 
 async function downloadQr(text: string, filename: string): Promise<void> {
@@ -194,7 +173,7 @@ async function downloadQr(text: string, filename: string): Promise<void> {
     };
 
     const fileUrl = `${getAbsoluteApiBaseUrl()}${downloadUrl}`;
-    await downloadViaFileModule(fileUrl, responseFilename ?? filename);
+    await downloadFile(fileUrl, responseFilename ?? filename);
   } catch (err) {
     console.error('[Download] QR download failed:', err);
     Toast.show({
@@ -313,7 +292,7 @@ async function downloadScheduleMarkdown(
   const outputFilename = filename ?? `shuttle-${scheduleName}.md`;
 
   const fileUrl = `${getAbsoluteApiBaseUrl()}${downloadUrl}`;
-  await downloadViaFileModule(fileUrl, outputFilename);
+  await downloadFile(fileUrl, outputFilename);
 }
 
 // ── Strings ──────────────────────────────────────────────────────────────────

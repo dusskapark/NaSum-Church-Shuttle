@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { SpinLoading } from 'antd-mobile';
+import ErrorBlockPage from '@/components/ErrorBlockPage';
+import { useTranslation } from '@/lib/useTranslation';
 import { storeAuthFromBackend } from '../../hooks/useLineUser';
 
 function normalizeReturnToPath(rawPath: string): string {
@@ -32,7 +34,9 @@ function normalizeReturnToPath(rawPath: string): string {
 }
 
 export default function OAuthCallbackPage() {
+  const t = useTranslation();
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -47,10 +51,23 @@ export default function OAuthCallbackPage() {
         setError(err instanceof Error ? err.message : 'Authentication failed');
       }
     })();
-  }, []);
+  }, [retryKey]);
 
   if (error) {
-    return <div style={{ padding: 24, color: 'red' }}>{error}</div>;
+    return (
+      <ErrorBlockPage
+        status="disconnected"
+        title={t('errorPages.authErrorTitle')}
+        description={`${t('errorPages.authErrorDescription')}\n${error}`}
+        primaryLabel={t('errorPages.retry')}
+        secondaryLabel={t('errorPages.goHome')}
+        onPrimary={() => {
+          setError(null);
+          setRetryKey((prev) => prev + 1);
+        }}
+        onSecondary={() => window.location.replace('/')}
+      />
+    );
   }
 
   return (

@@ -210,7 +210,11 @@ const en = {
     searchPlaceholder: 'Search stops',
     alphabetical: 'A-Z',
     distance: 'Nearby',
+    distanceFetching: 'Getting your location…',
     distanceUnavailable: 'Location unavailable. Showing A-Z order instead.',
+    retryLocation: 'Retry',
+    pullToLoadHint: 'Pull down to load your current location.',
+    pullToRefreshHint: 'Pull down to refresh your current location.',
     map: 'Map',
     mapTitle: 'Stop Map',
     mapHint: 'Tap a marker to open that stop.',
@@ -232,6 +236,22 @@ const en = {
     boardAt: 'Board at',
     cancelButton: 'Cancel',
     stopId: 'Stop ID',
+  },
+  errorPages: {
+    notFoundTitle: 'Page not found',
+    notFoundDescription:
+      'The page you requested does not exist or has moved.',
+    goHome: 'Go to Home',
+    goBack: 'Go Back',
+    appErrorTitle: 'Something went wrong',
+    appErrorDescription: 'Please try again in a moment.',
+    retry: 'Retry',
+    criticalTitle: 'A critical error occurred',
+    criticalDescription:
+      'Please refresh this app and try again in a few moments.',
+    refresh: 'Refresh',
+    authErrorTitle: 'Sign-in callback failed',
+    authErrorDescription: 'Authentication callback failed.',
   },
 } as const;
 

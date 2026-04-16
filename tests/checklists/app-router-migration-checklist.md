@@ -91,6 +91,12 @@
     - `GET /api/v1/downloads/{token}` -> 전용 Route Handler로 이동
     - `app/api/v1/[[...slug]]/route.ts` 제거(legacy catch-all 제거)
     - `node tests/e2e/admin-api-smoke.mjs` PASS (download token flow 200/200)
+  - 2026-04-17 02:30 SGT: 레거시 정리 마무리
+    - root-level legacy `components/`, `hooks/`, `lib/` 제거
+    - `prisma/seed.ts` 의존 sync 유틸을 `prisma/support/googleRouteSync.ts`로 이동
+    - `/health_check` 제거, `/api/health`만 유지
+    - `npm run build` pass, `npm run typecheck` pass, `node tests/e2e/admin-api-smoke.mjs` pass
+    - `GET /api/health` => `200`, `GET /health_check` => `404`
   - 2026-04-17 01:17 SGT: `/admin/routes/{routeId}/sync` `500`(`route_stops_route_id_sequence_key`) 이슈 수정 후 로컬 API 재검증 `200`
   - 2026-04-17 01:10 SGT: download token 경로 분리 회귀(POST 200 후 GET 404) 확인 후 `download-tokens/blob` + `downloads/[token]`를 catch-all로 복구
   - 2026-04-17 00:37 SGT: `npm run typecheck` pass
@@ -101,13 +107,13 @@
   - Current console: dev overlay a11y issue + dev HMR `hot-update ... ERR_ABORTED` occasionally
 - Manual LINE test notes:
 
-## Next Migration (Immediate Handoff)
+## Migration Status
 
-- Trigger condition (when to start): P0 checklist all pass
-- Next migration topic: API decomposition migration (`app/api/v1/[[...slug]]` split by domain)
-- First step: Extract notifications + line-auth/session + routes + user-registration + me/preferences into dedicated route handlers (done)
-- Next step: Split `checkin/*` and `admin/run-schedule` from catch-all (done), `admin/{users,registrations,routes,schedules,runs}` 분리 완료 + catch-all dead code 정리 완료. (`download-tokens/blob`, `downloads/[token]`는 shared in-memory store 특성으로 catch-all 유지) 다음은 admin API 세부 E2E 보강
-- Owner/date: Codex + 2026-04-17
+- App Router page migration: complete
+- API domain split: complete
+- Download token route split: complete
+- Legacy root SPA cleanup: complete
+- Remaining follow-up: accessibility cleanup and schedule rollback bug fix
 
 ## Backlog
 

@@ -1,7 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 import { PrismaNeonHttp } from '@prisma/adapter-neon'
 import { ROUTE_CATALOG } from '../data/routeCatalog'
-import { parseRouteLabel, syncRouteFromGoogleMapsUrl } from '../lib/googleRouteSync'
+import { parseRouteLabel, syncRouteFromGoogleMapsUrl } from './support/googleRouteSync'
 
 const databaseUrl = process.env.DIRECT_URL || process.env.DATABASE_URL
 const googleMapsApiKey =

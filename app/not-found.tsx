@@ -14,9 +14,7 @@ export default function NotFound() {
       title={t('errorPages.notFoundTitle')}
       description={t('errorPages.notFoundDescription')}
       primaryLabel={t('errorPages.goHome')}
-      secondaryLabel={t('errorPages.goBack')}
       onPrimary={() => router.replace('/')}
-      onSecondary={() => router.back()}
     />
   );
 }

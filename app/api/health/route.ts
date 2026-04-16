@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import prisma from '../../../lib/prisma';
-import { logError } from '../../../lib/logger';
+import { query } from '@/server/db';
+import { logError } from '@/lib/logger';
 
 interface HealthResponse {
   status: 'ok' | 'error';
@@ -11,7 +11,7 @@ interface HealthResponse {
 
 export async function GET() {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await query('SELECT 1');
 
     const payload: HealthResponse = {
       status: 'ok',

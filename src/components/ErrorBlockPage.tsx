@@ -45,12 +45,12 @@ export default function ErrorBlockPage({
         {(primaryLabel || secondaryLabel) && (
           <Space block direction="vertical" style={{ marginTop: 16 }}>
             {primaryLabel && onPrimary && (
-              <Button color="primary" block onClick={onPrimary}>
+              <Button fill="none" color="primary" block onClick={onPrimary}>
                 {primaryLabel}
               </Button>
             )}
             {secondaryLabel && onSecondary && (
-              <Button block onClick={onSecondary}>
+              <Button fill="none" block onClick={onSecondary}>
                 {secondaryLabel}
               </Button>
             )}

@@ -12,7 +12,7 @@ import {
   Toast,
 } from 'antd-mobile';
 import { DeleteOutline, EditSOutline } from 'antd-mobile-icons';
-import { useParams } from 'react-router-dom';
+import { useParams } from '@/lib/router';
 import Layout from '../../../components/Layout';
 import { useContainer } from '../../../hooks/useContainer';
 import { useAppSettings } from '../../../lib/app-settings';

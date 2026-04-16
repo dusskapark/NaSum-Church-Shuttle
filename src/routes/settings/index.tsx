@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate } from '@/lib/router';
 import {
   Avatar,
   Ellipsis,
@@ -41,20 +41,16 @@ export default function SettingsPage() {
       mutateApi('/api/v1/me/preferences', { method: 'PATCH', body }),
   });
 
-  const [pushEnabledOverride, setPushEnabledOverride] = useState<
-    boolean | null
-  >(null);
+  const [pushEnabled, setPushEnabled] = useState<boolean>(true);
   const [pickerVisible, setPickerVisible] = useState(false);
   const langLabel =
     lang === 'ko'
       ? t('settings.languageKorean')
       : t('settings.languageEnglish');
-  const pushEnabled =
-    pushEnabledOverride ??
-    (() => {
-      const storedValue = window.localStorage.getItem(PUSH_PREF_KEY);
-      return storedValue === null ? true : storedValue === 'true';
-    })();
+  useEffect(() => {
+    const storedValue = window.localStorage.getItem(PUSH_PREF_KEY);
+    setPushEnabled(storedValue === null ? true : storedValue === 'true');
+  }, []);
 
   const isLoading = lineLoading || registrationLoading;
 
@@ -244,7 +240,7 @@ export default function SettingsPage() {
             <Switch
               checked={pushEnabled}
               onChange={(checked) => {
-                setPushEnabledOverride(checked);
+                setPushEnabled(checked);
                 window.localStorage.setItem(PUSH_PREF_KEY, String(checked));
                 prefMutation.mutate({ push_notifications_enabled: checked });
               }}

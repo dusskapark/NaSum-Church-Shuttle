@@ -17,7 +17,7 @@ import {
 } from 'antd-mobile-icons';
 import QRCode from 'qrcode';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router';
 import Layout from '../../components/Layout';
 import StopEditPopup, {
   type StopEditValues,
@@ -25,6 +25,7 @@ import StopEditPopup, {
 } from '../../components/StopEditPopup';
 import { useContainer } from '../../hooks/useContainer';
 import { useAppSettings } from '../../lib/app-settings';
+import { formatDateUtc } from '../../lib/date-format';
 import {
   getApiBaseUrl,
   getAbsoluteApiBaseUrl,
@@ -683,7 +684,7 @@ export default function AdminRoutesListPage() {
                       }}
                     >
                       {s.published_at
-                        ? new Date(s.published_at).toLocaleDateString()
+                        ? formatDateUtc(s.published_at)
                         : ''}
                     </span>
                   </List.Item>

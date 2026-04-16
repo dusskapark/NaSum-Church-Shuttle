@@ -13,6 +13,7 @@ import Layout from '../../components/Layout';
 import { useContainer } from '../../hooks/useContainer';
 import { useTranslation } from '../../lib/useTranslation';
 import { fetchApi, mutateApi } from '../../lib/queries';
+import { formatDateTimeUtc } from '../../lib/date-format';
 
 interface RegistrationAdminRow {
   registration_id: string;
@@ -33,8 +34,7 @@ interface RegistrationAdminRow {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '-';
-  return new Date(iso).toLocaleString();
+  return formatDateTimeUtc(iso);
 }
 
 type RegStatus = 'active' | 'inactive' | 'all';

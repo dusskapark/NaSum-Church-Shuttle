@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "rm -f tsconfig.tsbuildinfo && next typegen && tsc --noEmit",
+    "test:admin-api-smoke": "node tests/e2e/admin-api-smoke.mjs",
+    "test:admin-api-smoke:destructive": "node tests/e2e/admin-api-smoke.mjs --destructive"
   },
   "dependencies": {
     "@line/liff": "^2.27.2",
@@ -30,7 +32,6 @@
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.25.1",
     "swr": "^2.4.1",
     "tailwindcss": "^4.2.2",
     "zod": "^3.24.2"

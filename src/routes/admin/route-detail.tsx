@@ -10,7 +10,7 @@ import {
   Tag,
   Toast,
 } from 'antd-mobile';
-import { useParams } from 'react-router-dom';
+import { useParams } from '@/lib/router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Layout from '../../components/Layout';
 import { useContainer } from '../../hooks/useContainer';
@@ -18,6 +18,7 @@ import { useAppSettings } from '../../lib/app-settings';
 import { getApiBaseUrl } from '../../constants/appConfigs';
 import { authedFetch } from '../../lib/api';
 import { fetchApi, mutateApi } from '../../lib/queries';
+import { formatDateTimeUtc } from '../../lib/date-format';
 import type { AdminRouteDetail as AdminRoute } from '@app-types/admin';
 import StopEditSheet, { type AdminStop } from './stop-edit-sheet';
 
@@ -337,7 +338,7 @@ export default function AdminRouteDetailPage() {
                 {route.last_synced_at && (
                   <span style={{ color: 'var(--app-color-subtle-text)' }}>
                     {t.lastSynced}:{' '}
-                    {new Date(route.last_synced_at).toLocaleString()}
+                    {formatDateTimeUtc(route.last_synced_at)}
                   </span>
                 )}
               </div>

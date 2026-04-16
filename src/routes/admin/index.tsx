@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router';
 import Layout from '../../components/Layout';
 import { useContainer } from '../../hooks/useContainer';
 import { useAppSettings } from '../../lib/app-settings';

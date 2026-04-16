@@ -18,7 +18,7 @@ import {
   RedoOutline,
   UploadOutline,
 } from 'antd-mobile-icons';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from '@/lib/router';
 import Layout from '../../../components/Layout';
 import { useContainer } from '../../../hooks/useContainer';
 import { useAppSettings } from '../../../lib/app-settings';

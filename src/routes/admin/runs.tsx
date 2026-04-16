@@ -28,6 +28,7 @@ import { authedFetch } from '../../lib/api';
 import { fetchApi, mutateApi } from '../../lib/queries';
 import { useRoutes } from '../../hooks/useRoutes';
 import { getRouteLabel, getVisibleStops } from '../../lib/routeSelectors';
+import { formatDateTimeUtc } from '../../lib/date-format';
 import type {
   ActiveRun,
   ApiRouteWithStops,
@@ -68,8 +69,7 @@ function pickerValueToTime(val: (string | number | null)[]): string {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '-';
-  return new Date(iso).toLocaleString();
+  return formatDateTimeUtc(iso);
 }
 
 interface RunRowProps {

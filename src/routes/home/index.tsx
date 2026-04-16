@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from '@/lib/router';
 import {
   Dialog,
   Footer,
@@ -74,6 +74,29 @@ export default function ShuttleHome() {
   const panelRouteCode =
     !routesLoading && selectedRouteCode ? selectedRouteCode : null;
   const isLoading = lineLoading || regLoading || routesLoading;
+
+  // Invalid deep-link guard:
+  // if route/stop query does not exist in current route data, redirect to root.
+  useEffect(() => {
+    if (routesLoading) return;
+
+    if (selectedRouteCode) {
+      const route = routes.find((item) => item.route_code === selectedRouteCode);
+      if (!route) {
+        hasAutoNavigated.current = true;
+        navigate('/', { replace: true });
+        return;
+      }
+
+      if (
+        selectedRouteStopId &&
+        !route.stops.some((stop) => stop.id === selectedRouteStopId)
+      ) {
+        hasAutoNavigated.current = true;
+        navigate('/', { replace: true });
+      }
+    }
+  }, [navigate, routes, routesLoading, selectedRouteCode, selectedRouteStopId]);
 
   // On first load, auto-navigate to the registered route (replace history so back goes to list)
   useEffect(() => {

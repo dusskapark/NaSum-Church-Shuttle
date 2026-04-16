@@ -1,5 +1,5 @@
 import { Suspense, lazy, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from '@/lib/router';
 import { Button, CheckList, SafeArea, Skeleton, Tag, Toast } from 'antd-mobile';
 import { EnvironmentOutline } from 'antd-mobile-icons';
 import type { CheckListValue } from 'antd-mobile/es/components/check-list';

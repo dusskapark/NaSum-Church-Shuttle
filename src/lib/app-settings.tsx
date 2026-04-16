@@ -8,8 +8,15 @@ import {
 } from 'react';
 import { getLiff } from './liff';
 import i18n from '../locales';
+import {
+  APP_LANG_COOKIE,
+  APP_THEME_COOKIE,
+  normalizeLangCookie,
+  normalizeThemeCookie,
+} from './app-settings-cookies';
 
 export type AppLanguage = 'en' | 'ko';
+export type AppTheme = 'light' | 'dark';
 
 interface AppSettingsContextValue {
   lang: AppLanguage;
@@ -21,43 +28,53 @@ interface AppSettingsContextValue {
 const LANGUAGE_KEY = 'line-shuttle:language';
 const DARK_MODE_KEY = 'line-shuttle:dark-mode';
 
+function setClientCookie(name: string, value: string) {
+  const maxAge = 60 * 60 * 24 * 365;
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; samesite=lax`;
+}
+
 const AppSettingsContext = createContext<AppSettingsContextValue | null>(null);
 
-function getPreferredLanguage(): AppLanguage {
-  if (typeof window === 'undefined') {
-    return 'en';
-  }
-  const stored = window.localStorage.getItem(LANGUAGE_KEY);
-  if (stored === 'en' || stored === 'ko') return stored;
-
-  return window.navigator.language.toLowerCase().startsWith('ko') ? 'ko' : 'en';
+interface AppSettingsProviderProps {
+  children: ReactNode;
+  initialLang: AppLanguage;
+  initialTheme: AppTheme;
 }
 
-function getPreferredDarkMode(): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  const stored = window.localStorage.getItem(DARK_MODE_KEY);
-  if (stored === 'true') return true;
-  if (stored === 'false') return false;
-
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
-export function AppSettingsProvider({ children }: { children: ReactNode }) {
+export function AppSettingsProvider({
+  children,
+  initialLang,
+  initialTheme,
+}: AppSettingsProviderProps) {
   const [lang, setLangState] = useState<AppLanguage>(() => {
-    const l = getPreferredLanguage();
-    i18n.locale = l;
-    return l;
+    i18n.locale = initialLang;
+    return initialLang;
   });
-  const [isDark, setIsDarkState] = useState<boolean>(getPreferredDarkMode);
+  const [isDark, setIsDarkState] = useState<boolean>(initialTheme === 'dark');
 
-  // Sync i18n locale with LINE app language on first load (no stored preference)
   useEffect(() => {
+    i18n.locale = lang;
+  }, [lang]);
+
+  useEffect(() => {
+    setClientCookie(APP_LANG_COOKIE, normalizeLangCookie(lang));
+  }, [lang]);
+
+  useEffect(() => {
+    const nextTheme = normalizeThemeCookie(isDark ? 'dark' : 'light');
+    setClientCookie(APP_THEME_COOKIE, nextTheme);
+  }, [isDark]);
+
+  // Read persisted preferences only on client to avoid hydration mismatch.
+  useEffect(() => {
+    const storedDark = window.localStorage.getItem(DARK_MODE_KEY);
+    if (storedDark === 'true' || storedDark === 'false') {
+      setIsDarkState(storedDark === 'true');
+    }
+
     const stored = window.localStorage.getItem(LANGUAGE_KEY);
-    if (stored) {
-      i18n.locale = stored;
-      console.log('[AppSettings] Loaded language from localStorage:', stored);
+    if (stored === 'en' || stored === 'ko') {
+      setLangState(stored);
       return;
     }
 
@@ -72,12 +89,11 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
           window.navigator.languages?.[0] ??
           'en';
         const { language } = new Intl.Locale(locale);
-        const detected: AppLanguage = language === 'ko' ? 'ko' : 'en';
+        const detected: AppLanguage = normalizeLangCookie(language);
         setLangState(detected);
-        i18n.locale = detected;
       })
       .catch(() => {});
-  }, []);
+  }, [initialLang]);
 
   useEffect(() => {
     if (isDark) {

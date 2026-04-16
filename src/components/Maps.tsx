@@ -313,6 +313,16 @@ function BrowserMapControls({
 >) {
   const map = useMap();
 
+  const isUnusableCoordinates = (coords: GeolocationCoordinates) => {
+    const isZeroPoint =
+      Math.abs(coords.latitude) < 0.000001 &&
+      Math.abs(coords.longitude) < 0.000001;
+    const accuracy = coords.accuracy;
+    const isInvalidAccuracy = !Number.isFinite(accuracy) || accuracy <= 0;
+    const isTooWide = accuracy > 5000;
+    return isZeroPoint || isInvalidAccuracy || isTooWide;
+  };
+
   const handleCurrentLocation = () => {
     if (!navigator.geolocation) {
       Toast.show({ content: currentLocationUnavailable, icon: 'fail' });
@@ -321,6 +331,11 @@ function BrowserMapControls({
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (isUnusableCoordinates(position.coords)) {
+          Toast.show({ content: currentLocationUnavailable, icon: 'fail' });
+          return;
+        }
+
         map?.panTo({
           lat: position.coords.latitude,
           lng: position.coords.longitude,
@@ -330,7 +345,7 @@ function BrowserMapControls({
       () => {
         Toast.show({ content: currentLocationUnavailable, icon: 'fail' });
       },
-      { enableHighAccuracy: true, timeout: 8000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   };
 

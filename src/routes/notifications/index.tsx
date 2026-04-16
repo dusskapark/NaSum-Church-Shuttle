@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, InfiniteScroll, List, Toast } from 'antd-mobile';
 import { BellOutline } from 'antd-mobile-icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Layout from '../../components/Layout';
 import { useContainer } from '../../hooks/useContainer';
@@ -14,9 +14,10 @@ import { DEV_NOTIFICATIONS } from './_devData';
 const PAGE_SIZE = 5;
 const INITIAL_DATA =
   process.env.NODE_ENV === 'development' ? DEV_NOTIFICATIONS : [];
+const DEV_NOTIFICATION_IDS = new Set(DEV_NOTIFICATIONS.map((item) => item.id));
 
-function formatRelativeTime(isoString: string, lang: string): string {
-  const diff = Date.now() - new Date(isoString).getTime();
+function formatRelativeTime(isoString: string, lang: string, nowMs: number): string {
+  const diff = nowMs - new Date(isoString).getTime();
   const minutes = Math.floor(diff / 60_000);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
@@ -50,13 +51,19 @@ export default function NotificationsPage() {
     allNotifications && allNotifications.length > 0
       ? allNotifications
       : INITIAL_DATA;
+  const hasServerNotifications = !!allNotifications && allNotifications.length > 0;
 
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [nowMs, setNowMs] = useState<number | null>(null);
   const displayed = useMemo(
     () => allData.slice(0, pageSize),
     [allData, pageSize],
   );
   const hasMore = pageSize < allData.length;
+
+  useEffect(() => {
+    setNowMs(Date.now());
+  }, []);
 
   const loadMore = useCallback(async () => {
     await new Promise<void>((resolve) => setTimeout(resolve, 400));
@@ -106,12 +113,15 @@ export default function NotificationsPage() {
 
   const handleItemClick = useCallback(
     (n: AppNotification) => {
-      if (!n.is_read) markReadMutation.mutate(n.id);
-      if (n.route_code && n.user_route_stop_id) {
+      const isDevFallbackOnly = !hasServerNotifications && DEV_NOTIFICATION_IDS.has(n.id);
+      if (!n.is_read && !isDevFallbackOnly) {
+        markReadMutation.mutate(n.id);
+      }
+      if (!isDevFallbackOnly && n.route_code && n.user_route_stop_id) {
         navigate(`/?route=${n.route_code}&stop=${n.user_route_stop_id}`);
       }
     },
-    [markReadMutation, navigate],
+    [hasServerNotifications, markReadMutation, navigate],
   );
 
   const unreadCount = displayed.filter((n) => !n.is_read).length;
@@ -222,7 +232,7 @@ export default function NotificationsPage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {formatRelativeTime(n.created_at, lang)}
+                    {nowMs ? formatRelativeTime(n.created_at, lang, nowMs) : ''}
                   </span>
                 }
               >

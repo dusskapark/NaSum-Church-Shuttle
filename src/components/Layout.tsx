@@ -10,15 +10,12 @@ import {
   ScanningOutline,
 } from 'antd-mobile-icons';
 import { useQuery } from '@tanstack/react-query';
-import { ContainerModule } from '@/shims/superapp-sdk';
 import { useTranslation } from '../lib/useTranslation';
 import { fetchApi } from '../lib/queries';
 import { useLineUser } from '../hooks/useLineUser';
 import type { AppNotification } from '@app-types/core';
 import { DEV_NOTIFICATIONS } from '../routes/notifications/_devData';
 
-// Create singleton instance
-const containerModule = new ContainerModule();
 
 interface LayoutProps {
   children: ReactNode;
@@ -94,18 +91,6 @@ export default function Layout({
     return list.filter((n) => !n.is_read).length;
   }, [notifications]);
 
-  useEffect(() => {
-    try {
-      if (showTabBar) {
-        containerModule.hideBackButton().catch(() => {});
-      } else {
-        containerModule.showBackButton().catch(() => {});
-      }
-      containerModule.hideRefreshButton().catch(() => {});
-    } catch {
-      // Not in LINE MiniApp context — ignore
-    }
-  }, [showTabBar]);
   const t = useTranslation();
   const activeKey = useMemo(() => {
     if (location.pathname === '/search') return '/search';

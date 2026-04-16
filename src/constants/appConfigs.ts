@@ -16,8 +16,8 @@ export function getApiBaseUrl(): string {
 }
 
 /**
- * Returns an absolute HTTPS base URL for use with FileModule.downloadFile,
- * which requires a full URL (relative paths are rejected with status 400).
+ * Returns an absolute HTTPS base URL for external download links.
+ * Download endpoints require a full URL (relative paths are rejected with status 400).
  * On local dev, the browser origin itself proxies /api/* to the backend.
  */
 export function getAbsoluteApiBaseUrl(): string {

@@ -10,7 +10,7 @@ import { useLineUser } from '../../hooks/useLineUser';
 import { useContainer } from '../../hooks/useContainer';
 import { useTranslation } from '../../lib/useTranslation';
 import { mutateApi } from '../../lib/queries';
-import { SystemWebViewKitModule } from '@/shims/superapp-sdk';
+import { openExternalUrl } from '../../lib/open-external-url';
 import {
   getMatchingStops,
   getSourceStop,
@@ -18,8 +18,6 @@ import {
 } from '../../lib/routeSelectors';
 import type { StopCandidate, UserRegistrationRequest } from '@app-types/core';
 
-// Create singleton instance
-const systemWebViewKitModule = new SystemWebViewKitModule();
 
 const StopPreviewMap = lazy(() =>
   import('../../components/Maps').then((mod) => ({
@@ -165,9 +163,7 @@ export default function StopDetailPage() {
                 fill="none"
                 size="small"
                 onClick={() => {
-                  systemWebViewKitModule
-                    .redirectToSystemWebView({ url: mapsUrl })
-                    .catch(() => {});
+                  openExternalUrl(mapsUrl).catch(() => {});
                 }}
                 style={{ color: 'var(--app-color-link)', padding: 0 }}
               >

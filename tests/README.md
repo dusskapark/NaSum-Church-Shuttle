@@ -24,6 +24,14 @@ This folder stores markdown checklists used during major migrations.
 - Run destructive mode: `npm run test:admin-api-smoke:destructive`
 - Disable destructive cleanup: `node tests/e2e/admin-api-smoke.mjs --destructive --no-cleanup`
 
+## Playwright UI Smoke
+
+- `tests/e2e/app-smoke.spec.ts` provides top-level UI smoke coverage with Playwright.
+- Run: `npm run test:e2e`
+- Headed run: `npm run test:e2e:headed`
+- Default web server target: `http://localhost:3100`
+- The Playwright config starts `next dev -- --port 3100` automatically unless an existing server is already available.
+
 ### Destructive Safety Guard
 
 - Destructive mode is allowed by default only for local `BASE_URL` (`localhost`/`127.0.0.1`).

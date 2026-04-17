@@ -63,6 +63,7 @@ Date: 2026-04-18
 - `npm run typecheck`: pass
 - `npx prisma validate`: pass
 - `BASE_URL=http://localhost:3001 npm run test:admin-api-smoke`: pass
+- `npm run test:e2e`: pass
 - Static prerender recovery confirmed for:
   - `/`
   - `/search`
@@ -102,3 +103,12 @@ Date: 2026-04-18
   - `GET /api/v1/admin/runs?status=active` => `200`
   - `POST /api/v1/admin/download-tokens/blob` => `200`
   - `GET /api/v1/downloads/{token}` => `200`
+- Playwright UI smoke refreshed on 2026-04-18 04:00 +08:
+  - `/` renders route list
+  - `/search` renders and `/stops?placeId=...` detail opens
+  - `/notifications` renders
+  - `/settings` renders
+  - `/admin` renders
+  - `/admin/runs` renders
+  - `/admin/schedules/{id}` renders from authenticated API-derived schedule id
+  - total result: `4 passed`

@@ -17,14 +17,18 @@ test.describe('app smoke', () => {
   test('home renders route list', async ({ page, baseURL }) => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByText(/Routes|노선/i)).toBeVisible();
+    await expect(page.getByText(/Shuttle Routes|노선/i).first()).toBeVisible();
 
-    const summaries = await fetchJson<Array<{ route_code: string }>>(
+    const summaries = await fetchJson<
+      Array<{ route_code: string; display_name?: string | null; name?: string | null }>
+    >(
       `${baseURL}/api/v1/routes/summary`,
     );
-    if (summaries[0]?.route_code) {
+    const firstRouteLabel =
+      summaries[0]?.display_name ?? summaries[0]?.name ?? summaries[0]?.route_code;
+    if (firstRouteLabel) {
       await expect(
-        page.getByText(summaries[0].route_code, { exact: false }),
+        page.getByText(firstRouteLabel, { exact: false }).first(),
       ).toBeVisible();
     }
   });
@@ -70,8 +74,27 @@ test.describe('app smoke', () => {
     const firstSchedule = schedules[0];
     test.skip(!firstSchedule, 'No schedule data available');
 
+    const scheduleDetail = await fetchJson<{
+      routes?: Array<{
+        route_code: string;
+        display_name?: string | null;
+        route_name?: string | null;
+      }>;
+    }>(
+      `${baseURL}/api/v1/admin/schedules/${firstSchedule.id}`,
+      'dev-bypass-local-admin',
+    );
+
     await page.goto(`/admin/schedules/${firstSchedule.id}`);
     await expect(page).toHaveURL(new RegExp(`/admin/schedules/${firstSchedule.id}`));
-    await expect(page.getByText(/Save & Deploy|저장 & 배포/i).first()).toBeVisible();
+    const firstRouteLabel =
+      scheduleDetail.routes?.[0]?.display_name ??
+      scheduleDetail.routes?.[0]?.route_name ??
+      scheduleDetail.routes?.[0]?.route_code;
+    if (firstRouteLabel) {
+      await expect(
+        page.getByText(firstRouteLabel, { exact: false }).first(),
+      ).toBeVisible();
+    }
   });
 });

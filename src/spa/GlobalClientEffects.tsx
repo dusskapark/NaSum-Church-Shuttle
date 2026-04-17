@@ -7,7 +7,7 @@ import { useEffect, type PropsWithChildren } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { LineUserProvider } from '@/hooks/useLineUser';
 import { useAppLoader } from '@/hooks/useAppLoader';
-import { logDebug } from '@/lib/logger';
+import { logDebug, logDevError } from '@/lib/logger';
 import { useAppSettings } from '@/lib/app-settings';
 import { injectDesignTokens } from '@/styles/inject-duxton-tokens';
 
@@ -29,7 +29,7 @@ function GlobalErrorBoundaryEffects() {
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.error('[unhandledrejection]', {
+        logDevError('[unhandledrejection]', {
           message,
           stack: reason instanceof Error ? reason.stack : undefined,
           reason,
@@ -49,7 +49,7 @@ function GlobalErrorBoundaryEffects() {
         (target as HTMLLinkElement).href ||
         target.tagName;
 
-      console.error('[load-error] Resource failed to load', {
+      logDevError('[load-error] Resource failed to load', {
         tag: target.tagName,
         url,
       });

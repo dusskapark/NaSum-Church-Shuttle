@@ -23,6 +23,8 @@ Reviewed on: 2026-04-18
 - Completed: Prisma schema validate 통과
 - Completed: `/api/v1/checkin/me` legacy route 제거
 - Completed: `ClientProviders` 전역 효과 분리
+- Completed: server/client logger 정리와 verbose log 축소 1차 완료
+- Completed: 미사용 의존성/전역 CSS/죽은 설정 제거 1차 완료
 - Completed: legacy `useRoutes` 훅 제거
 - Completed: `next.config` 단일화
 - Completed: ESLint flat config에 Next core-web-vitals 연결
@@ -306,13 +308,13 @@ Reviewed on: 2026-04-18
 - Task 20. Prisma schema를 실제 런타임 데이터 모델과 정렬
 - Task 21. `/api/v1/checkin/me` legacy route 제거
 - Task 22. `ClientProviders` 전역 효과 분리
+- Task 23. server/client logger 정리와 verbose log 축소
+- Task 24. 미사용 의존성/전역 CSS/죽은 설정 제거
 
 ### Next
 
-- Task 23. nested layout / route group으로 동적 범위 추가 축소
-- Task 24. server logger 정리 및 verbose log 축소
-- Task 25. 미사용 의존성/전역 CSS 정리
-- Task 26. 핵심 플로우 smoke test 문서 갱신
+- Task 25. nested layout / route group으로 동적 범위 추가 축소
+- Task 26. 핵심 플로우 smoke test 문서 및 테스트 체계 고도화
 
 ### Ticket 1. Simplify arrival LINE notification
 

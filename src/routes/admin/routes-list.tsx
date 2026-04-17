@@ -35,7 +35,7 @@ import {
 } from '../../constants/appConfigs';
 import { authedFetch } from '../../lib/api';
 import { fetchApi, mutateApi } from '../../lib/queries';
-import { logDebug } from '../../lib/logger';
+import { logDebug, logError } from '../../lib/logger';
 import type {
   AdminRouteListItem as AdminRoute,
   AdminLiveRoute as LiveRoute,
@@ -83,7 +83,7 @@ async function copyText(text: string): Promise<void> {
         fallbackCopyText(text);
       }
     } catch (err) {
-      console.error('[Copy] Clipboard API failed:', err);
+      logError('[Copy] Clipboard API failed:', err);
       fallbackCopyText(text);
     }
   } else {
@@ -121,7 +121,7 @@ function fallbackCopyText(text: string): void {
 
     throw new Error('execCommand returned false');
   } catch (err) {
-    console.error('[Copy] All copy methods failed:', err);
+    logError('[Copy] All copy methods failed:', err);
     Toast.show({
       content: 'Copy failed. Please try again.',
       icon: 'fail',
@@ -179,7 +179,7 @@ async function downloadQr(text: string, filename: string): Promise<void> {
     const fileUrl = `${getAbsoluteApiBaseUrl()}${downloadUrl}`;
     await downloadFile(fileUrl, responseFilename ?? filename);
   } catch (err) {
-    console.error('[Download] QR download failed:', err);
+    logError('[Download] QR download failed:', err);
     Toast.show({
       content: `Download failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
       icon: 'fail',
@@ -609,7 +609,7 @@ export default function AdminRoutesListPage() {
         await downloadScheduleMarkdown(scheduleId, scheduleName);
         dropdownRef.current?.close();
       } catch (err) {
-        console.error('[Download] handleDownload failed:', err);
+        logError('[Download] handleDownload failed:', err);
         Toast.show({ content: t.downloadError, icon: 'fail' });
       } finally {
         setDownloadingId(null);

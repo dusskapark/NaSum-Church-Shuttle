@@ -26,6 +26,14 @@ export function logWarn(message: string, ...args: unknown[]): void {
   console.warn(message, ...args);
 }
 
+export function logDevError(message: string, ...args: unknown[]): void {
+  if (!isDev()) {
+    return;
+  }
+
+  console.error(message, ...args);
+}
+
 export function logError(message: string, ...args: unknown[]): void {
   console.error(message, ...args);
 }

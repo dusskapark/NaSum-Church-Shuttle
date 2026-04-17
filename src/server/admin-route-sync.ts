@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { query, withTransaction } from './db';
+import { logDebug } from '@/lib/logger';
 import {
   parseGoogleMapsUrl,
   resolveWaypoint,
@@ -148,7 +149,7 @@ export async function syncRouteSnapshot(
     });
   }
 
-  console.log(
+  logDebug(
     `[route-sync] route=${routeId}, waypoint_count=${waypoints.length}, resolved_unique=${resolved.length}, unresolved=${unresolved}`,
   );
 

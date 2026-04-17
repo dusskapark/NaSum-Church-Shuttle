@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne } from '@/server/db';
 import { error, json, requireActor } from '@/server/http';
+import { logError } from '@/lib/logger';
 import { notifyApproachingUsers } from '@/server/notifications';
 
 interface RunRow {
@@ -207,7 +208,7 @@ export async function handleAdminRuns(
 
     if (body.status === 'arrived') {
       notifyApproachingUsers(runId, stopId).catch((caught) => {
-        console.error('[admin-runs] notifyApproachingUsers failed', {
+        logError('[admin-runs] notifyApproachingUsers failed', {
           runId,
           stopId,
           message: caught instanceof Error ? caught.message : String(caught),

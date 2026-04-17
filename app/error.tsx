@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ErrorBlockPage from '@/components/ErrorBlockPage';
+import { logError } from '@/lib/logger';
 import { useTranslation } from '@/lib/useTranslation';
 
 export default function AppError({
@@ -16,7 +17,7 @@ export default function AppError({
   const t = useTranslation();
 
   useEffect(() => {
-    console.error(error);
+    logError('[app-error]', error);
   }, [error]);
 
   return (

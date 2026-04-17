@@ -10,20 +10,20 @@
     "lint": "next lint",
     "typecheck": "rm -f tsconfig.tsbuildinfo && next typegen && tsc --noEmit",
     "test:admin-api-smoke": "node tests/e2e/admin-api-smoke.mjs",
-    "test:admin-api-smoke:destructive": "node tests/e2e/admin-api-smoke.mjs --destructive"
+    "test:admin-api-smoke:destructive": "node tests/e2e/admin-api-smoke.mjs --destructive",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@line/liff": "^2.27.2",
     "@neondatabase/serverless": "^1.0.2",
     "@prisma/adapter-neon": "^7.7.0",
     "@prisma/client": "^7.7.0",
-    "@tailwindcss/postcss": "^4.2.2",
     "@tanstack/react-query": "^5.97.0",
     "@tanstack/react-query-devtools": "^5.97.0",
     "@vis.gl/react-google-maps": "^1.5.4",
     "antd-mobile": "^5.42.3",
     "antd-mobile-icons": "^0.3.0",
-    "autoprefixer": "^10.5.0",
     "i18n-js": "4.5.3",
     "jose": "^5.9.6",
     "next": "^15.3.1",
@@ -31,11 +31,11 @@
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tailwindcss": "^4.2.2",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@next/swc-wasm-nodejs": "^15.5.15",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^22.15.3",
     "@types/pg": "^8.11.11",
     "@types/qrcode": "^1.5.6",

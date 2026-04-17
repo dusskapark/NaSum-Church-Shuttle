@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { query } from './db';
 import { sendLinePushShuttleCarousel } from './line-messaging';
+import { logError } from '@/lib/logger';
 
 interface ArrivedStopRow {
   sequence: number;
@@ -84,7 +85,7 @@ async function sendPushNotifications(
       if (result.status === 'fulfilled') return;
 
       const notification = batch[batchIndex];
-      console.error('[notifications] LINE push failed', {
+      logError('[notifications] LINE push failed', {
         userId: notification.userId,
         routeStopId: notification.routeStopId,
         message:

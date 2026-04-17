@@ -78,7 +78,6 @@ const STRINGS = {
     addNewTitle: 'Add new by Place ID',
     placeNameLabel: 'Stop name',
     addDialogCancel: 'Cancel',
-    dragHint: 'Drag to reorder',
     reorderStopError: 'Failed to reorder stop.',
     googlePlaceRequired: 'Google Place ID is required.',
     searchFailed: 'Search failed.',
@@ -137,7 +136,6 @@ const STRINGS = {
     addNewTitle: 'Place ID로 신규 추가',
     placeNameLabel: '정류장 이름',
     addDialogCancel: '취소',
-    dragHint: '드래그해서 순서 변경',
     reorderStopError: '정류장 순서 변경에 실패했습니다.',
     googlePlaceRequired: 'Google Place ID를 입력하세요.',
     searchFailed: '검색에 실패했습니다.',
@@ -798,20 +796,42 @@ export default function AdminScheduleRouteDetailPage() {
                       prefix={
                         <div
                           style={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: '50%',
-                            background: 'var(--app-color-background-secondary)',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
+                            gap: 6,
                             flexShrink: 0,
-                            textDecoration: isRemoved
-                              ? 'line-through'
-                              : undefined,
                           }}
                         >
-                          {stop.sequence}
+                          {!isRemoved && (
+                            <span
+                              aria-label="Reorder stop"
+                              style={{
+                                color: 'var(--app-color-subtle-text)',
+                                fontSize: 14,
+                                lineHeight: 1,
+                                cursor: 'grab',
+                                userSelect: 'none',
+                              }}
+                            >
+                              ☰
+                            </span>
+                          )}
+                          <div
+                            style={{
+                              width: 26,
+                              height: 26,
+                              borderRadius: '50%',
+                              background: 'var(--app-color-background-secondary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              textDecoration: isRemoved
+                                ? 'line-through'
+                                : undefined,
+                            }}
+                          >
+                            {stop.sequence}
+                          </div>
                         </div>
                       }
                       extra={
@@ -892,18 +912,6 @@ export default function AdminScheduleRouteDetailPage() {
                       >
                         {stop.place_display_name ?? stop.place_name}
                       </span>
-                      {!isRemoved && (
-                        <span
-                          style={{
-                            marginLeft: 8,
-                            color: 'var(--app-color-subtle-text)',
-                            fontSize: 12,
-                            cursor: 'grab',
-                          }}
-                        >
-                          ☰ {t.dragHint}
-                        </span>
-                      )}
                       {stop.place_display_name && (
                         <span
                           style={{

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { query } from './db';
-import { sendLinePushText } from './line-messaging';
+import { sendLinePushShuttleCarousel } from './line-messaging';
 
 interface ArrivedStopRow {
   sequence: number;
@@ -46,15 +46,6 @@ function buildApproachingTemplate(
     titleEn: 'Shuttle is 2 stops away',
     bodyEn: `${routeLabel} shuttle is now 2 stops away from your stop.`,
   };
-}
-
-function buildLinePushText(
-  language: 'ko' | 'en',
-  template: NotificationTemplate,
-): string {
-  return language === 'ko'
-    ? `${template.titleKo}\n${template.bodyKo}`
-    : `${template.titleEn}\n${template.bodyEn}`;
 }
 
 export async function notifyApproachingUsers(
@@ -135,7 +126,12 @@ export async function notifyApproachingUsers(
       if (!inserted) continue;
 
       const lang = user.preferred_language === 'en' ? 'en' : 'ko';
-      sendLinePushText(user.provider_uid, buildLinePushText(lang, template)).catch(
+      sendLinePushShuttleCarousel({
+        to: user.provider_uid,
+        language: lang,
+        title: lang === 'ko' ? template.titleKo : template.titleEn,
+        body: lang === 'ko' ? template.bodyKo : template.bodyEn,
+      }).catch(
         (caught) => {
           console.error('[notifications] LINE push failed', {
             runId,

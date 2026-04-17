@@ -3,7 +3,7 @@ import { logError } from '@/lib/logger';
 import { env } from '@/server/env';
 import { sendLineReplyTemplate } from '@/server/line-messaging';
 import {
-  buildShuttleLiffUrls,
+  buildShuttleLiffUrl,
   hasShuttleKeyword,
   parseLineWebhookBody,
   verifyLineWebhookSignature,
@@ -46,16 +46,15 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    const liffUrls = buildShuttleLiffUrls();
-    if (!liffUrls) {
+    const liffUrl = buildShuttleLiffUrl();
+    if (!liffUrl) {
       continue;
     }
 
     try {
       await sendLineReplyTemplate({
         replyToken: event.replyToken,
-        scanUrl: liffUrls.scanUrl,
-        homeUrl: liffUrls.homeUrl,
+        liffUrl,
       });
     } catch (caughtError) {
       logError('[LINE webhook] reply failed', {

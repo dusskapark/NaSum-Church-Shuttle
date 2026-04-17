@@ -60,27 +60,15 @@ export function hasShuttleKeyword(rawText: string): boolean {
   return WEBHOOK_KEYWORDS.some((keyword) => normalized.includes(keyword));
 }
 
-export interface ShuttleLiffUrls {
-  scanUrl: string;
-  homeUrl: string;
-}
-
-export function buildShuttleLiffUrls(): ShuttleLiffUrls | null {
+export function buildShuttleLiffUrl(): string | null {
   const liffId = env.NEXT_PUBLIC_LIFF_ID?.trim();
   if (liffId) {
-    return {
-      scanUrl: `https://liff.line.me/${liffId}/scan`,
-      homeUrl: `https://liff.line.me/${liffId}`,
-    };
+    return `https://liff.line.me/${liffId}/scan`;
   }
 
   const appUrl = env.NEXT_PUBLIC_APP_URL?.trim();
   if (appUrl) {
-    const normalized = appUrl.replace(/\/$/, '');
-    return {
-      scanUrl: `${normalized}/scan`,
-      homeUrl: normalized,
-    };
+    return `${appUrl.replace(/\/$/, '')}/scan`;
   }
 
   logError(

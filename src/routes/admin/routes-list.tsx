@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Button,
+  Dialog,
   Dropdown,
   List,
   Popup,
@@ -12,8 +13,9 @@ import type { DropdownRef } from 'antd-mobile';
 import {
   DownOutline,
   DownlandOutline,
-  EditSOutline,
+  RedoOutline,
   CheckOutline,
+  EditSOutline,
 } from 'antd-mobile-icons';
 import QRCode from 'qrcode';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -316,6 +318,12 @@ const STRINGS = {
     noPublishedSchedule: 'No schedule yet',
     saveSuccess: 'Stop saved.',
     saveError: 'Failed to save stop.',
+    restore: 'Restore',
+    restoreConfirm: (name: string) =>
+      `Restore "${name}" and replace the currently deployed schedule?`,
+    restoreSuccess: 'Schedule restored.',
+    restoreError: 'Failed to restore schedule.',
+    cancel: 'Cancel',
   },
   ko: {
     title: '노선·정류장 관리',
@@ -334,6 +342,12 @@ const STRINGS = {
     noPublishedSchedule: '스케줄 없음',
     saveSuccess: '저장되었습니다.',
     saveError: '저장에 실패했습니다.',
+    restore: '복원',
+    restoreConfirm: (name: string) =>
+      `"${name}" 스케줄을 복원하고 현재 배포 스케줄을 교체할까요?`,
+    restoreSuccess: '스케줄이 복원되었습니다.',
+    restoreError: '스케줄 복원에 실패했습니다.',
+    cancel: '취소',
   },
 };
 
@@ -603,6 +617,28 @@ export default function AdminRoutesListPage() {
     [t],
   );
 
+  const handleRestore = useCallback(
+    (targetSchedule: ScheduleSummary) => {
+      Dialog.confirm({
+        content: t.restoreConfirm(targetSchedule.name),
+        confirmText: t.restore,
+        cancelText: t.cancel,
+        onConfirm: async () => {
+          try {
+            await mutateApi(`/api/v1/admin/schedules/${targetSchedule.id}/restore`, {
+              method: 'POST',
+            });
+            Toast.show({ content: t.restoreSuccess, icon: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['admin', 'routes-list'] });
+          } catch {
+            Toast.show({ content: t.restoreError, icon: 'fail' });
+          }
+        },
+      });
+    },
+    [queryClient, t],
+  );
+
   return (
     <Layout showTabBar={false}>
       {/* Version dropdown + New Schedule */}
@@ -664,16 +700,26 @@ export default function AdminRoutesListPage() {
                   <List.Item
                     key={s.id}
                     extra={
-                      <Button
-                        size="mini"
-                        fill="outline"
-                        loading={downloadingId === s.id}
-                        onClick={() =>
-                          handleDownload(s.id, s.name).catch(() => {})
-                        }
-                      >
-                        <DownlandOutline />
-                      </Button>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <Button
+                          size="mini"
+                          fill="outline"
+                          loading={downloadingId === s.id}
+                          onClick={() =>
+                            handleDownload(s.id, s.name).catch(() => {})
+                          }
+                        >
+                          <DownlandOutline />
+                        </Button>
+                        <Button
+                          size="mini"
+                          fill="outline"
+                          color="primary"
+                          onClick={() => handleRestore(s)}
+                        >
+                          <RedoOutline />
+                        </Button>
+                      </div>
                     }
                   >
                     {s.name}

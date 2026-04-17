@@ -1400,6 +1400,15 @@ export async function handleAdminSchedules(
         );
       }
 
+      const routeIds = scheduleRoutes.map((sr) => sr.route_id);
+      if (routeIds.length > 0) {
+        const placeholders = routeIds.map((_, i) => `$${i + 1}`).join(',');
+        await client.query(
+          `UPDATE routes SET active = true WHERE id IN (${placeholders}) AND active = false`,
+          routeIds,
+        );
+      }
+
       await client.query(
         `UPDATE schedules SET status = 'archived' WHERE status = 'published'`,
       );

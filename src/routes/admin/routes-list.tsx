@@ -717,7 +717,8 @@ export default function AdminRoutesListPage() {
                           color="primary"
                           onClick={() => handleRestore(s)}
                         >
-                          <RedoOutline />
+                          <RedoOutline style={{ marginRight: 4 }} />
+                          {t.restore}
                         </Button>
                       </div>
                     }

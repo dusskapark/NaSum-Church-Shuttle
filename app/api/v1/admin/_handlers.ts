@@ -6,6 +6,7 @@ import { env } from '@/server/env';
 import {
   parseGoogleMapsUrl,
   resolveWaypoint,
+  getPlaceById,
   type PlaceResult,
 } from '@/server/google-places';
 import { notifyApproachingUsers } from '@/server/notifications';
@@ -41,6 +42,52 @@ interface ScheduleStopSnapshotItem {
   is_terminal: boolean;
   stop_id: string | null;
   change_type: 'unchanged' | 'added' | 'updated' | 'removed';
+}
+
+
+interface PlaceLookupResponse {
+  google_place_id: string;
+  name: string;
+  display_name: string | null;
+  formatted_address: string | null;
+  lat: number;
+  lng: number;
+  place_types: string[];
+  is_terminal: boolean;
+  stop_id: string | null;
+}
+
+async function upsertPlaceFromLookup(input: PlaceLookupResponse): Promise<PlaceLookupResponse & { id: string }> {
+  const row = await queryOne<PlaceLookupResponse & { id: string }>(
+    `INSERT INTO places
+       (id, google_place_id, name, display_name, formatted_address, primary_type, primary_type_display_name, lat, lng, place_types, notes, is_terminal, stop_id)
+     VALUES
+       ($1, $2, $3, $4, $5, NULL, NULL, $6, $7, $8, NULL, $9, $10)
+     ON CONFLICT (google_place_id)
+     DO UPDATE SET
+       name = EXCLUDED.name,
+       display_name = COALESCE(places.display_name, EXCLUDED.display_name),
+       formatted_address = EXCLUDED.formatted_address,
+       lat = EXCLUDED.lat,
+       lng = EXCLUDED.lng,
+       place_types = EXCLUDED.place_types
+     RETURNING id, google_place_id, name, display_name, formatted_address, lat, lng, place_types, is_terminal, stop_id`,
+    [
+      randomUUID(),
+      input.google_place_id,
+      input.name,
+      input.display_name,
+      input.formatted_address,
+      input.lat,
+      input.lng,
+      input.place_types ?? [],
+      input.is_terminal,
+      input.stop_id,
+    ],
+  );
+
+  if (!row) throw new Error('Failed to upsert place');
+  return row;
 }
 function generateScheduleName(existingNames: string[]): string {
   const base = new Date().toISOString().slice(0, 10);
@@ -1000,7 +1047,7 @@ export async function handleAdminSchedules(
            ) LIKE '%' || $3 || '%'
          )
        )
-       ORDER BY match_score DESC, updated_at DESC NULLS LAST, created_at DESC
+       ORDER BY match_score DESC, COALESCE(display_name, name) ASC, google_place_id ASC
        LIMIT 30`,
       [queryText, queryTokens, compactQuery, queryPrefix],
     );
@@ -1250,10 +1297,8 @@ export async function handleAdminSchedules(
       insert_at_sequence?: number | null;
     };
 
-    const googlePlaceId =
-      body.google_place_id?.trim() || `manual:${randomUUID().slice(0, 8)}`;
-    const placeName = body.place_name?.trim() || body.display_name?.trim() || '';
-    if (!placeName) return error(400, 'place_name is required');
+    const googlePlaceId = body.google_place_id?.trim() ?? '';
+    if (!googlePlaceId) return error(400, 'google_place_id is required');
     if (body.pickup_time !== undefined && body.pickup_time !== null) {
       if (!/^\d{1,2}:\d{2}\s?(AM|PM)$/i.test(body.pickup_time.trim())) {
         return error(400, 'pickup_time must be in H:MM AM/PM format (e.g. 8:48 AM)');
@@ -1276,6 +1321,14 @@ export async function handleAdminSchedules(
       return error(403, 'Only draft schedules can be edited');
     }
 
+    const snapshot = [...(scheduleRoute.stops_snapshot ?? [])].sort(
+      (a, b) => a.sequence - b.sequence,
+    );
+
+    if (snapshot.some((stop) => stop.google_place_id === googlePlaceId)) {
+      return json({ error: 'Stop already exists in route' }, { status: 409 });
+    }
+
     const place = await queryOne<{
       id: string;
       name: string;
@@ -1293,40 +1346,24 @@ export async function handleAdminSchedules(
       [googlePlaceId],
     );
 
-    const resolvedPlace = place
-      ? {
-          place_id: place.id,
-          place_name: placeName || place.name,
-          place_display_name:
-            body.display_name !== undefined ? body.display_name : place.display_name,
-          formatted_address:
-            body.formatted_address !== undefined
-              ? body.formatted_address
-              : place.formatted_address,
-          lat: Number.isFinite(body.lat) ? Number(body.lat) : Number(place.lat),
-          lng: Number.isFinite(body.lng) ? Number(body.lng) : Number(place.lng),
-          place_types: body.place_types ?? place.place_types ?? [],
-          place_notes: body.place_notes !== undefined ? body.place_notes : place.notes,
-          is_terminal:
-            body.is_terminal !== undefined ? body.is_terminal : place.is_terminal,
-          stop_id: body.stop_id !== undefined ? body.stop_id : place.stop_id,
-        }
-      : {
-          place_id: null,
-          place_name: placeName || googlePlaceId,
-          place_display_name: body.display_name ?? null,
-          formatted_address: body.formatted_address ?? null,
-          lat: Number.isFinite(body.lat) ? Number(body.lat) : 0,
-          lng: Number.isFinite(body.lng) ? Number(body.lng) : 0,
-          place_types: body.place_types ?? [],
-          place_notes: body.place_notes ?? null,
-          is_terminal: body.is_terminal ?? false,
-          stop_id: body.stop_id ?? null,
-        };
+    if (!place) {
+      return error(400, 'Place metadata not found. Fetch place lookup first.');
+    }
 
-    const snapshot = [...(scheduleRoute.stops_snapshot ?? [])].sort(
-      (a, b) => a.sequence - b.sequence,
-    );
+    const resolvedPlace = {
+      place_id: place.id,
+      place_name: place.name,
+      place_display_name:
+        body.display_name !== undefined ? body.display_name : place.display_name,
+      formatted_address: place.formatted_address,
+      lat: Number(place.lat),
+      lng: Number(place.lng),
+      place_types: place.place_types ?? [],
+      place_notes: body.place_notes !== undefined ? body.place_notes : place.notes,
+      is_terminal: body.is_terminal !== undefined ? body.is_terminal : place.is_terminal,
+      stop_id: body.stop_id !== undefined ? body.stop_id : place.stop_id,
+    };
+
     const insertAt =
       body.insert_at_sequence && Number.isInteger(body.insert_at_sequence)
         ? Math.min(Math.max(body.insert_at_sequence, 1), snapshot.length + 1)
@@ -1846,6 +1883,66 @@ async function handleAdminRegistrations(request: NextRequest, registrationId?: s
     );
     if (!row) return error(404, 'Registration not found');
     return json({ success: true, id: registrationId });
+  }
+
+  return error(405, 'Method not allowed');
+}
+
+export async function handleAdminPlaces(
+  request: NextRequest,
+  suffix?: string[],
+) {
+  const actor = await requireActor(request, 'admin');
+  if (actor instanceof NextResponse) return actor;
+
+  if (request.method === 'GET' && suffix?.[0] === 'lookup' && suffix?.[1]) {
+    const googlePlaceId = decodeURIComponent(suffix[1]).trim();
+    if (!googlePlaceId || !/^[-_a-zA-Z0-9]+$/.test(googlePlaceId)) {
+      return error(400, 'invalid place id');
+    }
+
+    const existing = await queryOne<PlaceLookupResponse>(
+      `SELECT google_place_id, name, display_name, formatted_address, lat, lng, place_types, is_terminal, stop_id
+       FROM places
+       WHERE google_place_id = $1`,
+      [googlePlaceId],
+    );
+    if (existing) return json(existing);
+
+    const apiKey = env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return error(500, 'GOOGLE_MAPS_API_KEY not configured');
+
+    try {
+      const place = await getPlaceById(googlePlaceId, apiKey);
+      if (!place) return error(404, 'place not found');
+
+      const upserted = await upsertPlaceFromLookup({
+        google_place_id: place.googlePlaceId,
+        name: place.name,
+        display_name: place.name || null,
+        formatted_address: place.formattedAddress,
+        lat: place.lat,
+        lng: place.lng,
+        place_types: place.types ?? [],
+        is_terminal: false,
+        stop_id: null,
+      });
+
+      return json({
+        google_place_id: upserted.google_place_id,
+        name: upserted.name,
+        display_name: upserted.display_name,
+        formatted_address: upserted.formatted_address,
+        lat: Number(upserted.lat),
+        lng: Number(upserted.lng),
+        place_types: upserted.place_types ?? [],
+        is_terminal: upserted.is_terminal,
+        stop_id: upserted.stop_id,
+      });
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : String(caught);
+      return error(502, `google api error: ${message}`);
+    }
   }
 
   return error(405, 'Method not allowed');

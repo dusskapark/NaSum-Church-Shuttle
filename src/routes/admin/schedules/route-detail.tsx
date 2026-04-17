@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Button,
@@ -75,13 +75,21 @@ const STRINGS = {
     searchNoResult: 'No matching stop found.',
     alreadyInRoute: 'Already in route',
     addSelected: 'Add selected',
-    createStopTitle: 'Create new stop',
+    addNewTitle: 'Add new by Place ID',
     placeNameLabel: 'Stop name',
     addDialogCancel: 'Cancel',
     dragHint: 'Drag to reorder',
     reorderStopError: 'Failed to reorder stop.',
     googlePlaceRequired: 'Google Place ID is required.',
-    placeNameRequired: 'Stop name is required.',
+    searchFailed: 'Search failed.',
+    placeLookupFailed: 'Failed to fetch place.',
+    duplicateStop: 'This stop is already in the route.',
+    placeLookupButton: 'Fetch',
+    placeLookupSuccess: 'Place fetched.',
+    displayNameEditableLabel: 'Display name',
+    stopIdEditableLabel: 'Stop ID',
+    isTerminalEditableLabel: 'Terminal',
+    readOnlyPlaceLabel: 'Fetched place',
   },
   ko: {
     back: '스케줄',
@@ -126,13 +134,21 @@ const STRINGS = {
     searchNoResult: '검색 결과가 없습니다.',
     alreadyInRoute: '이미 추가됨',
     addSelected: '선택 추가',
-    createStopTitle: '새 정류장 만들기',
+    addNewTitle: 'Place ID로 신규 추가',
     placeNameLabel: '정류장 이름',
     addDialogCancel: '취소',
     dragHint: '드래그해서 순서 변경',
     reorderStopError: '정류장 순서 변경에 실패했습니다.',
     googlePlaceRequired: 'Google Place ID를 입력하세요.',
-    placeNameRequired: '정류장 이름을 입력하세요.',
+    searchFailed: '검색에 실패했습니다.',
+    placeLookupFailed: 'Place 조회에 실패했습니다.',
+    duplicateStop: '이미 추가된 정류장입니다.',
+    placeLookupButton: '조회',
+    placeLookupSuccess: 'Place를 불러왔습니다.',
+    displayNameEditableLabel: '표시 이름',
+    stopIdEditableLabel: '정류장 ID',
+    isTerminalEditableLabel: '종점',
+    readOnlyPlaceLabel: '조회된 정류장',
   },
 };
 
@@ -200,11 +216,16 @@ export default function AdminScheduleRouteDetailPage() {
   const [editingStop, setEditingStop] = useState<StopSnapshotItem | null>(null);
   const [addingStop, setAddingStop] = useState(false);
   const [candidateQuery, setCandidateQuery] = useState('');
+  const [debouncedCandidateQuery, setDebouncedCandidateQuery] = useState('');
   const [selectedCandidate, setSelectedCandidate] =
     useState<StopCandidateItem | null>(null);
-  const [newStopName, setNewStopName] = useState('');
+  const [addStopMode, setAddStopMode] = useState<'search' | 'new'>('search');
+  const [lookupPlaceId, setLookupPlaceId] = useState('');
+  const [lookupResult, setLookupResult] = useState<StopCandidateItem | null>(null);
+  const [lookupErrorMessage, setLookupErrorMessage] = useState<string | null>(null);
   const [newStopDisplayName, setNewStopDisplayName] = useState('');
-  const [newStopPlaceId, setNewStopPlaceId] = useState('');
+  const [newStopStopId, setNewStopStopId] = useState('');
+  const [newStopIsTerminal, setNewStopIsTerminal] = useState(false);
   const [draggingSequence, setDraggingSequence] = useState<number | null>(null);
   const [dropTargetSequence, setDropTargetSequence] = useState<number | null>(
     null,
@@ -214,6 +235,13 @@ export default function AdminScheduleRouteDetailPage() {
     () => ['admin', 'schedules', scheduleId] as const,
     [scheduleId],
   );
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedCandidateQuery(candidateQuery);
+    }, 250);
+    return () => clearTimeout(timeout);
+  }, [candidateQuery]);
 
   const { data: scheduleRoute = null, isLoading: loading } = useQuery({
     queryKey: [...scheduleQueryKey, 'route', routeId],
@@ -232,17 +260,21 @@ export default function AdminScheduleRouteDetailPage() {
     enabled: !!scheduleId && !!routeId,
   });
 
-  const { data: candidates = [], isLoading: loadingCandidates } = useQuery({
+  const {
+    data: candidates = [],
+    isLoading: loadingCandidates,
+    isError: isCandidateSearchError,
+  } = useQuery({
     queryKey: [
       ...scheduleQueryKey,
       'route',
       routeId,
       'stop-candidates',
-      candidateQuery,
+      debouncedCandidateQuery,
     ],
     queryFn: async () => {
       const data = await fetchApi<{ items: StopCandidateItem[] }>(
-        `/api/v1/admin/schedules/${scheduleId}/routes/${routeId}/stops/candidates?q=${encodeURIComponent(candidateQuery.trim())}`,
+        `/api/v1/admin/schedules/${scheduleId}/routes/${routeId}/stops/candidates?q=${encodeURIComponent(debouncedCandidateQuery.trim())}`,
       );
       return data.items;
     },
@@ -422,12 +454,20 @@ export default function AdminScheduleRouteDetailPage() {
       Toast.show({ content: t.addStopSuccess, icon: 'success' });
       setAddingStop(false);
       setSelectedCandidate(null);
-      setNewStopName('');
+      setLookupPlaceId('');
+      setLookupResult(null);
+      setLookupErrorMessage(null);
       setNewStopDisplayName('');
-      setNewStopPlaceId('');
+      setNewStopStopId('');
+      setNewStopIsTerminal(false);
       invalidateScheduleRoute();
     },
-    onError: () => {
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : '';
+      if (message.includes('409')) {
+        Toast.show({ content: t.duplicateStop, icon: 'fail' });
+        return;
+      }
       Toast.show({ content: t.addStopError, icon: 'fail' });
     },
   });
@@ -490,18 +530,46 @@ export default function AdminScheduleRouteDetailPage() {
     });
   }, [selectedCandidate, addStopMutation]);
 
-  const handleAddManualStop = useCallback(() => {
-    if (!newStopName.trim()) {
-      Toast.show({ content: t.placeNameRequired, icon: 'fail' });
+  const placeLookupMutation = useMutation({
+    mutationFn: async (googlePlaceId: string) => {
+      return fetchApi<StopCandidateItem>(
+        `/api/v1/admin/places/lookup/${encodeURIComponent(googlePlaceId)}`,
+      );
+    },
+    onSuccess: (place) => {
+      setLookupResult({ ...place, already_in_route: false, notes: null });
+      setLookupErrorMessage(null);
+      setNewStopDisplayName(place.display_name ?? '');
+      setNewStopStopId(place.stop_id ?? '');
+      setNewStopIsTerminal(place.is_terminal);
+      Toast.show({ content: t.placeLookupSuccess, icon: 'success' });
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : t.placeLookupFailed;
+      setLookupResult(null);
+      setLookupErrorMessage(message);
+    },
+  });
+
+  const handleLookupPlace = useCallback(() => {
+    const placeId = lookupPlaceId.trim();
+    if (!placeId) {
+      setLookupErrorMessage(t.googlePlaceRequired);
       return;
     }
+    placeLookupMutation.mutate(placeId);
+  }, [lookupPlaceId, placeLookupMutation, t.googlePlaceRequired]);
+
+  const handleAddLookedUpStop = useCallback(() => {
+    if (!lookupResult) return;
     addStopMutation.mutate({
-      google_place_id: newStopPlaceId.trim() || null,
-      place_name: newStopName.trim(),
+      google_place_id: lookupResult.google_place_id,
       display_name: newStopDisplayName.trim() || null,
+      stop_id: newStopStopId.trim() || null,
+      is_terminal: newStopIsTerminal,
       is_pickup_enabled: true,
     });
-  }, [newStopName, newStopDisplayName, newStopPlaceId, addStopMutation, t]);
+  }, [lookupResult, newStopDisplayName, newStopStopId, newStopIsTerminal, addStopMutation]);
 
   return (
     <Layout showTabBar={false}>
@@ -636,11 +704,16 @@ export default function AdminScheduleRouteDetailPage() {
               fill="outline"
               onClick={() => {
                 setAddingStop(true);
+                setAddStopMode('search');
                 setCandidateQuery('');
+                setDebouncedCandidateQuery('');
                 setSelectedCandidate(null);
-                setNewStopName('');
+                setLookupPlaceId('');
+                setLookupResult(null);
+                setLookupErrorMessage(null);
                 setNewStopDisplayName('');
-                setNewStopPlaceId('');
+                setNewStopStopId('');
+                setNewStopIsTerminal(false);
               }}
             >
               {t.addStopButton}
@@ -890,92 +963,153 @@ export default function AdminScheduleRouteDetailPage() {
       >
         <div style={{ padding: 16, paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <h4 style={{ margin: '0 0 12px' }}>{t.addDialogTitle}</h4>
-          <Input
-            value={candidateQuery}
-            onChange={setCandidateQuery}
-            placeholder={t.searchCandidatePlaceholder}
-            clearable
-            style={{ marginBottom: 10 }}
-          />
-          <List>
-            {loadingCandidates ? (
-              <List.Item>
-                <span style={{ color: 'var(--app-color-subtle-text)' }}>…</span>
-              </List.Item>
-            ) : candidates.length === 0 ? (
-              <List.Item>
-                <span style={{ color: 'var(--app-color-subtle-text)' }}>
-                  {t.searchNoResult}
-                </span>
-              </List.Item>
-            ) : (
-              candidates.map((item) => (
-                <List.Item
-                  key={item.google_place_id}
-                  clickable
-                  onClick={() => setSelectedCandidate(item)}
-                  extra={
-                    item.already_in_route ? (
-                      <Tag color="warning" fill="outline">
-                        {t.alreadyInRoute}
-                      </Tag>
-                    ) : selectedCandidate?.google_place_id === item.google_place_id ? (
-                      <Tag color="primary" fill="outline">
-                        ✓
-                      </Tag>
-                    ) : null
-                  }
-                  description={item.formatted_address ?? undefined}
-                >
-                  {item.display_name ?? item.name}
-                </List.Item>
-              ))
-            )}
-          </List>
 
-          <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             <Button
-              block
+              size="small"
+              fill={addStopMode === 'search' ? 'solid' : 'outline'}
               color="primary"
-              fill="outline"
-              disabled={!selectedCandidate || selectedCandidate.already_in_route}
-              loading={addStopMutation.isPending}
-              onClick={handleAddCandidate}
+              onClick={() => setAddStopMode('search')}
             >
-              {t.addSelected}
+              {t.searchCandidatePlaceholder}
+            </Button>
+            <Button
+              size="small"
+              fill={addStopMode === 'new' ? 'solid' : 'outline'}
+              color="primary"
+              onClick={() => setAddStopMode('new')}
+            >
+              {t.addNewTitle}
             </Button>
           </div>
 
-          <div style={{ marginTop: 16 }}>
-            <h4 style={{ margin: '0 0 8px' }}>{t.createStopTitle}</h4>
-            <Form layout="horizontal" style={{ '--prefix-width': '7em' } as never}>
-              <Form.Item label={t.placeNameLabel}>
-                <Input value={newStopName} onChange={setNewStopName} />
-              </Form.Item>
-              <Form.Item label={t.displayNameLabel}>
-                <Input value={newStopDisplayName} onChange={setNewStopDisplayName} />
-              </Form.Item>
-              <Form.Item label="Google Place ID">
-                <Input
-                  value={newStopPlaceId}
-                  onChange={setNewStopPlaceId}
-                  placeholder="optional"
-                />
-              </Form.Item>
-            </Form>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Button block fill="outline" onClick={() => setAddingStop(false)}>
-                {t.addDialogCancel}
-              </Button>
+          {addStopMode === 'search' ? (
+            <>
+              <Input
+                value={candidateQuery}
+                onChange={setCandidateQuery}
+                placeholder={t.searchCandidatePlaceholder}
+                clearable
+                style={{ marginBottom: 10 }}
+              />
+              <List>
+                {loadingCandidates ? (
+                  <List.Item>
+                    <span style={{ color: 'var(--app-color-subtle-text)' }}>…</span>
+                  </List.Item>
+                ) : isCandidateSearchError ? (
+                  <List.Item>
+                    <span style={{ color: 'var(--adm-color-danger)' }}>
+                      {t.searchFailed}
+                    </span>
+                  </List.Item>
+                ) : candidates.length === 0 ? (
+                  <List.Item>
+                    <span style={{ color: 'var(--app-color-subtle-text)' }}>
+                      {t.searchNoResult}
+                    </span>
+                  </List.Item>
+                ) : (
+                  candidates.map((item) => (
+                    <List.Item
+                      key={item.google_place_id}
+                      clickable
+                      onClick={() => setSelectedCandidate(item)}
+                      extra={
+                        item.already_in_route ? (
+                          <Tag color="warning" fill="outline">
+                            {t.alreadyInRoute}
+                          </Tag>
+                        ) : selectedCandidate?.google_place_id === item.google_place_id ? (
+                          <Tag color="primary" fill="outline">
+                            ✓
+                          </Tag>
+                        ) : null
+                      }
+                      description={item.formatted_address ?? undefined}
+                    >
+                      {item.display_name ?? item.name}
+                    </List.Item>
+                  ))
+                )}
+              </List>
+
+              <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                <Button
+                  block
+                  color="primary"
+                  fill="outline"
+                  disabled={!selectedCandidate || selectedCandidate.already_in_route}
+                  loading={addStopMutation.isPending}
+                  onClick={handleAddCandidate}
+                >
+                  {t.addSelected}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Form layout="horizontal" style={{ '--prefix-width': '7em' } as never}>
+                <Form.Item label="Google Place ID">
+                  <Input value={lookupPlaceId} onChange={setLookupPlaceId} />
+                </Form.Item>
+              </Form>
               <Button
                 block
                 color="primary"
-                loading={addStopMutation.isPending}
-                onClick={handleAddManualStop}
+                fill="outline"
+                loading={placeLookupMutation.isPending}
+                onClick={handleLookupPlace}
               >
-                {t.addStopButton}
+                {t.placeLookupButton}
               </Button>
-            </div>
+
+              {lookupErrorMessage && (
+                <div style={{ marginTop: 8, color: 'var(--adm-color-danger)' }}>
+                  {lookupErrorMessage}
+                </div>
+              )}
+
+              {lookupResult && (
+                <div style={{ marginTop: 12 }}>
+                  <h4 style={{ margin: '0 0 8px' }}>{t.readOnlyPlaceLabel}</h4>
+                  <List>
+                    <List.Item description={lookupResult.formatted_address ?? undefined}>
+                      {lookupResult.name}
+                    </List.Item>
+                    <List.Item description={lookupResult.google_place_id}>Google Place ID</List.Item>
+                    <List.Item>{`lat: ${lookupResult.lat}, lng: ${lookupResult.lng}`}</List.Item>
+                  </List>
+
+                  <Form layout="horizontal" style={{ '--prefix-width': '8em' } as never}>
+                    <Form.Item label={t.displayNameEditableLabel}>
+                      <Input value={newStopDisplayName} onChange={setNewStopDisplayName} />
+                    </Form.Item>
+                    <Form.Item label={t.stopIdEditableLabel}>
+                      <Input value={newStopStopId} onChange={setNewStopStopId} />
+                    </Form.Item>
+                    <Form.Item label={t.isTerminalEditableLabel} childElementPosition="right">
+                      <Switch checked={newStopIsTerminal} onChange={setNewStopIsTerminal} />
+                    </Form.Item>
+                  </Form>
+                </div>
+              )}
+            </>
+          )}
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <Button block fill="outline" onClick={() => setAddingStop(false)}>
+              {t.addDialogCancel}
+            </Button>
+            <Button
+              block
+              color="primary"
+              loading={addStopMutation.isPending}
+              disabled={addStopMode === 'new' && !lookupResult}
+              onClick={addStopMode === 'search' ? handleAddCandidate : handleAddLookedUpStop}
+            >
+              {addStopMode === 'search' ? t.addSelected : t.addStopButton}
+            </Button>
           </div>
         </div>
       </Popup>

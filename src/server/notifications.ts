@@ -140,7 +140,6 @@ export async function notifyApproachingUsers(
         targetStopName: nextStop.stop_name,
         intermediateStopName,
         stopsAway,
-        scanRouteCode: arrived.route_code,
       }).catch(
         (caught) => {
           console.error('[notifications] LINE push failed', {

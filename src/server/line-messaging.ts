@@ -47,16 +47,13 @@ export async function sendLinePushShuttleCarousel(params: {
   targetStopName: string;
   intermediateStopName?: string | null;
   stopsAway: 1 | 2;
-  scanRouteCode: string;
 }): Promise<void> {
   const accessToken = env.MESSAGING_API_CHANNEL_ACCESS_TOKEN;
   if (!accessToken) {
     throw new Error('MESSAGING_API_CHANNEL_ACCESS_TOKEN is not configured');
   }
 
-  const scanUrl = buildShuttleLiffUrl('/scan', {
-    routeCode: params.scanRouteCode,
-  });
+  const scanUrl = buildShuttleLiffUrl('/scan');
   const homeUrl = buildShuttleLiffUrl('/');
   if (!scanUrl || !homeUrl) {
     throw new Error('NEXT_PUBLIC_LIFF_ID or NEXT_PUBLIC_APP_URL is required');
@@ -72,8 +69,6 @@ export async function sendLinePushShuttleCarousel(params: {
           targetLabel: 'My Stop',
           primaryButtonLabel: 'Scan to Board',
           secondaryButtonLabel: 'Open Mini App',
-          oneStopBadge: '1 stop away',
-          twoStopsBadge: '2 stops away',
           oneStopLead: `Shuttle has arrived at ${params.arrivedStopName}.`,
           oneStopSummary: `Next stop is ${params.targetStopName}.`,
           oneStopHint: 'It is almost here. Get ready to board.',
@@ -93,8 +88,6 @@ export async function sendLinePushShuttleCarousel(params: {
           targetLabel: '내 정류장',
           primaryButtonLabel: '탑승 스캔',
           secondaryButtonLabel: '경로보기',
-          oneStopBadge: '1정거장 전',
-          twoStopsBadge: '2정거장 전',
           oneStopLead: `셔틀이 ${params.arrivedStopName}에 도착했습니다.`,
           oneStopSummary: `다음 정류장은 ${params.targetStopName}입니다.`,
           oneStopHint: '곧 도착합니다. 탑승을 준비하세요.',
@@ -136,79 +129,104 @@ export async function sendLinePushShuttleCarousel(params: {
   }) {
     return {
       type: 'box',
-      layout: 'vertical',
-      spacing: 'sm',
+      layout: 'horizontal',
+      spacing: 'md',
       alignItems: 'center',
-      flex: 1,
+      width: '100%',
       contents: [
-        {
-          type: 'text',
-          text: label,
-          size: 'xs',
-          weight: 'bold',
-          color: options.labelColor ?? '#6B7280',
-          align: 'center',
-        },
+        buildStopMarker(options.fillColor ?? '#FFFFFF', options.borderColor),
         {
           type: 'box',
           layout: 'vertical',
-          width: '14px',
-          height: '14px',
-          cornerRadius: '999px',
-          backgroundColor: options.fillColor ?? '#FFFFFF',
-          borderWidth: '2px',
-          borderColor: options.borderColor,
-          contents: [],
-        },
-        {
-          type: 'text',
-          text: stopName,
-          size: 'xs',
-          weight: 'bold',
-          wrap: true,
-          align: 'center',
-          color: options.textColor ?? '#111827',
-          maxLines: 2,
+          spacing: '2px',
+          flex: 1,
+          contents: [
+            {
+              type: 'text',
+              text: label,
+              size: 'xs',
+              weight: 'bold',
+              color: options.labelColor ?? '#6B7280',
+            },
+            {
+              type: 'text',
+              text: stopName,
+              size: 'sm',
+              weight: 'bold',
+              wrap: true,
+              color: options.textColor ?? '#111827',
+              maxLines: 3,
+            },
+          ],
         },
       ],
     };
   }
 
-  function buildConnector(color: string) {
+  function buildStopMarker(fillColor: string, borderColor: string) {
     return {
       type: 'box',
       layout: 'vertical',
-      flex: 1,
-      margin: 'lg',
+      width: '14px',
+      height: '14px',
+      cornerRadius: '999px',
+      backgroundColor: fillColor,
+      borderWidth: '2px',
+      borderColor,
+      contents: [],
+    };
+  }
+
+  function buildVerticalConnector(color: string) {
+    return {
+      type: 'box',
+      layout: 'horizontal',
+      width: '100%',
+      paddingStart: '6px',
       contents: [
         {
           type: 'box',
           layout: 'vertical',
-          height: '4px',
+          width: '2px',
+          height: '18px',
           cornerRadius: '999px',
           backgroundColor: color,
+          margin: 'none',
           contents: [],
         },
+      ],
+    };
+  }
+
+  function buildNodeList(nodes: unknown[], connectors: unknown[]) {
+    const contents: unknown[] = [];
+    nodes.forEach((node, index) => {
+      contents.push(node);
+      if (index < connectors.length) {
+        contents.push(connectors[index]);
+      }
+    });
+    return {
+      type: 'box',
+      layout: 'vertical',
+      margin: 'md',
+      spacing: 'none',
+      contents: [
+        ...contents,
       ],
     };
   }
 
   const routeStrip =
     params.stopsAway === 1
-      ? {
-          type: 'box',
-          layout: 'horizontal',
-          alignItems: 'center',
-          margin: 'lg',
-          spacing: 'sm',
-          contents: [
+      ? buildNodeList(
+          [
             buildNode(i18n.currentLabel, params.arrivedStopName, {
               fillColor: palette.active,
               borderColor: palette.active,
               textColor: '#111827',
               labelColor: palette.active,
             }),
-            buildConnector(palette.active),
             buildNode(i18n.targetLabel, params.targetStopName, {
               fillColor: palette.target,
               borderColor: palette.target,
@@ -216,21 +234,16 @@ export async function sendLinePushShuttleCarousel(params: {
               labelColor: palette.target,
             }),
           ],
-        }
-      : {
-          type: 'box',
-          layout: 'horizontal',
-          alignItems: 'center',
-          margin: 'lg',
-          spacing: 'sm',
-          contents: [
+          [buildVerticalConnector(palette.active)],
+        )
+      : buildNodeList(
+          [
             buildNode(i18n.currentLabel, params.arrivedStopName, {
               fillColor: palette.active,
               borderColor: palette.active,
               textColor: '#111827',
               labelColor: palette.active,
             }),
-            buildConnector(palette.active),
             buildNode(
               i18n.nextLabel,
               params.intermediateStopName ?? i18n.nextLabel,
@@ -240,7 +253,6 @@ export async function sendLinePushShuttleCarousel(params: {
                 labelColor: palette.active,
               },
             ),
-            buildConnector(palette.muted),
             buildNode(i18n.targetLabel, params.targetStopName, {
               borderColor: palette.target,
               fillColor: palette.targetBackground,
@@ -248,7 +260,11 @@ export async function sendLinePushShuttleCarousel(params: {
               labelColor: '#64748B',
             }),
           ],
-        };
+          [
+            buildVerticalConnector(palette.active),
+            buildVerticalConnector(palette.muted),
+          ],
+        );
 
   const response = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
@@ -297,37 +313,6 @@ export async function sendLinePushShuttleCarousel(params: {
                   color: '#FFFFFF',
                   wrap: true,
                   maxLines: 2,
-                },
-                {
-                  type: 'box',
-                  layout: 'horizontal',
-                  spacing: 'sm',
-                  margin: 'md',
-                  contents: [
-                    {
-                      type: 'box',
-                      layout: 'horizontal',
-                      flex: 0,
-                      cornerRadius: '999px',
-                      paddingTop: '4px',
-                      paddingBottom: '4px',
-                      paddingStart: '10px',
-                      paddingEnd: '10px',
-                      backgroundColor: '#FFFFFF',
-                      contents: [
-                        {
-                          type: 'text',
-                          text:
-                            params.stopsAway === 1
-                              ? i18n.oneStopBadge
-                              : i18n.twoStopsBadge,
-                          size: 'xs',
-                          weight: 'bold',
-                          color: palette.header,
-                        },
-                      ],
-                    },
-                  ],
                 },
               ],
             },

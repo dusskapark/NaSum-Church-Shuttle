@@ -1281,6 +1281,175 @@ export async function handleAdminSchedules(
     });
   }
 
+  if (request.method === 'POST' && scheduleId && suffix?.[0] === 'restore') {
+    const schedule = await queryOne<{ id: string; status: string; name: string }>(
+      `SELECT id, status, name FROM schedules WHERE id = $1`,
+      [scheduleId],
+    );
+    if (!schedule) return error(404, 'Schedule not found');
+    if (schedule.status !== 'archived') {
+      return error(403, 'Only archived schedules can be restored');
+    }
+
+    const scheduleRoutes = await query<{
+      id: string;
+      route_id: string;
+      stops_snapshot: ScheduleStopSnapshotItem[];
+    }>(
+      `SELECT sr.id, sr.route_id, sr.stops_snapshot
+       FROM schedule_routes sr
+       WHERE sr.schedule_id = $1`,
+      [scheduleId],
+    );
+
+    const now = new Date();
+
+    await withTransaction(async (client) => {
+      await client.query('SET CONSTRAINTS ALL DEFERRED');
+
+      for (const sr of scheduleRoutes) {
+        for (const stop of sr.stops_snapshot) {
+          if (stop.change_type === 'removed') {
+            if (stop.route_stop_id) {
+              await client.query(
+                `UPDATE route_stops
+                 SET active = false, sequence = -(ABS(sequence) + 100000)
+                 WHERE id = $1`,
+                [stop.route_stop_id],
+              );
+            }
+            continue;
+          }
+
+          const placeResult = await client
+            .query<{ id: string }>(
+              `INSERT INTO places
+                 (id, google_place_id, name, display_name, formatted_address, lat, lng,
+                  place_types, notes, is_terminal, stop_id)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+               ON CONFLICT (google_place_id) DO UPDATE SET
+                 name = EXCLUDED.name,
+                 formatted_address = EXCLUDED.formatted_address,
+                 lat = EXCLUDED.lat,
+                 lng = EXCLUDED.lng,
+                 place_types = EXCLUDED.place_types,
+                 display_name = EXCLUDED.display_name,
+                 notes = COALESCE(EXCLUDED.notes, places.notes),
+                 is_terminal = EXCLUDED.is_terminal,
+                 stop_id = COALESCE(EXCLUDED.stop_id, places.stop_id)
+               RETURNING id`,
+              [
+                stop.place_id ?? randomUUID(),
+                stop.google_place_id,
+                stop.place_name,
+                stop.place_display_name,
+                stop.formatted_address,
+                stop.lat,
+                stop.lng,
+                stop.place_types,
+                stop.place_notes,
+                stop.is_terminal,
+                stop.stop_id,
+              ],
+            )
+            .then((result) => result.rows[0]!);
+
+          if (stop.route_stop_id) {
+            await client.query(
+              `UPDATE route_stops
+               SET place_id = $1, sequence = $2, pickup_time = $3,
+                   notes = $4, is_pickup_enabled = $5, active = true
+               WHERE id = $6`,
+              [
+                placeResult.id,
+                stop.sequence,
+                stop.pickup_time,
+                stop.notes,
+                stop.is_pickup_enabled,
+                stop.route_stop_id,
+              ],
+            );
+          } else {
+            await client.query(
+              `INSERT INTO route_stops
+                 (id, route_id, place_id, sequence, pickup_time, notes, is_pickup_enabled, active)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+               ON CONFLICT (route_id, place_id)
+               DO UPDATE SET
+                 sequence = EXCLUDED.sequence,
+                 pickup_time = EXCLUDED.pickup_time,
+                 notes = EXCLUDED.notes,
+                 is_pickup_enabled = EXCLUDED.is_pickup_enabled,
+                 active = true`,
+              [
+                randomUUID(),
+                sr.route_id,
+                placeResult.id,
+                stop.sequence,
+                stop.pickup_time,
+                stop.notes,
+                stop.is_pickup_enabled,
+              ],
+            );
+          }
+        }
+
+        await client.query(
+          `UPDATE routes SET sync_status = 'synced', last_synced_at = $1 WHERE id = $2`,
+          [now, sr.route_id],
+        );
+      }
+
+      const routeIds = scheduleRoutes.map((sr) => sr.route_id);
+      if (routeIds.length > 0) {
+        const placeholders = routeIds.map((_, i) => `$${i + 1}`).join(',');
+        await client.query(
+          `UPDATE routes SET active = true WHERE id IN (${placeholders}) AND active = false`,
+          routeIds,
+        );
+      }
+
+      await client.query(
+        `UPDATE schedules SET status = 'archived' WHERE status = 'published'`,
+      );
+      await client.query(
+        `UPDATE schedules
+         SET status = 'published', published_at = $1, published_by = $2
+         WHERE id = $3`,
+        [now, actor.userId, scheduleId],
+      );
+    });
+
+    return json({
+      success: true,
+      name: schedule.name,
+      published_at: now.toISOString(),
+      restored: true,
+    });
+  }
+
+  if (
+    request.method === 'DELETE' &&
+    scheduleId &&
+    (!suffix || suffix.length === 0)
+  ) {
+    const schedule = await queryOne<{ id: string; status: string }>(
+      `SELECT id, status FROM schedules WHERE id = $1`,
+      [scheduleId],
+    );
+    if (!schedule) return error(404, 'Schedule not found');
+    if (schedule.status !== 'draft') {
+      return error(403, 'Only draft schedules can be deleted');
+    }
+
+    await withTransaction(async (client) => {
+      await client.query(`DELETE FROM schedule_routes WHERE schedule_id = $1`, [scheduleId]);
+      await client.query(`DELETE FROM schedules WHERE id = $1`, [scheduleId]);
+    });
+
+    return json({ success: true, id: scheduleId });
+  }
+
   if (request.method === 'GET' && scheduleId && (!suffix || suffix.length === 0)) {
     const schedule = await queryOne(
       `SELECT id, name, status, created_at, created_by, published_at, published_by

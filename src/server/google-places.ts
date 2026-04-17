@@ -208,7 +208,7 @@ function mapApiPlace(place: PlacesApiPlace): PlaceResult | null {
   };
 }
 
-async function getPlaceById(
+export async function getPlaceById(
   placeId: string,
   apiKey: string,
 ): Promise<PlaceResult | null> {

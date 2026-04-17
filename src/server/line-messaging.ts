@@ -78,64 +78,69 @@ export async function sendLinePushShuttleCarousel(params: {
           type: 'flex',
           altText: truncateForLine(`${i18n.altPrefix}: ${params.title} - ${params.body}`, 400),
           contents: {
-            type: 'bubble',
-            size: 'mega',
-            styles: {
-              body: {
-                backgroundColor: '#F5F8FF',
-              },
-              footer: {
-                separator: true,
-              },
-            },
-            body: {
-              type: 'box',
-              layout: 'vertical',
-              spacing: 'md',
-              contents: [
-                {
+            type: 'carousel',
+            contents: [
+              {
+                type: 'bubble',
+                size: 'mega',
+                styles: {
+                  body: {
+                    backgroundColor: '#F5F8FF',
+                  },
+                  footer: {
+                    separator: true,
+                  },
+                },
+                body: {
                   type: 'box',
                   layout: 'vertical',
-                  backgroundColor: '#2D5BFF',
-                  cornerRadius: '12px',
-                  paddingAll: '12px',
+                  spacing: 'md',
                   contents: [
                     {
+                      type: 'box',
+                      layout: 'vertical',
+                      backgroundColor: '#2D5BFF',
+                      cornerRadius: '12px',
+                      paddingAll: '12px',
+                      contents: [
+                        {
+                          type: 'text',
+                          text: i18n.heroLabel,
+                          color: '#FFFFFF',
+                          weight: 'bold',
+                          size: 'sm',
+                        },
+                      ],
+                    },
+                    {
                       type: 'text',
-                      text: i18n.heroLabel,
-                      color: '#FFFFFF',
-                      weight: 'bold',
-                      size: 'sm',
+                      text: params.body,
+                      wrap: true,
+                      size: 'md',
+                      color: '#111827',
                     },
                   ],
                 },
-                {
-                  type: 'text',
-                  text: params.body,
-                  wrap: true,
-                  size: 'md',
-                  color: '#111827',
+                footer: {
+                  type: 'box',
+                  layout: 'vertical',
+                  spacing: 'sm',
+                  contents: [
+                    {
+                      type: 'button',
+                      style: 'primary',
+                      color: '#2D5BFF',
+                      action: {
+                        type: 'uri',
+                        label: i18n.buttonLabel,
+                        uri: liffUrls.scanUrl,
+                      },
+                    },
+                  ],
+                  flex: 0,
                 },
-              ],
-            },
-            footer: {
-              type: 'box',
-              layout: 'vertical',
-              spacing: 'sm',
-              contents: [
-                {
-                  type: 'button',
-                  style: 'primary',
-                  color: '#2D5BFF',
-                  action: {
-                    type: 'uri',
-                    label: i18n.buttonLabel,
-                    uri: liffUrls.scanUrl,
-                  },
-                },
-              ],
-              flex: 0,
-            },
+              },
+            ],
           },
         },
       ],

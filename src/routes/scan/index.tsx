@@ -16,6 +16,7 @@ import Layout from '../../components/Layout';
 import { useLineUser } from '../../hooks/useLineUser';
 import { useContainer } from '../../hooks/useContainer';
 import { getLiff } from '../../lib/liff';
+import { logDebug } from '../../lib/logger';
 import { useTranslation } from '../../lib/useTranslation';
 import {
   getDistanceInKm,
@@ -276,7 +277,7 @@ export default function ScanPage() {
     // GPS가 있으면 최근접 정류소 우선 (같은 노선 등록 정류소라도 GPS 우선)
     if (coords) {
       const nearest = getNearestStop(visibleStops, coords);
-      console.log(
+      logDebug(
         '[AutoSelect] GPS nearest stop:',
         nearest?.place.name,
         '| coords:',
@@ -291,7 +292,7 @@ export default function ScanPage() {
       ? (visibleStops.find((s) => s.id === registeredStopId) ?? null)
       : null;
 
-    console.log(
+    logDebug(
       '[AutoSelect] No GPS — fallback to registered:',
       registeredInCurrentRoute?.place.name ?? 'none',
     );

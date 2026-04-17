@@ -16,6 +16,7 @@ Implementation progress note:
 - `admin/routes` handler 분리는 적용됨
 - `admin/schedules` handler 분리는 적용됨
 - legacy `routes` endpoint wrapper 정리는 적용됨
+- Prisma schema와 런타임 데이터 모델 정렬은 적용됨
 - `next.config` 중복 제거와 ESLint Next flat config 연결은 적용됨
 
 ## Summary

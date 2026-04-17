@@ -35,6 +35,7 @@ import {
 } from '../../constants/appConfigs';
 import { authedFetch } from '../../lib/api';
 import { fetchApi, mutateApi } from '../../lib/queries';
+import { logDebug } from '../../lib/logger';
 import type {
   AdminRouteListItem as AdminRoute,
   AdminLiveRoute as LiveRoute,
@@ -60,10 +61,10 @@ function QrCanvas({ text, size = 200 }: { text: string; size?: number }) {
 }
 
 async function copyText(text: string): Promise<void> {
-  console.log('[Copy] Attempting to copy:', `${text.substring(0, 100)}...`);
-  console.log('[Copy] Text length:', text.length);
-  console.log('[Copy] Clipboard available:', !!navigator.clipboard);
-  console.log('[Copy] Secure context:', window.isSecureContext);
+  logDebug('[Copy] Attempting to copy:', `${text.substring(0, 100)}...`);
+  logDebug('[Copy] Text length:', text.length);
+  logDebug('[Copy] Clipboard available:', !!navigator.clipboard);
+  logDebug('[Copy] Secure context:', window.isSecureContext);
 
   // Modern clipboard API with verification
   if (navigator.clipboard && window.isSecureContext) {
@@ -73,10 +74,10 @@ async function copyText(text: string): Promise<void> {
       // Verify copy by reading back
       const readText = await navigator.clipboard.readText();
       if (readText === text) {
-        console.log('[Copy] Clipboard API success - verified');
+        logDebug('[Copy] Clipboard API success - verified');
         Toast.show({ content: 'Copied to clipboard', icon: 'success' });
       } else {
-        console.log(
+        logDebug(
           '[Copy] Clipboard API failed verification - trying fallback',
         );
         fallbackCopyText(text);
@@ -86,13 +87,13 @@ async function copyText(text: string): Promise<void> {
       fallbackCopyText(text);
     }
   } else {
-    console.log('[Copy] Using fallback method');
+    logDebug('[Copy] Using fallback method');
     fallbackCopyText(text);
   }
 }
 
 function fallbackCopyText(text: string): void {
-  console.log('[Copy] Attempting fallback copy method');
+  logDebug('[Copy] Attempting fallback copy method');
 
   try {
     // Try execCommand with textarea
@@ -113,7 +114,7 @@ function fallbackCopyText(text: string): void {
     document.body.removeChild(textArea);
 
     if (result) {
-      console.log('[Copy] Fallback execCommand success');
+      logDebug('[Copy] Fallback execCommand success');
       Toast.show({ content: 'Copied to clipboard', icon: 'success' });
       return;
     }

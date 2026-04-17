@@ -900,6 +900,12 @@ export async function handleAdminSchedules(
   ) {
     const routeId = suffix[1];
     const queryText = request.nextUrl.searchParams.get('q')?.trim() ?? '';
+    const queryTokens = queryText
+      .split(/\s+/)
+      .map((token) => token.trim())
+      .filter(Boolean);
+    const compactQuery = queryText.toLowerCase().replace(/\s+/g, '');
+    const queryPrefix = `${queryText}%`;
 
     const scheduleRoute = await queryOne<{
       id: string;
@@ -926,19 +932,77 @@ export async function handleAdminSchedules(
       notes: string | null;
       is_terminal: boolean;
       stop_id: string | null;
+      match_score: number;
     }>(
-      `SELECT id, google_place_id, name, display_name, formatted_address, lat, lng, place_types, notes, is_terminal, stop_id
+      `SELECT id, google_place_id, name, display_name, formatted_address, lat, lng, place_types, notes, is_terminal, stop_id,
+              CASE
+                WHEN LOWER(name) = LOWER($1)
+                  OR LOWER(COALESCE(display_name, '')) = LOWER($1)
+                  OR LOWER(COALESCE(stop_id, '')) = LOWER($1)
+                THEN 500
+                WHEN name ILIKE $4 OR COALESCE(display_name, '') ILIKE $4
+                THEN 300
+                WHEN CONCAT_WS(' ',
+                  name,
+                  COALESCE(display_name, ''),
+                  COALESCE(stop_id, ''),
+                  google_place_id,
+                  COALESCE(formatted_address, ''),
+                  COALESCE(array_to_string(place_types, ' '), '')
+                ) ILIKE '%' || $1 || '%'
+                THEN 200
+                WHEN REPLACE(
+                  LOWER(
+                    CONCAT_WS('',
+                      name,
+                      COALESCE(display_name, ''),
+                      COALESCE(stop_id, ''),
+                      google_place_id,
+                      COALESCE(formatted_address, ''),
+                      COALESCE(array_to_string(place_types, ''), '')
+                    )
+                  ),
+                  ' ',
+                  ''
+                ) LIKE '%' || $3 || '%'
+                THEN 120
+                ELSE 0
+              END AS match_score
        FROM places
        WHERE (
          $1 = '' OR
-         name ILIKE '%' || $1 || '%' OR
-         COALESCE(display_name, '') ILIKE '%' || $1 || '%' OR
-         COALESCE(stop_id, '') ILIKE '%' || $1 || '%' OR
-         google_place_id ILIKE '%' || $1 || '%'
+         (
+           NOT EXISTS (
+             SELECT 1
+             FROM UNNEST($2::text[]) AS token
+             WHERE CONCAT_WS(' ',
+               name,
+               COALESCE(display_name, ''),
+               COALESCE(stop_id, ''),
+               google_place_id,
+               COALESCE(formatted_address, ''),
+               COALESCE(array_to_string(place_types, ' '), '')
+             ) NOT ILIKE '%' || token || '%'
+           )
+           OR REPLACE(
+             LOWER(
+               CONCAT_WS('',
+                 name,
+                 COALESCE(display_name, ''),
+                 COALESCE(stop_id, ''),
+                 google_place_id,
+                 COALESCE(formatted_address, ''),
+                 COALESCE(array_to_string(place_types, ''), '')
+               )
+             ),
+             ' ',
+             ''
+           ) LIKE '%' || $3 || '%'
+         )
        )
-       ORDER BY updated_at DESC NULLS LAST, created_at DESC
+       ORDER BY match_score DESC, updated_at DESC NULLS LAST, created_at DESC
        LIMIT 30`,
-      [queryText],
+      [queryText, queryTokens, compactQuery, queryPrefix],
     );
 
     const existing = new Set(

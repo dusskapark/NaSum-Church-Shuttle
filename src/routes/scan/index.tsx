@@ -157,12 +157,12 @@ export default function ScanPage() {
   // ── registered stop (used to pre-select stop after scan) ─────────────────
   const queryClient = useQueryClient();
   const { data: regData } = useQuery<RegisteredUserResponse>({
-    queryKey: ['registration', user?.userId],
+    queryKey: ['registration', user?.providerUid],
     queryFn: () =>
       fetchApi<RegisteredUserResponse>(
-        `/api/v1/user-registration?provider=line&provider_uid=${encodeURIComponent(user!.userId)}`,
+        `/api/v1/user-registration?provider=line&provider_uid=${encodeURIComponent(user!.providerUid)}`,
       ),
-    enabled: isReady && !!user?.userId,
+    enabled: isReady && !!user?.providerUid,
   });
   const registeredStopId =
     regData?.registered && regData.registration?.route_stop_id
@@ -329,7 +329,7 @@ export default function ScanPage() {
     checkinMutation.mutate({
       run_id: runInfo.run.id,
       route_stop_id: selectedStop.id,
-      provider_uid: user.userId,
+      provider_uid: user.providerUid,
       provider: 'line',
       display_name: user.displayName,
       picture_url: user.pictureUrl,

@@ -8,7 +8,10 @@ export interface RoutePathPoint {
 }
 
 export interface LineUser {
+  // internal application user id
   userId: string;
+  // LINE provider user id used for provider-linked API calls
+  providerUid: string;
   displayName: string;
   pictureUrl: Nullable<string>;
   statusMessage: Nullable<string>;

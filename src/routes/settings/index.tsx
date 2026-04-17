@@ -32,7 +32,7 @@ export default function SettingsPage() {
   const t = useTranslation();
   useContainer(t('settings.title'));
   const { registration, loading: registrationLoading } = useRegistration(
-    user?.userId ?? null,
+    user?.providerUid ?? null,
     t('common.serverError'),
   );
 

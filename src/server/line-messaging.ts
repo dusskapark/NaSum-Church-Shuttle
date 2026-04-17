@@ -6,7 +6,6 @@ function sanitizeLineError(details: string): string {
 
 interface ShuttleLiffUrls {
   scanUrl: string;
-  homeUrl: string;
 }
 
 function buildShuttleLiffUrls(): ShuttleLiffUrls | null {
@@ -14,7 +13,6 @@ function buildShuttleLiffUrls(): ShuttleLiffUrls | null {
   if (liffId) {
     return {
       scanUrl: `https://liff.line.me/${liffId}/scan`,
-      homeUrl: `https://liff.line.me/${liffId}`,
     };
   }
 
@@ -23,7 +21,6 @@ function buildShuttleLiffUrls(): ShuttleLiffUrls | null {
     const normalized = appUrl.replace(/\/$/, '');
     return {
       scanUrl: `${normalized}/scan`,
-      homeUrl: normalized,
     };
   }
 
@@ -59,21 +56,13 @@ export async function sendLinePushShuttleCarousel(params: {
     params.language === 'en'
       ? {
           altPrefix: 'Shuttle notice',
-          qrCardTitle: 'QR Scan',
-          qrCardText: 'Open the QR page to complete shuttle boarding.',
-          qrButtonLabel: 'Open QR Scan',
-          routeCardTitle: 'View Route',
-          routeCardText: 'Check route and stop information in the LIFF app.',
-          routeButtonLabel: 'Open Routes',
+          heroLabel: 'Arrival Alert',
+          buttonLabel: 'Board Now',
         }
       : {
           altPrefix: '셔틀 알림',
-          qrCardTitle: 'QR 스캔',
-          qrCardText: '탑승 QR 스캔 페이지로 이동합니다.',
-          qrButtonLabel: 'QR 스캔하기',
-          routeCardTitle: '노선 보기',
-          routeCardText: 'LIFF에서 노선과 정류장을 확인합니다.',
-          routeButtonLabel: '노선보기',
+          heroLabel: '도착 알림',
+          buttonLabel: '탑승하기',
         };
 
   const response = await fetch('https://api.line.me/v2/bot/message/push', {
@@ -86,34 +75,67 @@ export async function sendLinePushShuttleCarousel(params: {
       to: params.to,
       messages: [
         {
-          type: 'template',
+          type: 'flex',
           altText: truncateForLine(`${i18n.altPrefix}: ${params.title} - ${params.body}`, 400),
-          template: {
-            type: 'carousel',
-            columns: [
-              {
-                title: i18n.qrCardTitle,
-                text: i18n.qrCardText,
-                actions: [
-                  {
+          contents: {
+            type: 'bubble',
+            size: 'mega',
+            styles: {
+              body: {
+                backgroundColor: '#F5F8FF',
+              },
+              footer: {
+                separator: true,
+              },
+            },
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'md',
+              contents: [
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  backgroundColor: '#2D5BFF',
+                  cornerRadius: '12px',
+                  paddingAll: '12px',
+                  contents: [
+                    {
+                      type: 'text',
+                      text: i18n.heroLabel,
+                      color: '#FFFFFF',
+                      weight: 'bold',
+                      size: 'sm',
+                    },
+                  ],
+                },
+                {
+                  type: 'text',
+                  text: params.body,
+                  wrap: true,
+                  size: 'md',
+                  color: '#111827',
+                },
+              ],
+            },
+            footer: {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'sm',
+              contents: [
+                {
+                  type: 'button',
+                  style: 'primary',
+                  color: '#2D5BFF',
+                  action: {
                     type: 'uri',
-                    label: i18n.qrButtonLabel,
+                    label: i18n.buttonLabel,
                     uri: liffUrls.scanUrl,
                   },
-                ],
-              },
-              {
-                title: i18n.routeCardTitle,
-                text: i18n.routeCardText,
-                actions: [
-                  {
-                    type: 'uri',
-                    label: i18n.routeButtonLabel,
-                    uri: liffUrls.homeUrl,
-                  },
-                ],
-              },
-            ],
+                },
+              ],
+              flex: 0,
+            },
           },
         },
       ],

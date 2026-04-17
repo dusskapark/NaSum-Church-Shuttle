@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
 
   return json({
     userId: actor.userId,
+    providerUid: actor.providerUid,
     displayName: actor.displayName,
     pictureUrl: actor.pictureUrl,
     statusMessage: actor.statusMessage,

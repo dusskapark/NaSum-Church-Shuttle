@@ -48,7 +48,7 @@ export default function ShuttleHome() {
     registration,
     stop_active,
     loading: regLoading,
-  } = useRegistration(user?.userId ?? null, t('common.serverError'));
+  } = useRegistration(user?.providerUid ?? null, t('common.serverError'));
 
   const selectedRouteCode = searchParams.get('route');
   const registeredRouteCode = registration?.route?.route_code ?? null;

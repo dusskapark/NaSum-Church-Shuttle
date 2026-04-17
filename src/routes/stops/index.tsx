@@ -87,7 +87,7 @@ export default function StopDetailPage() {
   function handleRegister(): void {
     if (!user || !selectedStop) return;
     registerMutation.mutate({
-      provider_uid: user.userId,
+      provider_uid: user.providerUid,
       display_name: user.displayName,
       picture_url: user.pictureUrl,
       route_code: selectedStop.routeCode,

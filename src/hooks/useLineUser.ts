@@ -38,7 +38,10 @@ export const AUTH_STORAGE_KEY = 'line-shuttle:auth';
 const DEV_BYPASS_TOKEN = 'dev-bypass-local-admin';
 
 export interface StoredAuth {
+  // internal application user id
   userId: string;
+  // LINE provider user id from backend-verified ID token sub
+  providerUid: string;
   displayName: string;
   pictureUrl: string | null;
   statusMessage: string | null;
@@ -66,7 +69,7 @@ function getStoredAuth(): StoredAuth | null {
     const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
     if (!raw) return null;
     const auth = JSON.parse(raw) as StoredAuth;
-    if (!auth.idToken || !auth.userId || isIdTokenExpired(auth.idToken)) {
+    if (!auth.idToken || !auth.userId || !auth.providerUid || isIdTokenExpired(auth.idToken)) {
       clearStoredAuth();
       return null;
     }
@@ -80,6 +83,7 @@ function getStoredAuth(): StoredAuth | null {
 function toLineUser(auth: StoredAuth): LineUser {
   return {
     userId: auth.userId,
+    providerUid: auth.providerUid,
     displayName: auth.displayName,
     pictureUrl: auth.pictureUrl,
     statusMessage: auth.statusMessage,
@@ -145,6 +149,7 @@ function useProvideLineUser(): UseLineUserResult {
       if (isLocalDev) {
         const devAuth: StoredAuth = {
           userId: 'dev-user-001',
+          providerUid: 'dev-user-001',
           displayName: 'Developer (admin)',
           pictureUrl: null,
           statusMessage: 'Local development bypass',
@@ -287,7 +292,6 @@ export async function storeAuthFromBackend(): Promise<StoredAuth> {
       idToken,
       profile: profile
         ? {
-            userId: profile.userId,
             displayName: profile.displayName,
             pictureUrl: profile.pictureUrl ?? null,
             statusMessage: profile.statusMessage ?? null,
@@ -321,7 +325,10 @@ export async function storeAuthFromBackend(): Promise<StoredAuth> {
     throw new Error(`line-auth failed: ${res.status} ${body}`);
   }
 
-  const auth = (await res.json()) as StoredAuth;
+  const auth = (await res.json()) as Partial<StoredAuth>;
+  if (!auth.userId || !auth.providerUid || !auth.idToken) {
+    throw new Error('line-auth failed: invalid session payload');
+  }
   window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
-  return auth;
+  return auth as StoredAuth;
 }

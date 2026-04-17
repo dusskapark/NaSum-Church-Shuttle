@@ -243,16 +243,14 @@ export interface AppNotification {
   user_route_stop_id: string | null;
 }
 
-export interface MyCheckinResponse {
-  checkin_id: string;
-  route_stop_id: string;
-  stop_state: StopBoardingState;
-}
-
 /** Pre-check-in info response from GET /api/v1/checkin/run?routeCode=X */
 export interface RunInfoResponse {
   run: ShuttleRun;
   route: RouteWithStops;
   stop_states: StopBoardingState[];
-  my_checkin: Nullable<MyCheckinResponse>;
+  my_checkin: Nullable<{
+    checkin_id: string;
+    route_stop_id: string;
+    stop_state: StopBoardingState;
+  }>;
 }

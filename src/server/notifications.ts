@@ -29,22 +29,13 @@ interface NotificationTemplate {
 
 function buildApproachingTemplate(
   stopsAway: 1 | 2,
-  routeLabel: string,
+  _routeLabel: string,
 ): NotificationTemplate {
-  if (stopsAway === 1) {
-    return {
-      titleKo: '곧 탑승 정류장에 도착합니다',
-      bodyKo: `${routeLabel} 셔틀이 바로 전 정류장에 도착했습니다. 탑승을 준비하세요.`,
-      titleEn: 'Your stop is next',
-      bodyEn: `${routeLabel} shuttle has arrived at the previous stop. Please get ready to board.`,
-    };
-  }
-
   return {
-    titleKo: '셔틀이 2정거장 전입니다',
-    bodyKo: `${routeLabel} 셔틀이 두 정류장 전에 도착했습니다.`,
-    titleEn: 'Shuttle is 2 stops away',
-    bodyEn: `${routeLabel} shuttle is now 2 stops away from your stop.`,
+    titleKo: '도착 알림',
+    bodyKo: `셔틀이 ${stopsAway}정거장 전입니다.\n탑승을 준비하세요.`,
+    titleEn: 'Arrival alert',
+    bodyEn: `Shuttle is ${stopsAway} stop${stopsAway > 1 ? 's' : ''} away.\nPlease get ready to board.`,
   };
 }
 

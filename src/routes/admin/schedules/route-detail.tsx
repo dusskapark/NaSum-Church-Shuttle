@@ -6,6 +6,7 @@ import {
   Form,
   Input,
   List,
+  Popup,
   Skeleton,
   Switch,
   Tag,
@@ -64,6 +65,23 @@ const STRINGS = {
     changeUpdated: 'Updated',
     changeRemoved: 'Removed',
     syncErrorLabel: 'Sync error',
+    searchStopsPlaceholder: 'Search stops',
+    addStopButton: 'Add stop',
+    addStopTitle: 'New stop',
+    addStopSuccess: 'Stop added.',
+    addStopError: 'Failed to add stop.',
+    addDialogTitle: 'Add stop',
+    searchCandidatePlaceholder: 'Search existing stops',
+    searchNoResult: 'No matching stop found.',
+    alreadyInRoute: 'Already in route',
+    addSelected: 'Add selected',
+    createStopTitle: 'Create new stop',
+    placeNameLabel: 'Stop name',
+    addDialogCancel: 'Cancel',
+    dragHint: 'Drag to reorder',
+    reorderStopError: 'Failed to reorder stop.',
+    googlePlaceRequired: 'Google Place ID is required.',
+    placeNameRequired: 'Stop name is required.',
   },
   ko: {
     back: '스케줄',
@@ -98,6 +116,23 @@ const STRINGS = {
     changeUpdated: '변경',
     changeRemoved: '제거',
     syncErrorLabel: '동기화 오류',
+    searchStopsPlaceholder: '정류장 검색',
+    addStopButton: '정류장 추가',
+    addStopTitle: '새 정류장',
+    addStopSuccess: '정류장이 추가되었습니다.',
+    addStopError: '정류장 추가에 실패했습니다.',
+    addDialogTitle: '정류장 추가',
+    searchCandidatePlaceholder: '기존 정류장 검색',
+    searchNoResult: '검색 결과가 없습니다.',
+    alreadyInRoute: '이미 추가됨',
+    addSelected: '선택 추가',
+    createStopTitle: '새 정류장 만들기',
+    placeNameLabel: '정류장 이름',
+    addDialogCancel: '취소',
+    dragHint: '드래그해서 순서 변경',
+    reorderStopError: '정류장 순서 변경에 실패했습니다.',
+    googlePlaceRequired: 'Google Place ID를 입력하세요.',
+    placeNameRequired: '정류장 이름을 입력하세요.',
   },
 };
 
@@ -128,6 +163,20 @@ function changeTypeBadge(
   return null;
 }
 
+interface StopCandidateItem {
+  google_place_id: string;
+  name: string;
+  display_name: string | null;
+  stop_id: string | null;
+  is_terminal: boolean;
+  formatted_address: string | null;
+  lat: number;
+  lng: number;
+  place_types: string[];
+  notes: string | null;
+  already_in_route: boolean;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AdminScheduleRouteDetailPage() {
@@ -147,7 +196,19 @@ export default function AdminScheduleRouteDetailPage() {
   const [editActive, setEditActive] = useState(true);
 
   // Stop editing
+  const [stopSearch, setStopSearch] = useState('');
   const [editingStop, setEditingStop] = useState<StopSnapshotItem | null>(null);
+  const [addingStop, setAddingStop] = useState(false);
+  const [candidateQuery, setCandidateQuery] = useState('');
+  const [selectedCandidate, setSelectedCandidate] =
+    useState<StopCandidateItem | null>(null);
+  const [newStopName, setNewStopName] = useState('');
+  const [newStopDisplayName, setNewStopDisplayName] = useState('');
+  const [newStopPlaceId, setNewStopPlaceId] = useState('');
+  const [draggingSequence, setDraggingSequence] = useState<number | null>(null);
+  const [dropTargetSequence, setDropTargetSequence] = useState<number | null>(
+    null,
+  );
 
   const scheduleQueryKey = useMemo(
     () => ['admin', 'schedules', scheduleId] as const,
@@ -169,6 +230,23 @@ export default function AdminScheduleRouteDetailPage() {
       return found;
     },
     enabled: !!scheduleId && !!routeId,
+  });
+
+  const { data: candidates = [], isLoading: loadingCandidates } = useQuery({
+    queryKey: [
+      ...scheduleQueryKey,
+      'route',
+      routeId,
+      'stop-candidates',
+      candidateQuery,
+    ],
+    queryFn: async () => {
+      const data = await fetchApi<{ items: StopCandidateItem[] }>(
+        `/api/v1/admin/schedules/${scheduleId}/routes/${routeId}/stops/candidates?q=${encodeURIComponent(candidateQuery.trim())}`,
+      );
+      return data.items;
+    },
+    enabled: addingStop && !!scheduleId && !!routeId,
   });
 
   useContainer(
@@ -314,6 +392,46 @@ export default function AdminScheduleRouteDetailPage() {
 
   const savingStop = saveStopMutation.isPending;
 
+  const moveStopMutation = useMutation({
+    mutationFn: (params: { sequence: number; moveToSequence: number }) =>
+      mutateApi<void>(
+        `/api/v1/admin/schedules/${scheduleId}/routes/${routeId}/stops/${params.sequence}`,
+        {
+          method: 'PATCH',
+          body: { move_to_sequence: params.moveToSequence },
+        },
+      ),
+    onSuccess: () => {
+      invalidateScheduleRoute();
+    },
+    onError: () => {
+      Toast.show({ content: t.reorderStopError, icon: 'fail' });
+    },
+  });
+
+  const addStopMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      mutateApi<void>(
+        `/api/v1/admin/schedules/${scheduleId}/routes/${routeId}/stops`,
+        {
+          method: 'POST',
+          body,
+        },
+      ),
+    onSuccess: () => {
+      Toast.show({ content: t.addStopSuccess, icon: 'success' });
+      setAddingStop(false);
+      setSelectedCandidate(null);
+      setNewStopName('');
+      setNewStopDisplayName('');
+      setNewStopPlaceId('');
+      invalidateScheduleRoute();
+    },
+    onError: () => {
+      Toast.show({ content: t.addStopError, icon: 'fail' });
+    },
+  });
+
   const handleSaveStop = useCallback(
     (values: StopEditValues) => {
       if (!editingStop || !scheduleId || !routeId) return;
@@ -338,6 +456,52 @@ export default function AdminScheduleRouteDetailPage() {
     },
     [editingStop, scheduleId, routeId, saveStopMutation],
   );
+
+  const filteredStops = useMemo(() => {
+    const keyword = stopSearch.trim().toLowerCase();
+    if (!keyword) return scheduleRoute?.stops_snapshot ?? [];
+    return (scheduleRoute?.stops_snapshot ?? []).filter((stop) =>
+      [
+        stop.place_display_name,
+        stop.place_name,
+        stop.google_place_id,
+        stop.stop_id,
+        stop.pickup_time,
+      ]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(keyword)),
+    );
+  }, [scheduleRoute?.stops_snapshot, stopSearch]);
+
+  const handleAddCandidate = useCallback(() => {
+    if (!selectedCandidate || selectedCandidate.already_in_route) return;
+    addStopMutation.mutate({
+      google_place_id: selectedCandidate.google_place_id,
+      place_name: selectedCandidate.name,
+      display_name: selectedCandidate.display_name,
+      formatted_address: selectedCandidate.formatted_address,
+      lat: selectedCandidate.lat,
+      lng: selectedCandidate.lng,
+      place_types: selectedCandidate.place_types,
+      place_notes: selectedCandidate.notes,
+      is_terminal: selectedCandidate.is_terminal,
+      stop_id: selectedCandidate.stop_id,
+      is_pickup_enabled: true,
+    });
+  }, [selectedCandidate, addStopMutation]);
+
+  const handleAddManualStop = useCallback(() => {
+    if (!newStopName.trim()) {
+      Toast.show({ content: t.placeNameRequired, icon: 'fail' });
+      return;
+    }
+    addStopMutation.mutate({
+      google_place_id: newStopPlaceId.trim() || null,
+      place_name: newStopName.trim(),
+      display_name: newStopDisplayName.trim() || null,
+      is_pickup_enabled: true,
+    });
+  }, [newStopName, newStopDisplayName, newStopPlaceId, addStopMutation, t]);
 
   return (
     <Layout showTabBar={false}>
@@ -459,17 +623,43 @@ export default function AdminScheduleRouteDetailPage() {
             ) : null;
           })()}
 
-          {scheduleRoute.stops_snapshot.length === 0 ? (
+          <div style={{ padding: '8px 16px 0', display: 'flex', gap: 8 }}>
+            <Input
+              value={stopSearch}
+              onChange={setStopSearch}
+              placeholder={t.searchStopsPlaceholder}
+              clearable
+            />
+            <Button
+              size="small"
+              color="primary"
+              fill="outline"
+              onClick={() => {
+                setAddingStop(true);
+                setCandidateQuery('');
+                setSelectedCandidate(null);
+                setNewStopName('');
+                setNewStopDisplayName('');
+                setNewStopPlaceId('');
+              }}
+            >
+              {t.addStopButton}
+            </Button>
+          </div>
+
+          {filteredStops.length === 0 ? (
             <List header={t.stopsHeader}>
               <List.Item>
                 <span style={{ color: 'var(--app-color-subtle-text)' }}>
-                  {t.noStops}
+                  {scheduleRoute.stops_snapshot.length === 0
+                    ? t.noStops
+                    : t.searchStopsPlaceholder}
                 </span>
               </List.Item>
             </List>
           ) : (
             <List header={t.stopsHeader}>
-              {scheduleRoute.stops_snapshot.map((stop) => {
+              {filteredStops.map((stop) => {
                 const isRemoved = stop.change_type === 'removed';
                 const isUpdatedOrAdded =
                   stop.change_type === 'updated' ||
@@ -480,114 +670,179 @@ export default function AdminScheduleRouteDetailPage() {
                   !stop.pickup_time;
 
                 return (
-                  <List.Item
+                  <div
                     key={`${stop.google_place_id}-${stop.sequence}`}
-                    style={{ opacity: isRemoved ? 0.5 : 1 }}
-                    prefix={
-                      <div
+                    draggable={!isRemoved}
+                    onDragStart={(e: React.DragEvent<HTMLDivElement>) => {
+                      if (isRemoved) return;
+                      setDraggingSequence(stop.sequence);
+                      e.dataTransfer.effectAllowed = 'move';
+                      e.dataTransfer.setData('text/plain', String(stop.sequence));
+                    }}
+                    onDragEnd={() => {
+                      setDraggingSequence(null);
+                      setDropTargetSequence(null);
+                    }}
+                    onDragEnter={() => {
+                      if (
+                        draggingSequence !== null &&
+                        draggingSequence !== stop.sequence
+                      ) {
+                        setDropTargetSequence(stop.sequence);
+                      }
+                    }}
+                    onDragOver={(e: React.DragEvent<HTMLDivElement>) => {
+                      if (
+                        draggingSequence !== null &&
+                        draggingSequence !== stop.sequence
+                      ) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                      }
+                    }}
+                    onDrop={() => {
+                      if (
+                        draggingSequence !== null &&
+                        draggingSequence !== stop.sequence
+                      ) {
+                        moveStopMutation.mutate({
+                          sequence: draggingSequence,
+                          moveToSequence: stop.sequence,
+                        });
+                      }
+                      setDraggingSequence(null);
+                      setDropTargetSequence(null);
+                    }}
+                    style={{
+                      borderTop:
+                        dropTargetSequence === stop.sequence
+                          ? '2px solid var(--adm-color-primary)'
+                          : undefined,
+                    }}
+                  >
+                    <List.Item
+                      style={{ opacity: isRemoved ? 0.5 : 1 }}
+                      prefix={
+                        <div
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: '50%',
+                            background: 'var(--app-color-background-secondary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            textDecoration: isRemoved
+                              ? 'line-through'
+                              : undefined,
+                          }}
+                        >
+                          {stop.sequence}
+                        </div>
+                      }
+                      extra={
+                        !isRemoved ? (
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <Button
+                              size="mini"
+                              fill="none"
+                              color="danger"
+                              onClick={() => handleDeleteStop(stop)}
+                            >
+                              <DeleteOutline style={{ fontSize: 16 }} />
+                            </Button>
+                            <Button
+                              size="mini"
+                              fill="none"
+                              onClick={() => setEditingStop(stop)}
+                            >
+                              <EditSOutline style={{ fontSize: 16 }} />
+                            </Button>
+                          </div>
+                        ) : null
+                      }
+                      description={
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: 4,
+                            flexWrap: 'wrap',
+                            marginTop: 2,
+                          }}
+                        >
+                          {changeTypeBadge(stop.change_type, t)}
+                          {stop.is_terminal && (
+                            <Tag color="primary" fill="outline">
+                              Terminal
+                            </Tag>
+                          )}
+                          {stop.stop_id && (
+                            <span
+                              style={{
+                                fontFamily: 'monospace',
+                                color: 'var(--app-color-subtle-text)',
+                              }}
+                            >
+                              #{stop.stop_id}
+                            </span>
+                          )}
+                          {stop.pickup_time ? (
+                            <span
+                              style={{
+                                textDecoration: isRemoved
+                                  ? 'line-through'
+                                  : undefined,
+                              }}
+                            >
+                              {stop.pickup_time}
+                            </span>
+                          ) : missingTime ? (
+                            <Tag color="warning" fill="outline">
+                              ⚠️ {t.missingPickupTime}
+                            </Tag>
+                          ) : null}
+                          {stop.notes && <span>· {stop.notes}</span>}
+                        </div>
+                      }
+                    >
+                      <span
+                        onClick={() => {
+                          if (!isRemoved) setEditingStop(stop);
+                        }}
                         style={{
-                          width: 26,
-                          height: 26,
-                          borderRadius: '50%',
-                          background: 'var(--app-color-background-secondary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          textDecoration: isRemoved
-                            ? 'line-through'
+                          textDecoration: isRemoved ? 'line-through' : undefined,
+                          color: isRemoved
+                            ? 'var(--app-color-subtle-text)'
                             : undefined,
                         }}
                       >
-                        {stop.sequence}
-                      </div>
-                    }
-                    extra={
-                      !isRemoved ? (
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <Button
-                            size="mini"
-                            fill="none"
-                            color="danger"
-                            onClick={() => handleDeleteStop(stop)}
-                          >
-                            <DeleteOutline style={{ fontSize: 16 }} />
-                          </Button>
-                          <Button
-                            size="mini"
-                            fill="none"
-                            onClick={() => setEditingStop(stop)}
-                          >
-                            <EditSOutline style={{ fontSize: 16 }} />
-                          </Button>
-                        </div>
-                      ) : null
-                    }
-                    description={
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 4,
-                          flexWrap: 'wrap',
-                          marginTop: 2,
-                        }}
-                      >
-                        {changeTypeBadge(stop.change_type, t)}
-                        {stop.is_terminal && (
-                          <Tag color="primary" fill="outline">
-                            Terminal
-                          </Tag>
-                        )}
-                        {stop.stop_id && (
-                          <span
-                            style={{
-                              fontFamily: 'monospace',
-                              color: 'var(--app-color-subtle-text)',
-                            }}
-                          >
-                            #{stop.stop_id}
-                          </span>
-                        )}
-                        {stop.pickup_time ? (
-                          <span
-                            style={{
-                              textDecoration: isRemoved
-                                ? 'line-through'
-                                : undefined,
-                            }}
-                          >
-                            {stop.pickup_time}
-                          </span>
-                        ) : missingTime ? (
-                          <Tag color="warning" fill="outline">
-                            ⚠️ {t.missingPickupTime}
-                          </Tag>
-                        ) : null}
-                        {stop.notes && <span>· {stop.notes}</span>}
-                      </div>
-                    }
-                  >
-                    <span
-                      style={{
-                        textDecoration: isRemoved ? 'line-through' : undefined,
-                        color: isRemoved
-                          ? 'var(--app-color-subtle-text)'
-                          : undefined,
-                      }}
-                    >
-                      {stop.place_display_name ?? stop.place_name}
-                    </span>
-                    {stop.place_display_name && (
-                      <span
-                        style={{
-                          marginLeft: 6,
-                          color: 'var(--app-color-subtle-text)',
-                        }}
-                      >
-                        ({stop.place_name})
+                        {stop.place_display_name ?? stop.place_name}
                       </span>
-                    )}
-                  </List.Item>
+                      {!isRemoved && (
+                        <span
+                          style={{
+                            marginLeft: 8,
+                            color: 'var(--app-color-subtle-text)',
+                            fontSize: 12,
+                            cursor: 'grab',
+                          }}
+                        >
+                          ☰ {t.dragHint}
+                        </span>
+                      )}
+                      {stop.place_display_name && (
+                        <span
+                          style={{
+                            marginLeft: 6,
+                            color: 'var(--app-color-subtle-text)',
+                          }}
+                        >
+                          ({stop.place_name})
+                        </span>
+                      )}
+                    </List.Item>
+                  </div>
                 );
               })}
             </List>
@@ -626,6 +881,104 @@ export default function AdminScheduleRouteDetailPage() {
         onClose={() => setEditingStop(null)}
         lang={lang}
       />
+
+      <Popup
+        visible={addingStop}
+        onMaskClick={() => setAddingStop(false)}
+        position="bottom"
+        bodyStyle={{ maxHeight: '85vh', overflowY: 'auto' }}
+      >
+        <div style={{ padding: 16, paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <h4 style={{ margin: '0 0 12px' }}>{t.addDialogTitle}</h4>
+          <Input
+            value={candidateQuery}
+            onChange={setCandidateQuery}
+            placeholder={t.searchCandidatePlaceholder}
+            clearable
+            style={{ marginBottom: 10 }}
+          />
+          <List>
+            {loadingCandidates ? (
+              <List.Item>
+                <span style={{ color: 'var(--app-color-subtle-text)' }}>…</span>
+              </List.Item>
+            ) : candidates.length === 0 ? (
+              <List.Item>
+                <span style={{ color: 'var(--app-color-subtle-text)' }}>
+                  {t.searchNoResult}
+                </span>
+              </List.Item>
+            ) : (
+              candidates.map((item) => (
+                <List.Item
+                  key={item.google_place_id}
+                  clickable
+                  onClick={() => setSelectedCandidate(item)}
+                  extra={
+                    item.already_in_route ? (
+                      <Tag color="warning" fill="outline">
+                        {t.alreadyInRoute}
+                      </Tag>
+                    ) : selectedCandidate?.google_place_id === item.google_place_id ? (
+                      <Tag color="primary" fill="outline">
+                        ✓
+                      </Tag>
+                    ) : null
+                  }
+                  description={item.formatted_address ?? undefined}
+                >
+                  {item.display_name ?? item.name}
+                </List.Item>
+              ))
+            )}
+          </List>
+
+          <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+            <Button
+              block
+              color="primary"
+              fill="outline"
+              disabled={!selectedCandidate || selectedCandidate.already_in_route}
+              loading={addStopMutation.isPending}
+              onClick={handleAddCandidate}
+            >
+              {t.addSelected}
+            </Button>
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <h4 style={{ margin: '0 0 8px' }}>{t.createStopTitle}</h4>
+            <Form layout="horizontal" style={{ '--prefix-width': '7em' } as never}>
+              <Form.Item label={t.placeNameLabel}>
+                <Input value={newStopName} onChange={setNewStopName} />
+              </Form.Item>
+              <Form.Item label={t.displayNameLabel}>
+                <Input value={newStopDisplayName} onChange={setNewStopDisplayName} />
+              </Form.Item>
+              <Form.Item label="Google Place ID">
+                <Input
+                  value={newStopPlaceId}
+                  onChange={setNewStopPlaceId}
+                  placeholder="optional"
+                />
+              </Form.Item>
+            </Form>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button block fill="outline" onClick={() => setAddingStop(false)}>
+                {t.addDialogCancel}
+              </Button>
+              <Button
+                block
+                color="primary"
+                loading={addStopMutation.isPending}
+                onClick={handleAddManualStop}
+              >
+                {t.addStopButton}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Popup>
     </Layout>
   );
 }

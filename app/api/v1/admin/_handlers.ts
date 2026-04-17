@@ -125,6 +125,17 @@ function toScheduleSnapshot(stop: RouteStopSnapshotRow): ScheduleStopSnapshotIte
   };
 }
 
+function normalizeSnapshotSequences(
+  snapshot: ScheduleStopSnapshotItem[],
+): ScheduleStopSnapshotItem[] {
+  return snapshot
+    .map((stop, index) => ({
+      ...stop,
+      sequence: index + 1,
+    }))
+    .sort((a, b) => a.sequence - b.sequence);
+}
+
 async function buildLiveRouteSnapshot(
   routeId: string,
 ): Promise<ScheduleStopSnapshotItem[]> {
@@ -880,6 +891,69 @@ export async function handleAdminSchedules(
   }
 
   if (
+    request.method === 'GET' &&
+    scheduleId &&
+    suffix?.[0] === 'routes' &&
+    suffix?.[1] &&
+    suffix?.[2] === 'stops' &&
+    suffix?.[3] === 'candidates'
+  ) {
+    const routeId = suffix[1];
+    const queryText = request.nextUrl.searchParams.get('q')?.trim() ?? '';
+
+    const scheduleRoute = await queryOne<{
+      id: string;
+      schedule_status: string;
+      stops_snapshot: ScheduleStopSnapshotItem[] | null;
+    }>(
+      `SELECT sr.id, sr.stops_snapshot, s.status AS schedule_status
+       FROM schedule_routes sr
+       JOIN schedules s ON s.id = sr.schedule_id
+       WHERE sr.schedule_id = $1 AND sr.route_id = $2`,
+      [scheduleId, routeId],
+    );
+    if (!scheduleRoute) return error(404, 'Route not found in schedule');
+
+    const rows = await query<{
+      id: string;
+      google_place_id: string;
+      name: string;
+      display_name: string | null;
+      formatted_address: string | null;
+      lat: number;
+      lng: number;
+      place_types: string[];
+      notes: string | null;
+      is_terminal: boolean;
+      stop_id: string | null;
+    }>(
+      `SELECT id, google_place_id, name, display_name, formatted_address, lat, lng, place_types, notes, is_terminal, stop_id
+       FROM places
+       WHERE (
+         $1 = '' OR
+         name ILIKE '%' || $1 || '%' OR
+         COALESCE(display_name, '') ILIKE '%' || $1 || '%' OR
+         COALESCE(stop_id, '') ILIKE '%' || $1 || '%' OR
+         google_place_id ILIKE '%' || $1 || '%'
+       )
+       ORDER BY updated_at DESC NULLS LAST, created_at DESC
+       LIMIT 30`,
+      [queryText],
+    );
+
+    const existing = new Set(
+      (scheduleRoute.stops_snapshot ?? []).map((s) => s.google_place_id),
+    );
+
+    return json({
+      items: rows.map((row) => ({
+        ...row,
+        already_in_route: existing.has(row.google_place_id),
+      })),
+    });
+  }
+
+  if (
     request.method === 'PATCH' &&
     scheduleId &&
     suffix?.[0] === 'routes' &&
@@ -902,6 +976,7 @@ export async function handleAdminSchedules(
       is_terminal?: boolean;
       google_place_id?: string | null;
       stop_id?: string | null;
+      move_to_sequence?: number;
     };
 
     if (body.pickup_time !== undefined && body.pickup_time !== null) {
@@ -927,9 +1002,34 @@ export async function handleAdminSchedules(
       return error(403, 'Only draft schedules can be edited');
     }
 
-    const snapshot = [...(scheduleRoute.stops_snapshot ?? [])];
+    const snapshot = [...(scheduleRoute.stops_snapshot ?? [])].sort(
+      (a, b) => a.sequence - b.sequence,
+    );
     const stopIndex = snapshot.findIndex((stop) => stop.sequence === sequence);
     if (stopIndex === -1) return error(404, 'Stop not found in snapshot');
+
+    if (body.move_to_sequence !== undefined) {
+      if (
+        !Number.isInteger(body.move_to_sequence) ||
+        body.move_to_sequence <= 0 ||
+        body.move_to_sequence > snapshot.length
+      ) {
+        return error(400, 'move_to_sequence must be a valid sequence number');
+      }
+
+      const [moved] = snapshot.splice(stopIndex, 1);
+      snapshot.splice(body.move_to_sequence - 1, 0, moved);
+      const normalized = normalizeSnapshotSequences(snapshot);
+
+      await query(
+        `UPDATE schedule_routes
+         SET stops_snapshot = $1
+         WHERE id = $2`,
+        [JSON.stringify(normalized), scheduleRoute.id],
+      );
+
+      return json({ success: true });
+    }
 
     const stop = { ...snapshot[stopIndex] };
     if (body.pickup_time !== undefined) stop.pickup_time = body.pickup_time;
@@ -1049,11 +1149,144 @@ export async function handleAdminSchedules(
       }
     }
 
+    const normalized = normalizeSnapshotSequences(snapshot);
+
     await query(
       `UPDATE schedule_routes
        SET stops_snapshot = $1
        WHERE id = $2`,
-      [JSON.stringify(snapshot), scheduleRoute.id],
+      [JSON.stringify(normalized), scheduleRoute.id],
+    );
+
+    return json({ success: true });
+  }
+
+  if (
+    request.method === 'POST' &&
+    scheduleId &&
+    suffix?.[0] === 'routes' &&
+    suffix?.[1] &&
+    suffix?.[2] === 'stops'
+  ) {
+    const routeId = suffix[1];
+    const body = (await request.json()) as {
+      google_place_id?: string;
+      place_name?: string;
+      display_name?: string | null;
+      formatted_address?: string | null;
+      lat?: number;
+      lng?: number;
+      place_types?: string[];
+      place_notes?: string | null;
+      is_terminal?: boolean;
+      stop_id?: string | null;
+      pickup_time?: string | null;
+      notes?: string | null;
+      is_pickup_enabled?: boolean;
+      insert_at_sequence?: number | null;
+    };
+
+    const googlePlaceId =
+      body.google_place_id?.trim() || `manual:${randomUUID().slice(0, 8)}`;
+    const placeName = body.place_name?.trim() || body.display_name?.trim() || '';
+    if (!placeName) return error(400, 'place_name is required');
+    if (body.pickup_time !== undefined && body.pickup_time !== null) {
+      if (!/^\d{1,2}:\d{2}\s?(AM|PM)$/i.test(body.pickup_time.trim())) {
+        return error(400, 'pickup_time must be in H:MM AM/PM format (e.g. 8:48 AM)');
+      }
+    }
+
+    const scheduleRoute = await queryOne<{
+      id: string;
+      schedule_status: string;
+      stops_snapshot: ScheduleStopSnapshotItem[] | null;
+    }>(
+      `SELECT sr.id, sr.stops_snapshot, s.status AS schedule_status
+       FROM schedule_routes sr
+       JOIN schedules s ON s.id = sr.schedule_id
+       WHERE sr.schedule_id = $1 AND sr.route_id = $2`,
+      [scheduleId, routeId],
+    );
+    if (!scheduleRoute) return error(404, 'Route not found in schedule');
+    if (scheduleRoute.schedule_status !== 'draft') {
+      return error(403, 'Only draft schedules can be edited');
+    }
+
+    const place = await queryOne<{
+      id: string;
+      name: string;
+      display_name: string | null;
+      formatted_address: string | null;
+      lat: number;
+      lng: number;
+      place_types: string[];
+      notes: string | null;
+      is_terminal: boolean;
+      stop_id: string | null;
+    }>(
+      `SELECT id, name, display_name, formatted_address, lat, lng, place_types, notes, is_terminal, stop_id
+       FROM places WHERE google_place_id = $1`,
+      [googlePlaceId],
+    );
+
+    const resolvedPlace = place
+      ? {
+          place_id: place.id,
+          place_name: placeName || place.name,
+          place_display_name:
+            body.display_name !== undefined ? body.display_name : place.display_name,
+          formatted_address:
+            body.formatted_address !== undefined
+              ? body.formatted_address
+              : place.formatted_address,
+          lat: Number.isFinite(body.lat) ? Number(body.lat) : Number(place.lat),
+          lng: Number.isFinite(body.lng) ? Number(body.lng) : Number(place.lng),
+          place_types: body.place_types ?? place.place_types ?? [],
+          place_notes: body.place_notes !== undefined ? body.place_notes : place.notes,
+          is_terminal:
+            body.is_terminal !== undefined ? body.is_terminal : place.is_terminal,
+          stop_id: body.stop_id !== undefined ? body.stop_id : place.stop_id,
+        }
+      : {
+          place_id: null,
+          place_name: placeName || googlePlaceId,
+          place_display_name: body.display_name ?? null,
+          formatted_address: body.formatted_address ?? null,
+          lat: Number.isFinite(body.lat) ? Number(body.lat) : 0,
+          lng: Number.isFinite(body.lng) ? Number(body.lng) : 0,
+          place_types: body.place_types ?? [],
+          place_notes: body.place_notes ?? null,
+          is_terminal: body.is_terminal ?? false,
+          stop_id: body.stop_id ?? null,
+        };
+
+    const snapshot = [...(scheduleRoute.stops_snapshot ?? [])].sort(
+      (a, b) => a.sequence - b.sequence,
+    );
+    const insertAt =
+      body.insert_at_sequence && Number.isInteger(body.insert_at_sequence)
+        ? Math.min(Math.max(body.insert_at_sequence, 1), snapshot.length + 1)
+        : snapshot.length + 1;
+
+    const newStop: ScheduleStopSnapshotItem = {
+      route_stop_id: null,
+      sequence: insertAt,
+      pickup_time: body.pickup_time ?? null,
+      is_pickup_enabled: body.is_pickup_enabled ?? true,
+      notes: body.notes ?? null,
+      ...resolvedPlace,
+      google_place_id: googlePlaceId,
+      change_type: 'added',
+    };
+
+    snapshot.splice(insertAt - 1, 0, newStop);
+    const normalized = normalizeSnapshotSequences(snapshot);
+
+    await query(
+      `UPDATE schedule_routes
+       SET stops_snapshot = $1
+       WHERE id = $2`,
+      [JSON.stringify(normalized), scheduleRoute.id],
     );
 
     return json({ success: true });
@@ -1089,7 +1322,9 @@ export async function handleAdminSchedules(
       return error(403, 'Only draft schedules can be edited');
     }
 
-    const snapshot = [...(scheduleRoute.stops_snapshot ?? [])];
+    const snapshot = [...(scheduleRoute.stops_snapshot ?? [])].sort(
+      (a, b) => a.sequence - b.sequence,
+    );
     const stopIndex = snapshot.findIndex((stop) => stop.sequence === sequence);
     if (stopIndex === -1) return error(404, 'Stop not found in snapshot');
 
@@ -1099,11 +1334,13 @@ export async function handleAdminSchedules(
       snapshot[stopIndex] = { ...snapshot[stopIndex], change_type: 'removed' };
     }
 
+    const normalized = normalizeSnapshotSequences(snapshot);
+
     await query(
       `UPDATE schedule_routes
        SET stops_snapshot = $1
        WHERE id = $2`,
-      [JSON.stringify(snapshot), scheduleRoute.id],
+      [JSON.stringify(normalized), scheduleRoute.id],
     );
 
     return json({ success: true });

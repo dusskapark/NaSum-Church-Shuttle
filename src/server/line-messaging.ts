@@ -35,7 +35,8 @@ export async function sendLinePushText(
 
 export async function sendLineReplyTemplate(params: {
   replyToken: string;
-  liffUrl: string;
+  scanUrl: string;
+  homeUrl: string;
 }): Promise<void> {
   const accessToken = env.MESSAGING_API_CHANNEL_ACCESS_TOKEN;
   if (!accessToken) {
@@ -53,16 +54,31 @@ export async function sendLineReplyTemplate(params: {
       messages: [
         {
           type: 'template',
-          altText: '셔틀버스 탑승 링크 안내',
+          altText: '셔틀버스 이용 메뉴',
           template: {
-            type: 'buttons',
-            title: '셔틀버스 이용',
-            text: '아래 버튼을 눌러 셔틀버스 탑승 화면으로 이동하세요.',
-            actions: [
+            type: 'carousel',
+            columns: [
               {
-                type: 'uri',
-                label: '탑승하기',
-                uri: params.liffUrl,
+                title: 'QR 스캔',
+                text: '탑승 QR을 스캔하려면 아래 버튼을 눌러주세요.',
+                actions: [
+                  {
+                    type: 'uri',
+                    label: 'QR 스캔하기',
+                    uri: params.scanUrl,
+                  },
+                ],
+              },
+              {
+                title: '노선 보기',
+                text: '셔틀 노선과 정류장을 확인하려면 이동하세요.',
+                actions: [
+                  {
+                    type: 'uri',
+                    label: '노선보기',
+                    uri: params.homeUrl,
+                  },
+                ],
               },
             ],
           },

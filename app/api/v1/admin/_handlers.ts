@@ -1053,7 +1053,9 @@ export async function handleAdminSchedules(
     );
 
     const existing = new Set(
-      (scheduleRoute.stops_snapshot ?? []).map((s) => s.google_place_id),
+      (scheduleRoute.stops_snapshot ?? [])
+        .filter((s) => s.change_type !== 'removed')
+        .map((s) => s.google_place_id),
     );
 
     return json({
@@ -1088,6 +1090,7 @@ export async function handleAdminSchedules(
       google_place_id?: string | null;
       stop_id?: string | null;
       move_to_sequence?: number;
+      restore?: boolean;
     };
 
     if (body.pickup_time !== undefined && body.pickup_time !== null) {
@@ -1118,6 +1121,25 @@ export async function handleAdminSchedules(
     );
     const stopIndex = snapshot.findIndex((stop) => stop.sequence === sequence);
     if (stopIndex === -1) return error(404, 'Stop not found in snapshot');
+
+    if (body.restore) {
+      const target = snapshot[stopIndex];
+      if (target.change_type === 'removed') {
+        snapshot[stopIndex] = {
+          ...target,
+          change_type: target.route_stop_id ? 'unchanged' : 'added',
+        };
+
+        await query(
+          `UPDATE schedule_routes
+           SET stops_snapshot = $1
+           WHERE id = $2`,
+          [JSON.stringify(snapshot), scheduleRoute.id],
+        );
+      }
+
+      return json({ success: true });
+    }
 
     if (body.move_to_sequence !== undefined) {
       if (
@@ -1325,7 +1347,27 @@ export async function handleAdminSchedules(
       (a, b) => a.sequence - b.sequence,
     );
 
-    if (snapshot.some((stop) => stop.google_place_id === googlePlaceId)) {
+    const existingIndex = snapshot.findIndex(
+      (stop) => stop.google_place_id === googlePlaceId,
+    );
+    if (existingIndex >= 0) {
+      if (snapshot[existingIndex].change_type === 'removed') {
+        const restored = [...snapshot];
+        const restoredStop = restored[existingIndex]!;
+        restored[existingIndex] = {
+          ...restoredStop,
+          change_type: restoredStop.route_stop_id ? 'unchanged' : 'added',
+        };
+
+        await query(
+          `UPDATE schedule_routes
+           SET stops_snapshot = $1
+           WHERE id = $2`,
+          [JSON.stringify(restored), scheduleRoute.id],
+        );
+
+        return json({ success: true, restored: true });
+      }
       return json({ error: 'Stop already exists in route' }, { status: 409 });
     }
 

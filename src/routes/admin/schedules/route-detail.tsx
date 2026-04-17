@@ -12,7 +12,7 @@ import {
   Tag,
   Toast,
 } from 'antd-mobile';
-import { DeleteOutline, EditSOutline } from 'antd-mobile-icons';
+import { DeleteOutline, EditSOutline, RedoOutline } from 'antd-mobile-icons';
 import { useParams } from '@/lib/router';
 import Layout from '../../../components/Layout';
 import { useContainer } from '../../../hooks/useContainer';
@@ -59,6 +59,9 @@ const STRINGS = {
     deleteStopCancel: 'Cancel',
     deleteStopSuccess: 'Stop removed.',
     deleteStopError: 'Failed to remove stop.',
+    restoreStop: 'Restore',
+    restoreStopSuccess: 'Stop restored.',
+    restoreStopError: 'Failed to restore stop.',
     saveStopSuccess: 'Stop saved.',
     saveStopError: 'Failed to save stop.',
     changeAdded: 'Added',
@@ -118,6 +121,9 @@ const STRINGS = {
     deleteStopCancel: '취소',
     deleteStopSuccess: '정류장이 제거되었습니다.',
     deleteStopError: '정류장 제거에 실패했습니다.',
+    restoreStop: '복원',
+    restoreStopSuccess: '정류장이 복원되었습니다.',
+    restoreStopError: '정류장 복원에 실패했습니다.',
     saveStopSuccess: '저장되었습니다.',
     saveStopError: '저장에 실패했습니다.',
     changeAdded: '추가',
@@ -423,6 +429,24 @@ export default function AdminScheduleRouteDetailPage() {
   });
 
   const savingStop = saveStopMutation.isPending;
+
+  const restoreStopMutation = useMutation({
+    mutationFn: (sequence: number) =>
+      mutateApi<void>(
+        `/api/v1/admin/schedules/${scheduleId}/routes/${routeId}/stops/${sequence}`,
+        {
+          method: 'PATCH',
+          body: { restore: true },
+        },
+      ),
+    onSuccess: () => {
+      Toast.show({ content: t.restoreStopSuccess, icon: 'success' });
+      invalidateScheduleRoute();
+    },
+    onError: () => {
+      Toast.show({ content: t.restoreStopError, icon: 'fail' });
+    },
+  });
 
   const moveStopMutation = useMutation({
     mutationFn: (params: { sequence: number; moveToSequence: number }) =>
@@ -833,7 +857,17 @@ export default function AdminScheduleRouteDetailPage() {
                               <EditSOutline style={{ fontSize: 16 }} />
                             </Button>
                           </div>
-                        ) : null
+                        ) : (
+                          <Button
+                            size="mini"
+                            fill="none"
+                            color="primary"
+                            loading={restoreStopMutation.isPending}
+                            onClick={() => restoreStopMutation.mutate(stop.sequence)}
+                          >
+                            <RedoOutline style={{ fontSize: 16 }} />
+                          </Button>
+                        )
                       }
                       description={
                         <div

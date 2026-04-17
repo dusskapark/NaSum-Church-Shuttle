@@ -1308,18 +1308,38 @@ export async function handleAdminSchedules(
       await client.query('SET CONSTRAINTS ALL DEFERRED');
 
       for (const sr of scheduleRoutes) {
+        // Avoid transient unique(route_id, sequence) collisions while restoring stops.
+        await client.query(
+          `UPDATE route_stops
+           SET sequence = -(ABS(sequence) + 100000)
+           WHERE route_id = $1`,
+          [sr.route_id],
+        );
+
+        const existingRows = await client
+          .query<{
+            route_stop_id: string;
+            place_id: string;
+            google_place_id: string;
+          }>(
+            `SELECT
+               rs.id AS route_stop_id,
+               rs.place_id,
+               p.google_place_id
+             FROM route_stops rs
+             JOIN places p ON p.id = rs.place_id
+             WHERE rs.route_id = $1`,
+            [sr.route_id],
+          )
+          .then((result) => result.rows);
+
+        const existingByPlaceId = new Map(
+          existingRows.map((row) => [row.google_place_id, row]),
+        );
+        const activeIds = new Set<string>();
+
         for (const stop of sr.stops_snapshot) {
-          if (stop.change_type === 'removed') {
-            if (stop.route_stop_id) {
-              await client.query(
-                `UPDATE route_stops
-                 SET active = false, sequence = -(ABS(sequence) + 100000)
-                 WHERE id = $1`,
-                [stop.route_stop_id],
-              );
-            }
-            continue;
-          }
+          if (stop.change_type === 'removed') continue;
 
           const placeResult = await client
             .query<{ id: string }>(
@@ -1354,44 +1374,49 @@ export async function handleAdminSchedules(
             )
             .then((result) => result.rows[0]!);
 
-          if (stop.route_stop_id) {
-            await client.query(
-              `UPDATE route_stops
-               SET place_id = $1, sequence = $2, pickup_time = $3,
-                   notes = $4, is_pickup_enabled = $5, active = true
-               WHERE id = $6`,
-              [
-                placeResult.id,
-                stop.sequence,
-                stop.pickup_time,
-                stop.notes,
-                stop.is_pickup_enabled,
-                stop.route_stop_id,
-              ],
-            );
-          } else {
-            await client.query(
-              `INSERT INTO route_stops
-                 (id, route_id, place_id, sequence, pickup_time, notes, is_pickup_enabled, active)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, true)
-               ON CONFLICT (route_id, place_id)
-               DO UPDATE SET
-                 sequence = EXCLUDED.sequence,
-                 pickup_time = EXCLUDED.pickup_time,
-                 notes = EXCLUDED.notes,
-                 is_pickup_enabled = EXCLUDED.is_pickup_enabled,
-                 active = true`,
-              [
-                randomUUID(),
-                sr.route_id,
-                placeResult.id,
-                stop.sequence,
-                stop.pickup_time,
-                stop.notes,
-                stop.is_pickup_enabled,
-              ],
-            );
-          }
+          const existing = existingByPlaceId.get(stop.google_place_id);
+          const routeStopId = stop.route_stop_id ?? existing?.route_stop_id ?? randomUUID();
+
+          await client.query(
+            `INSERT INTO route_stops
+               (id, route_id, place_id, sequence, pickup_time, notes, is_pickup_enabled, active)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+             ON CONFLICT (id)
+             DO UPDATE SET
+               place_id = EXCLUDED.place_id,
+               sequence = EXCLUDED.sequence,
+               pickup_time = EXCLUDED.pickup_time,
+               notes = EXCLUDED.notes,
+               is_pickup_enabled = EXCLUDED.is_pickup_enabled,
+               active = true`,
+            [
+              routeStopId,
+              sr.route_id,
+              placeResult.id,
+              stop.sequence,
+              stop.pickup_time,
+              stop.notes,
+              stop.is_pickup_enabled,
+            ],
+          );
+
+          activeIds.add(routeStopId);
+        }
+
+        if (activeIds.size > 0) {
+          await client.query(
+            `UPDATE route_stops
+             SET active = false
+             WHERE route_id = $1 AND id <> ALL($2::text[])`,
+            [sr.route_id, Array.from(activeIds)],
+          );
+        } else {
+          await client.query(
+            `UPDATE route_stops
+             SET active = false
+             WHERE route_id = $1`,
+            [sr.route_id],
+          );
         }
 
         await client.query(

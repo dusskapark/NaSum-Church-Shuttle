@@ -1,7 +1,12 @@
 'use client';
 
+import { Suspense } from 'react';
 import AdminRunsPage from '@/routes/admin/runs';
 
 export default function AdminRunsRoutePage() {
-  return <AdminRunsPage />;
+  return (
+    <Suspense fallback={null}>
+      <AdminRunsPage />
+    </Suspense>
+  );
 }

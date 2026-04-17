@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { queryOne } from '@/server/db';
-import { json, error } from '@/server/http';
+import { getActor, json, error } from '@/server/http';
 import { buildStopStatesForRoute, fetchRouteStops, type RouteRow, type RunRow } from '../_shared';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +33,50 @@ export async function GET(request: NextRequest) {
     stopRows.map((stop) => stop.id),
   );
 
+  const actor = await getActor(request);
+  let myCheckin: {
+    checkin_id: string;
+    route_stop_id: string;
+    stop_state: {
+      route_stop_id: string;
+      total_passengers: number;
+      status: 'arrived';
+    };
+  } | null = null;
+
+  if (actor) {
+    const identity = await queryOne<{ user_id: string }>(
+      `SELECT user_id FROM user_identities WHERE provider = 'line' AND provider_uid = $1`,
+      [actor.providerUid],
+    );
+
+    if (identity) {
+      const idempotencyKey = `${identity.user_id}:${run.id}`;
+      const existingCheckin = await queryOne<{ id: string; route_stop_id: string }>(
+        `SELECT id, route_stop_id FROM scan_events WHERE idempotency_key = $1`,
+        [idempotencyKey],
+      );
+
+      if (existingCheckin) {
+        const count = await queryOne<{ total: bigint | number }>(
+          `SELECT COALESCE(SUM(1 + additional_passengers), 0) AS total
+           FROM scan_events WHERE run_id = $1 AND route_stop_id = $2`,
+          [run.id, existingCheckin.route_stop_id],
+        );
+
+        myCheckin = {
+          checkin_id: existingCheckin.id,
+          route_stop_id: existingCheckin.route_stop_id,
+          stop_state: {
+            route_stop_id: existingCheckin.route_stop_id,
+            total_passengers: Number(count?.total ?? 0),
+            status: 'arrived',
+          },
+        };
+      }
+    }
+  }
+
   return json({
     run,
     route: {
@@ -64,5 +108,6 @@ export async function GET(request: NextRequest) {
       })),
     },
     stop_states: stopStates,
+    my_checkin: myCheckin,
   });
 }

@@ -1,11 +1,11 @@
 'use client';
 
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ConfigProvider, unstableSetRender } from 'antd-mobile';
 import enUS from 'antd-mobile/es/locales/en-US';
 import koKR from 'antd-mobile/es/locales/ko-KR';
 import {
+  type ComponentType,
   useEffect,
   useState,
   type PropsWithChildren,
@@ -116,11 +116,23 @@ export default function ClientProviders({
   initialTheme,
 }: ClientProvidersProps) {
   const [showQueryDevtools, setShowQueryDevtools] = useState(false);
+  const [DevtoolsComponent, setDevtoolsComponent] = useState<ComponentType<{
+    initialIsOpen?: boolean;
+    buttonPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  }> | null>(null);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development') return;
     const host = window.location.hostname;
-    setShowQueryDevtools(host === 'localhost' || host === '127.0.0.1');
+    const shouldShow = host === 'localhost' || host === '127.0.0.1';
+    setShowQueryDevtools(shouldShow);
+    if (!shouldShow) return;
+
+    import('@tanstack/react-query-devtools')
+      .then(({ ReactQueryDevtools }) => {
+        setDevtoolsComponent(() => ReactQueryDevtools);
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -128,8 +140,8 @@ export default function ClientProviders({
       <AppSettingsProvider initialLang={initialLang} initialTheme={initialTheme}>
         <AppShell>{children}</AppShell>
       </AppSettingsProvider>
-      {showQueryDevtools ? (
-        <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
+      {showQueryDevtools && DevtoolsComponent ? (
+        <DevtoolsComponent initialIsOpen={false} buttonPosition="top-right" />
       ) : null}
     </QueryClientProvider>
   );

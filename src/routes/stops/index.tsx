@@ -5,17 +5,12 @@ import { EnvironmentOutline } from 'antd-mobile-icons';
 import type { CheckListValue } from 'antd-mobile/es/components/check-list';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Layout from '../../components/Layout';
-import { useRoutes } from '../../hooks/useRoutes';
+import { usePlaceRoutes } from '../../hooks/usePlaces';
 import { useLineUser } from '../../hooks/useLineUser';
 import { useContainer } from '../../hooks/useContainer';
 import { useTranslation } from '../../lib/useTranslation';
 import { mutateApi } from '../../lib/queries';
 import { openExternalUrl } from '../../lib/open-external-url';
-import {
-  getMatchingStops,
-  getSourceStop,
-  getStopCandidates,
-} from '../../lib/routeSelectors';
 import type { StopCandidate, UserRegistrationRequest } from '@app-types/core';
 
 
@@ -31,21 +26,13 @@ export default function StopDetailPage() {
   const placeId = searchParams.get('placeId');
   const { user, loading: lineLoading } = useLineUser();
   const t = useTranslation();
-  const { routes, loading: routesLoading } = useRoutes(
+  const { sourceStop, matchingStops, loading: routesLoading } = usePlaceRoutes(
+    placeId,
     t('common.routeLoadError'),
   );
   const queryClient = useQueryClient();
 
   const [selectedStopId, setSelectedStopId] = useState<CheckListValue[]>([]);
-
-  const allStops = useMemo<StopCandidate[]>(
-    () => getStopCandidates(routes),
-    [routes],
-  );
-
-  const sourceStop = useMemo<StopCandidate | null>(() => {
-    return getSourceStop(allStops, placeId);
-  }, [allStops, placeId]);
 
   useContainer(t('stopDetail.title'));
 
@@ -57,11 +44,6 @@ export default function StopDetailPage() {
   const addressLabel = useMemo<string | null>(() => {
     return sourceStop?.formattedAddress ?? sourceStop?.address ?? null;
   }, [sourceStop]);
-
-  const matchingStops = useMemo<StopCandidate[]>(
-    () => getMatchingStops(allStops, sourceStop),
-    [allStops, sourceStop],
-  );
 
   const selectedStop = useMemo<StopCandidate | null>(() => {
     const selectedId = selectedStopId[0];

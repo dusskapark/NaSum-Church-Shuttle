@@ -2,19 +2,21 @@ import { Toast } from 'antd-mobile';
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../lib/queries';
-import type { Nullable, RoutesResponse } from '@app-types/core';
+import type { Nullable, RouteSummariesResponse } from '@app-types/core';
 
-interface UseRoutesResult {
-  routes: RoutesResponse;
+interface UseRouteSummariesResult {
+  routes: RouteSummariesResponse;
   loading: boolean;
   error: Nullable<unknown>;
 }
 
-export function useRoutes(routeLoadErrorMessage?: string): UseRoutesResult {
-  const { data, error, isLoading } = useQuery<RoutesResponse>({
-    queryKey: ['routes'],
-    queryFn: () => fetchApi<RoutesResponse>('/api/v1/routes'),
-    refetchInterval: 300_000,
+export function useRouteSummaries(
+  routeLoadErrorMessage?: string,
+): UseRouteSummariesResult {
+  const { data, error, isLoading } = useQuery<RouteSummariesResponse>({
+    queryKey: ['routes', 'summary'],
+    queryFn: () => fetchApi<RouteSummariesResponse>('/api/v1/routes/summary'),
+    staleTime: 300_000,
     refetchOnWindowFocus: false,
     placeholderData: (prev) => prev,
     retry: 2,

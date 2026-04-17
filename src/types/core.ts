@@ -142,6 +142,30 @@ export type ApiRouteWithStops = RouteWithStops & RoutePathCacheSnapshot;
 
 export type RoutesResponse = ApiRouteWithStops[];
 
+export interface RouteSummary {
+  id: string;
+  route_code: string;
+  name: Nullable<string>;
+  display_name: Nullable<string>;
+  line: string;
+  service: string;
+  revision: number;
+  google_maps_url: Nullable<string>;
+  active: boolean;
+  visible_stop_count: number;
+}
+
+export type RouteSummariesResponse = RouteSummary[];
+
+export type RouteDetailResponse = ApiRouteWithStops;
+
+export type PlaceSummariesResponse = PlaceSummary[];
+
+export interface PlaceRoutesResponse {
+  sourceStop: Nullable<StopCandidate>;
+  matchingStops: StopCandidate[];
+}
+
 export interface ShuttleRun {
   id: string;
   route_id: string;
@@ -164,6 +188,7 @@ export interface StopBoardingState {
 
 /** StopBoardingState + rider list (used in run results) */
 export interface StopBoardingResult extends StopBoardingState {
+  stop_name?: Nullable<string>;
   riders: {
     user_id: string;
     display_name: Nullable<string>;
@@ -229,4 +254,5 @@ export interface RunInfoResponse {
   run: ShuttleRun;
   route: RouteWithStops;
   stop_states: StopBoardingState[];
+  my_checkin: Nullable<MyCheckinResponse>;
 }

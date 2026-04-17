@@ -75,17 +75,36 @@ export default function NotificationsPage() {
       mutateApi(`/api/v1/notifications/${id}/read`, { method: 'PATCH' }),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      await queryClient.cancelQueries({
+        queryKey: ['notifications', 'unread-count'],
+      });
       const prev = queryClient.getQueryData<AppNotification[]>([
         'notifications',
+      ]);
+      const prevUnreadCount = queryClient.getQueryData<{ unread_count: number }>([
+        'notifications',
+        'unread-count',
       ]);
       queryClient.setQueryData<AppNotification[]>(['notifications'], (old) =>
         (old ?? []).map((n) => (n.id === id ? { ...n, is_read: true } : n)),
       );
-      return { prev };
+      queryClient.setQueryData<{ unread_count: number }>(
+        ['notifications', 'unread-count'],
+        (old) => ({
+          unread_count: Math.max(0, (old?.unread_count ?? 0) - 1),
+        }),
+      );
+      return { prev, prevUnreadCount };
     },
     onError: (_err, _id, context) => {
       if (context?.prev) {
         queryClient.setQueryData(['notifications'], context.prev);
+      }
+      if (context?.prevUnreadCount) {
+        queryClient.setQueryData(
+          ['notifications', 'unread-count'],
+          context.prevUnreadCount,
+        );
       }
     },
   });
@@ -95,17 +114,34 @@ export default function NotificationsPage() {
       mutateApi('/api/v1/notifications/read-all', { method: 'PATCH' }),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      await queryClient.cancelQueries({
+        queryKey: ['notifications', 'unread-count'],
+      });
       const prev = queryClient.getQueryData<AppNotification[]>([
         'notifications',
+      ]);
+      const prevUnreadCount = queryClient.getQueryData<{ unread_count: number }>([
+        'notifications',
+        'unread-count',
       ]);
       queryClient.setQueryData<AppNotification[]>(['notifications'], (old) =>
         (old ?? []).map((n) => ({ ...n, is_read: true })),
       );
-      return { prev };
+      queryClient.setQueryData<{ unread_count: number }>(
+        ['notifications', 'unread-count'],
+        { unread_count: 0 },
+      );
+      return { prev, prevUnreadCount };
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) {
         queryClient.setQueryData(['notifications'], context.prev);
+      }
+      if (context?.prevUnreadCount) {
+        queryClient.setQueryData(
+          ['notifications', 'unread-count'],
+          context.prevUnreadCount,
+        );
       }
       Toast.show({ content: t('common.serverError'), icon: 'fail' });
     },

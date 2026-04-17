@@ -6,18 +6,16 @@ interface ArrivedStopRow {
   sequence: number;
   route_id: string;
   route_code: string;
-  route_label: string;
-  arrived_stop_name: string;
 }
 
 interface NextStopRow {
   id: string;
   sequence: number;
-  stop_name: string;
 }
 
 interface TargetUserRow {
   user_id: string;
+  route_stop_id: string;
   provider_uid: string;
   preferred_language: 'ko' | 'en';
 }
@@ -31,14 +29,71 @@ interface NotificationTemplate {
 
 function buildApproachingTemplate(
   stopsAway: 1 | 2,
-  _routeLabel: string,
 ): NotificationTemplate {
   return {
     titleKo: '도착 알림',
-    bodyKo: `셔틀이 ${stopsAway}정거장 전입니다.\n탑승을 준비하세요.`,
+    bodyKo: `${stopsAway} 정거장 전에 셔틀 버스가 도착했습니다.\n탑승을 준비하세요.`,
     titleEn: 'Arrival alert',
     bodyEn: `Shuttle is ${stopsAway} stop${stopsAway > 1 ? 's' : ''} away.\nPlease get ready to board.`,
   };
+}
+
+interface PendingNotification {
+  id: string;
+  userId: string;
+  providerUid: string;
+  preferredLanguage: 'ko' | 'en';
+  routeStopId: string;
+  routeCode: string;
+  stopsAway: 1 | 2;
+  titleKo: string;
+  bodyKo: string;
+  titleEn: string;
+  bodyEn: string;
+}
+
+function buildInsertPlaceholders(rowCount: number, columnCount: number): string {
+  return Array.from({ length: rowCount }, (_, rowIndex) => {
+    const offset = rowIndex * columnCount;
+    return `(${Array.from(
+      { length: columnCount },
+      (_, columnIndex) => `$${offset + columnIndex + 1}`,
+    ).join(', ')})`;
+  }).join(', ');
+}
+
+async function sendPushNotifications(
+  notifications: PendingNotification[],
+): Promise<void> {
+  const concurrency = 10;
+
+  for (let index = 0; index < notifications.length; index += concurrency) {
+    const batch = notifications.slice(index, index + concurrency);
+    const results = await Promise.allSettled(
+      batch.map((notification) =>
+        sendLinePushShuttleCarousel({
+          to: notification.providerUid,
+          language: notification.preferredLanguage,
+          routeCode: notification.routeCode,
+          stopsAway: notification.stopsAway,
+        }),
+      ),
+    );
+
+    results.forEach((result, batchIndex) => {
+      if (result.status === 'fulfilled') return;
+
+      const notification = batch[batchIndex];
+      console.error('[notifications] LINE push failed', {
+        userId: notification.userId,
+        routeStopId: notification.routeStopId,
+        message:
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason),
+      });
+    });
+  }
 }
 
 export async function notifyApproachingUsers(
@@ -49,12 +104,9 @@ export async function notifyApproachingUsers(
     `SELECT
        rs.sequence,
        rs.route_id,
-       r.route_code,
-       COALESCE(NULLIF(r.display_name, ''), NULLIF(r.name, ''), r.route_code) AS route_label,
-       COALESCE(NULLIF(p.display_name, ''), NULLIF(p.name, ''), CONCAT('Stop ', rs.sequence::text)) AS arrived_stop_name
+       r.route_code
      FROM route_stops rs
      JOIN routes r ON r.id = rs.route_id
-     JOIN places p ON p.id = rs.place_id
      WHERE rs.id = $1
      LIMIT 1`,
     [arrivedRouteStopId],
@@ -64,92 +116,106 @@ export async function notifyApproachingUsers(
   const nextStops = await query<NextStopRow>(
     `SELECT
        rs.id,
-       rs.sequence,
-       COALESCE(NULLIF(p.display_name, ''), NULLIF(p.name, ''), CONCAT('Stop ', rs.sequence::text)) AS stop_name
+       rs.sequence
      FROM route_stops rs
-     JOIN places p ON p.id = rs.place_id
      WHERE rs.route_id = $1
        AND rs.active = true
        AND rs.sequence IN ($2, $3)
      ORDER BY rs.sequence ASC`,
     [arrived.route_id, arrived.sequence + 1, arrived.sequence + 2],
   );
-  if (nextStops.length === 0) return;
-
-  const stopBySequence = new Map(nextStops.map((stop) => [stop.sequence, stop]));
-
-  for (const nextStop of nextStops) {
-    const stopsAway = (nextStop.sequence - arrived.sequence) as 1 | 2;
-    if (stopsAway !== 1 && stopsAway !== 2) continue;
-    const intermediateStopName =
-      stopsAway === 2
-        ? stopBySequence.get(arrived.sequence + 1)?.stop_name ?? null
-        : null;
-
-    const users = await query<TargetUserRow>(
-      `SELECT
-         ur.user_id,
-         ui.provider_uid,
-         COALESCE(u.preferred_language, 'ko')::text AS preferred_language
-       FROM user_registrations ur
-       JOIN users u ON u.id = ur.user_id
-       JOIN user_identities ui
-         ON ui.user_id = ur.user_id
-        AND ui.provider = 'line'
-       WHERE ur.route_stop_id = $1
-         AND ur.status = 'active'
-         AND u.push_notifications_enabled = true`,
-      [nextStop.id],
+  const targetStops = nextStops
+    .map((stop) => ({
+      id: stop.id,
+      stopsAway: (stop.sequence - arrived.sequence) as 1 | 2,
+    }))
+    .filter(
+      (stop): stop is { id: string; stopsAway: 1 | 2 } =>
+        stop.stopsAway === 1 || stop.stopsAway === 2,
     );
+  if (targetStops.length === 0) return;
 
-    const template = buildApproachingTemplate(stopsAway, arrived.route_label);
+  const placeholders = targetStops.map((_, index) => `$${index + 1}`).join(', ');
+  const users = await query<TargetUserRow>(
+    `SELECT
+       ur.user_id,
+       ur.route_stop_id,
+       ui.provider_uid,
+       COALESCE(u.preferred_language, 'ko')::text AS preferred_language
+     FROM user_registrations ur
+     JOIN users u ON u.id = ur.user_id
+     JOIN user_identities ui
+       ON ui.user_id = ur.user_id
+      AND ui.provider = 'line'
+     WHERE ur.route_stop_id IN (${placeholders})
+       AND ur.status = 'active'
+       AND u.push_notifications_enabled = true`,
+    targetStops.map((stop) => stop.id),
+  );
+  if (users.length === 0) return;
 
-    for (const user of users) {
-      const inserted = await query<{ id: string }>(
-        `INSERT INTO notifications
-           (id, user_id, run_id, trigger_stop_id, stops_away,
-            title_ko, body_ko, title_en, body_en,
-            route_code, user_route_stop_id)
-         VALUES
-           ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-         ON CONFLICT (user_id, run_id, trigger_stop_id) DO NOTHING
-         RETURNING id`,
-        [
-          randomUUID(),
-          user.user_id,
-          runId,
-          arrivedRouteStopId,
-          stopsAway,
-          template.titleKo,
-          template.bodyKo,
-          template.titleEn,
-          template.bodyEn,
-          arrived.route_code,
-          nextStop.id,
-        ],
-      ).then((rows) => rows[0] ?? null);
+  const stopsAwayByRouteStopId = new Map(
+    targetStops.map((stop) => [stop.id, stop.stopsAway]),
+  );
+  const pendingNotifications = users.flatMap<PendingNotification>((user) => {
+    const stopsAway = stopsAwayByRouteStopId.get(user.route_stop_id);
+    if (!stopsAway) return [];
 
-      if (!inserted) continue;
-
-      const lang = user.preferred_language === 'en' ? 'en' : 'ko';
-      sendLinePushShuttleCarousel({
-        to: user.provider_uid,
-        language: lang,
-        routeLabel: arrived.route_label,
-        arrivedStopName: arrived.arrived_stop_name,
-        targetStopName: nextStop.stop_name,
-        intermediateStopName,
+    const template = buildApproachingTemplate(stopsAway);
+    return [
+      {
+        id: randomUUID(),
+        userId: user.user_id,
+        providerUid: user.provider_uid,
+        preferredLanguage: user.preferred_language === 'en' ? 'en' : 'ko',
+        routeStopId: user.route_stop_id,
+        routeCode: arrived.route_code,
         stopsAway,
-      }).catch(
-        (caught) => {
-          console.error('[notifications] LINE push failed', {
-            runId,
-            arrivedRouteStopId,
-            userId: user.user_id,
-            message: caught instanceof Error ? caught.message : String(caught),
-          });
-        },
-      );
-    }
-  }
+        titleKo: template.titleKo,
+        bodyKo: template.bodyKo,
+        titleEn: template.titleEn,
+        bodyEn: template.bodyEn,
+      },
+    ];
+  });
+  if (pendingNotifications.length === 0) return;
+
+  const insertColumnCount = 11;
+  const insertValues = pendingNotifications.flatMap((notification) => [
+    notification.id,
+    notification.userId,
+    runId,
+    arrivedRouteStopId,
+    notification.stopsAway,
+    notification.titleKo,
+    notification.bodyKo,
+    notification.titleEn,
+    notification.bodyEn,
+    notification.routeCode,
+    notification.routeStopId,
+  ]);
+
+  const insertedRows = await query<{
+    user_id: string;
+    user_route_stop_id: string;
+  }>(
+    `INSERT INTO notifications
+       (id, user_id, run_id, trigger_stop_id, stops_away,
+        title_ko, body_ko, title_en, body_en,
+        route_code, user_route_stop_id)
+     VALUES ${buildInsertPlaceholders(pendingNotifications.length, insertColumnCount)}
+     ON CONFLICT (user_id, run_id, trigger_stop_id) DO NOTHING
+     RETURNING user_id, user_route_stop_id`,
+    insertValues,
+  );
+  if (insertedRows.length === 0) return;
+
+  const insertedKeys = new Set(
+    insertedRows.map((row) => `${row.user_id}:${row.user_route_stop_id}`),
+  );
+  const pushTargets = pendingNotifications.filter((notification) =>
+    insertedKeys.has(`${notification.userId}:${notification.routeStopId}`),
+  );
+
+  await sendPushNotifications(pushTargets);
 }

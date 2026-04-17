@@ -32,7 +32,6 @@ import { fetchApi, mutateApi } from '../../lib/queries';
 import type {
   CheckinRequest,
   CheckinResponse,
-  MyCheckinResponse,
   RegisteredUserResponse,
   RouteStopWithPlace,
   RouteWithStops,
@@ -201,31 +200,10 @@ export default function ScanPage() {
     isLoading: runInfoLoading,
   } = useQuery<RunInfoResponse>({
     queryKey: ['checkin', 'run', routeCode],
-    queryFn: async () => {
-      const data = await fetchApi<RunInfoResponse>(
+    queryFn: () =>
+      fetchApi<RunInfoResponse>(
         `/api/v1/checkin/run?routeCode=${encodeURIComponent(routeCode!)}`,
-      );
-      // Check server for an existing check-in for this run
-      try {
-        const me = await fetchApi<MyCheckinResponse>(
-          `/api/v1/checkin/me?run_id=${encodeURIComponent(data.run.id)}`,
-        );
-        if (me) {
-          setCheckinResult({
-            success: true,
-            checkin_id: me.checkin_id,
-            stop_state: me.stop_state,
-          });
-          setPhase('success');
-        } else {
-          setPhase('confirm');
-        }
-      } catch {
-        // no existing check-in — fall through to confirm
-        setPhase('confirm');
-      }
-      return data;
-    },
+      ),
     enabled: !!routeCode,
     retry: false,
   });
@@ -239,6 +217,29 @@ export default function ScanPage() {
   useEffect(() => {
     if (runInfoQueryError) setPhase('error');
   }, [runInfoQueryError]);
+
+  useEffect(() => {
+    if (!routeCode) return;
+    setPhase('idle');
+    setCheckinResult(null);
+  }, [routeCode]);
+
+  useEffect(() => {
+    if (!runInfo || runInfoLoading || runInfoQueryError) return;
+
+    if (runInfo.my_checkin) {
+      setCheckinResult({
+        success: true,
+        checkin_id: runInfo.my_checkin.checkin_id,
+        stop_state: runInfo.my_checkin.stop_state,
+      });
+      setPhase('success');
+      return;
+    }
+
+    setCheckinResult(null);
+    setPhase((prev) => (prev === 'submitting' ? prev : 'confirm'));
+  }, [runInfo, runInfoLoading, runInfoQueryError]);
 
   // ── GPS location for automatic stop selection ───────────────────────────
   // Note: Requires mobile.geolocation scope in developer portal

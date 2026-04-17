@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { handleAdminRuns } from '../../../_handlers';
+import { handleAdminRuns } from '../../../_runs';
 
 export const dynamic = 'force-dynamic';
 

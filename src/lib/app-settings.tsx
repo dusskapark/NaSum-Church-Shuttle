@@ -33,6 +33,40 @@ function setClientCookie(name: string, value: string) {
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; samesite=lax`;
 }
 
+function getCookieValue(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const prefix = `${name}=`;
+  const entry = document.cookie
+    .split(';')
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(prefix));
+  if (!entry) return null;
+  return decodeURIComponent(entry.slice(prefix.length));
+}
+
+function getInitialClientLanguage(initialLang: AppLanguage): AppLanguage {
+  if (typeof window === 'undefined') return initialLang;
+
+  const stored = window.localStorage.getItem(LANGUAGE_KEY);
+  if (stored === 'en' || stored === 'ko') {
+    return stored;
+  }
+
+  const cookieLang = getCookieValue(APP_LANG_COOKIE);
+  return normalizeLangCookie(cookieLang ?? initialLang);
+}
+
+function getInitialClientTheme(initialTheme: AppTheme): AppTheme {
+  if (typeof window === 'undefined') return initialTheme;
+
+  const storedDark = window.localStorage.getItem(DARK_MODE_KEY);
+  if (storedDark === 'true') return 'dark';
+  if (storedDark === 'false') return 'light';
+
+  const cookieTheme = getCookieValue(APP_THEME_COOKIE);
+  return normalizeThemeCookie(cookieTheme ?? initialTheme);
+}
+
 const AppSettingsContext = createContext<AppSettingsContextValue | null>(null);
 
 interface AppSettingsProviderProps {
@@ -47,13 +81,17 @@ export function AppSettingsProvider({
   initialTheme,
 }: AppSettingsProviderProps) {
   const [lang, setLangState] = useState<AppLanguage>(() => {
-    i18n.locale = initialLang;
-    return initialLang;
+    const nextLang = getInitialClientLanguage(initialLang);
+    i18n.locale = nextLang;
+    return nextLang;
   });
-  const [isDark, setIsDarkState] = useState<boolean>(initialTheme === 'dark');
+  const [isDark, setIsDarkState] = useState<boolean>(
+    getInitialClientTheme(initialTheme) === 'dark',
+  );
 
   useEffect(() => {
     i18n.locale = lang;
+    document.documentElement.lang = lang;
   }, [lang]);
 
   useEffect(() => {
@@ -67,16 +105,8 @@ export function AppSettingsProvider({
 
   // Read persisted preferences only on client to avoid hydration mismatch.
   useEffect(() => {
-    const storedDark = window.localStorage.getItem(DARK_MODE_KEY);
-    if (storedDark === 'true' || storedDark === 'false') {
-      setIsDarkState(storedDark === 'true');
-    }
-
     const stored = window.localStorage.getItem(LANGUAGE_KEY);
-    if (stored === 'en' || stored === 'ko') {
-      setLangState(stored);
-      return;
-    }
+    if (stored === 'en' || stored === 'ko') return;
 
     getLiff()
       .then((liff) => {

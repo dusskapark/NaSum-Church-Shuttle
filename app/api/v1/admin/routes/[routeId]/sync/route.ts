@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { handleAdminRoutes } from '../../../_handlers';
+import { handleAdminRoutes } from '../../../_routes';
 
 export const dynamic = 'force-dynamic';
 

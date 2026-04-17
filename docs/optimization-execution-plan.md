@@ -26,7 +26,7 @@ Reviewed on: 2026-04-18
 - Completed: legacy `useRoutes` 훅 제거
 - Completed: `next.config` 단일화
 - Completed: ESLint flat config에 Next core-web-vitals 연결
-- In progress: 알림 fan-out 추가 최적화와 App Router 구조 정상화
+- Remaining backlog is now mostly cleanup and follow-up hardening work
 
 ## Goal
 
@@ -134,8 +134,11 @@ Reviewed on: 2026-04-18
 
 관련 코드:
 
-- [app/api/v1/routes/route.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/app/api/v1/routes/route.ts:1)
-- [src/hooks/useRoutes.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/hooks/useRoutes.ts:1)
+- [app/api/v1/routes/summary/route.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/app/api/v1/routes/summary/route.ts:1)
+- [app/api/v1/routes/[routeCode]/route.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/app/api/v1/routes/%5BrouteCode%5D/route.ts:1)
+- [src/hooks/useRouteSummaries.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/hooks/useRouteSummaries.ts:1)
+- [src/hooks/useRouteDetail.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/hooks/useRouteDetail.ts:1)
+- [src/hooks/usePlaces.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/hooks/usePlaces.ts:1)
 - [src/routes/home/index.tsx](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/routes/home/index.tsx:1)
 - [src/routes/search/index.tsx](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/routes/search/index.tsx:1)
 - [src/routes/stops/index.tsx](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/routes/stops/index.tsx:1)
@@ -163,7 +166,6 @@ Reviewed on: 2026-04-18
 
 - [src/routes/scan/index.tsx](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/routes/scan/index.tsx:128)
 - [app/api/v1/checkin/run/route.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/app/api/v1/checkin/run/route.ts:1)
-- [app/api/v1/checkin/me/route.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/app/api/v1/checkin/me/route.ts:1)
 
 ### 완료 기준
 
@@ -179,7 +181,7 @@ Reviewed on: 2026-04-18
 
 ### 실제 작업
 
-1. `app/layout.tsx`의 `force-dynamic` 제거 가능 범위 점검
+1. 정적으로 복구된 라우트 외 남은 동적 범위를 추가로 줄일 수 있는지 점검
 2. 쿠키/테마/언어 때문에 동적인 부분을 nested layout 또는 route group으로 분리
 3. 각 `app/*/page.tsx` wrapper를 server-first 구조로 전환
 4. `ClientProviders` 역할을 최소화
@@ -192,7 +194,7 @@ Reviewed on: 2026-04-18
 
 ### 완료 기준
 
-- build 결과에서 정적 최적화 가능한 페이지가 생긴다.
+- build 결과에서 정적 최적화 가능한 페이지가 유지되거나 늘어난다.
 - shared first-load JS가 감소한다.
 - client-only wrapper 수가 줄어든다.
 
@@ -213,7 +215,7 @@ Reviewed on: 2026-04-18
 
 - [src/lib/queryClient.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/lib/queryClient.ts:1)
 - [src/components/Layout.tsx](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/components/Layout.tsx:68)
-- [src/hooks/useRoutes.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/hooks/useRoutes.ts:13)
+- [src/hooks/useRouteSummaries.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/hooks/useRouteSummaries.ts:1)
 - [src/hooks/useRunStatus.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/src/hooks/useRunStatus.ts:1)
 
 ### 완료 기준
@@ -229,18 +231,20 @@ Reviewed on: 2026-04-18
 
 ### 실제 작업
 
-1. `app/api/v1/admin/_handlers.ts`를 도메인별로 분리
+1. admin API를 도메인별 전용 handler로 분리
 2. 실제 DB schema와 Prisma schema drift 정리
-3. `next.config.ts` / `next.config.js` 통합
+3. `next.config.ts` 기준으로 설정 통합
 4. `eslint.config.mjs`에 Next 규칙 연결
 5. verbose log와 dev-only 잔여 코드 정리
 
 관련 코드:
 
-- [app/api/v1/admin/_handlers.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/app/api/v1/admin/_handlers.ts:1)
+- [app/api/v1/admin/_runs.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/app/api/v1/admin/_runs.ts:1)
+- [app/api/v1/admin/_places.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/app/api/v1/admin/_places.ts:1)
+- [app/api/v1/admin/_routes.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/app/api/v1/admin/_routes.ts:1)
+- [app/api/v1/admin/_schedules.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/app/api/v1/admin/_schedules.ts:1)
 - [prisma/schema.prisma](/Volumes/Backup/Github/NaSum-Church-Shuttle/prisma/schema.prisma:1)
 - [next.config.ts](/Volumes/Backup/Github/NaSum-Church-Shuttle/next.config.ts:1)
-- [next.config.js](/Volumes/Backup/Github/NaSum-Church-Shuttle/next.config.js:1)
 - [eslint.config.mjs](/Volumes/Backup/Github/NaSum-Church-Shuttle/eslint.config.mjs:1)
 
 ### 완료 기준

@@ -23,16 +23,15 @@ Implementation progress note:
 
 ## Summary
 
-현재 앱은 기능 완성도는 꽤 올라와 있지만, 구조적으로는 "App Router 위에 큰 클라이언트 SPA를 얹은 형태"에 가깝습니다. 그 결과 Next.js App Router의 장점인 서버 컴포넌트, 정적 최적화, 라우트 단위 캐싱을 거의 활용하지 못하고 있습니다.
+현재 브랜치는 초기 최적화 리팩터링 이후의 상태를 기준으로 보면, App Router의 정적 최적화와 데이터 분리가 상당 부분 복구된 상태입니다. 다만 공통 번들 크기와 일부 admin/detail 경로의 동적 렌더링, 알림/운영 노이즈 같은 후속 정리 항목은 여전히 남아 있습니다.
 
 이번 리뷰에서 확인한 핵심 신호는 아래와 같습니다.
 
-- `npm run build` 기준 모든 화면이 동적 렌더링(`ƒ`) 경로로 배포됨
+- `npm run build` 기준 주요 top-level 화면이 정적 렌더링(`○`)으로 복구됨
 - shared first-load JS가 `102 kB`
-- 주요 페이지 first-load JS가 `269~288 kB`
-- `/admin/routes`가 `288 kB`로 가장 무거운 축에 속함
-- `npm run build`는 통과하지만 ESLint에서 Next 플러그인 미감지 경고가 발생함
-- `npm run typecheck`는 통과함
+- 주요 페이지 first-load JS가 여전히 `269~289 kB` 수준
+- `/admin/routes`가 `289 kB`로 여전히 가장 무거운 축에 속함
+- `npm run build`, `npm run typecheck`, `npx prisma validate`가 모두 통과함
 
 지금 단계에서 가장 효과가 큰 최적화는 "미세 조정"이 아니라 다음 3가지입니다.
 
@@ -44,13 +43,13 @@ Implementation progress note:
 
 ### 1. App Router를 쓰고 있지만 실제로는 클라이언트 SPA에 가깝다
 
-- `app/layout.tsx`에서 `export const dynamic = 'force-dynamic'`를 루트에 선언하고 있음
-- 각 페이지가 대부분 `'use client'` wrapper이고 실제 화면 로직은 `src/routes/*`에 있음
-- 즉, 페이지 단위 서버 컴포넌트/정적 캐싱 대신 클라이언트 hydration 이후 React Query가 데이터를 가져오는 구조임
+- 초기에 `app/layout.tsx` 루트가 `force-dynamic` 상태였고 각 페이지가 대부분 client wrapper 위주로 구성돼 있었음
+- 현재는 top-level 페이지 다수가 정적으로 복구됐지만, 실제 화면 로직이 여전히 `src/routes/*` 중심이라 hydration 비용이 큰 편임
+- 즉, App Router 이점을 일부 회복했지만 완전히 server-first 구조로 바뀐 것은 아님
 
 근거:
 
-- `app/layout.tsx:20`
+- `app/layout.tsx:1`
 - `app/page.tsx:1`
 - `app/admin/routes/page.tsx:1`
 
@@ -67,8 +66,10 @@ Implementation progress note:
 
 근거:
 
-- `app/api/v1/routes/route.ts:81-152`
-- `src/hooks/useRoutes.ts:13-22`
+- `app/api/v1/routes/route.ts:1-20`
+- `src/hooks/useRouteSummaries.ts:1-35`
+- `src/hooks/useRouteDetail.ts:1-36`
+- `src/hooks/usePlaces.ts:1-76`
 
 ### 3. 서버 쪽 일부 흐름은 DB/외부 호출 fan-out이 크다
 
@@ -89,21 +90,21 @@ Implementation progress note:
 
 문제:
 
-- `app/layout.tsx` 루트에서 전체 앱을 강제로 동적으로 만듦
-- 쿠키를 읽는 레이아웃 + 전역 클라이언트 provider + 클라이언트 페이지 wrapper 조합으로, 거의 모든 페이지가 서버 컴포넌트 이점을 잃음
+- 루트 `force-dynamic`은 제거됐지만, client wrapper와 공통 provider 범위가 여전히 넓음
+- detail 성격의 admin 경로와 일부 동적 라우트는 아직 서버 컴포넌트 이점을 더 끌어낼 여지가 있음
 
 근거:
 
-- `app/layout.tsx:20-37`
+- `app/layout.tsx:1-27`
 - `app/page.tsx:1-10`
 - `app/admin/routes/page.tsx:1-6`
 
 개선 방향:
 
-1. 루트 레이아웃에서 `force-dynamic` 제거 가능 여부부터 검증
-2. 인증/언어/테마 때문에 동적이어야 하는 구간만 route group 또는 nested layout으로 분리
-3. `app/*/page.tsx` wrapper를 점진적으로 server page + client leaf component 구조로 바꾸기
-4. React Query를 "모든 화면의 1차 데이터 수집기"가 아니라 "클라이언트 인터랙션/실시간 갱신" 용도로 축소
+1. 남은 동적 admin/detail 경로에 route group 또는 nested layout 적용 여지 검토
+2. `app/*/page.tsx` wrapper를 가능한 범위에서 더 얇게 유지
+3. `ClientProviders` 범위를 추가로 줄일 수 있는지 검토
+4. React Query를 "실시간/상호작용" 중심으로 더 좁히기
 
 예상 효과:
 
@@ -125,8 +126,10 @@ Implementation progress note:
 
 근거:
 
-- `app/api/v1/routes/route.ts:82-151`
-- `src/hooks/useRoutes.ts:14-22`
+- `app/api/v1/routes/route.ts:1-20`
+- `src/hooks/useRouteSummaries.ts:1-35`
+- `src/hooks/useRouteDetail.ts:1-36`
+- `src/hooks/usePlaces.ts:1-76`
 - `src/routes/home/index.tsx`
 - `src/routes/search/index.tsx`
 - `src/routes/stops/index.tsx`
@@ -195,9 +198,9 @@ Implementation progress note:
 
 문제:
 
-- `useQuery`의 `queryFn` 안에서 추가 API 호출(`/api/v1/checkin/me`)을 수행
-- `queryFn` 내부에서 `setCheckinResult`, `setPhase` 같은 React state side effect를 발생시킴
-- React Query 재시도/재요청/캐시 정책과 UI 상태 전이가 강하게 결합됨
+- 이전에는 `useQuery`의 `queryFn` 안에서 추가 API 호출(`/api/v1/checkin/me`)을 수행했고
+- `queryFn` 내부에서 `setCheckinResult`, `setPhase` 같은 React state side effect를 발생시켰으며
+- React Query 재시도/재요청/캐시 정책과 UI 상태 전이가 강하게 결합돼 있었음
 
 근거:
 
@@ -222,16 +225,15 @@ Implementation progress note:
 
 문제:
 
-- 전역 query 기본값이 `refetchOnWindowFocus: true`
-- `Layout`가 탭 화면마다 notification query를 보유
-- `useRoutes`는 5분 주기 polling
-- 일부 화면은 실제로 실시간성이 필요하지 않은데도 재검증이 자주 일어날 여지가 있음
+- 전역 query 기본값은 보수화됐지만, 일부 query는 여전히 더 정교한 정책 분리가 가능함
+- `Layout`는 unread-count 경량 endpoint로 줄었지만 remaining query 정책을 더 미세하게 다듬을 여지가 있음
+- 실시간성이 필요한 경로와 아닌 경로를 더 명확히 나눌 수 있음
 
 근거:
 
 - `src/lib/queryClient.ts:3-10`
-- `src/components/Layout.tsx:78-82`
-- `src/hooks/useRoutes.ts:13-22`
+- `src/components/Layout.tsx:74-96`
+- `src/hooks/useRouteSummaries.ts:1-35`
 
 개선 방향:
 

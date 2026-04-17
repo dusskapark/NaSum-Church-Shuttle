@@ -4,29 +4,32 @@ function sanitizeLineError(details: string): string {
   return details.replace(/"access_token"\s*:\s*"[^"]+"/gi, '"access_token":"***"');
 }
 
-interface ShuttleLiffUrls {
-  scanUrl: string;
-}
-
-function buildShuttleLiffUrls(): ShuttleLiffUrls | null {
+function buildShuttleLiffUrl(
+  pathname: '/' | '/scan',
+  searchParams?: Record<string, string>,
+): string | null {
   const liffId = env.NEXT_PUBLIC_LIFF_ID?.trim();
   if (liffId) {
-    return {
-      scanUrl: `https://liff.line.me/${liffId}/scan`,
-    };
+    const suffix = pathname === '/' ? '' : pathname;
+    const url = new URL(`https://liff.line.me/${liffId}${suffix}`);
+    Object.entries(searchParams ?? {}).forEach(([key, value]) =>
+      url.searchParams.set(key, value),
+    );
+    return url.toString();
   }
 
   const appUrl = env.NEXT_PUBLIC_APP_URL?.trim();
   if (appUrl) {
     const normalized = appUrl.replace(/\/$/, '');
-    return {
-      scanUrl: `${normalized}/scan`,
-    };
+    const url = new URL(`${normalized}${pathname}`);
+    Object.entries(searchParams ?? {}).forEach(([key, value]) =>
+      url.searchParams.set(key, value),
+    );
+    return url.toString();
   }
 
   return null;
 }
-
 
 function truncateForLine(value: string, maxLength: number): string {
   if (value.length <= maxLength) {
@@ -39,16 +42,23 @@ function truncateForLine(value: string, maxLength: number): string {
 export async function sendLinePushShuttleCarousel(params: {
   to: string;
   language: 'ko' | 'en';
-  title: string;
-  body: string;
+  routeLabel: string;
+  arrivedStopName: string;
+  targetStopName: string;
+  intermediateStopName?: string | null;
+  stopsAway: 1 | 2;
+  scanRouteCode: string;
 }): Promise<void> {
   const accessToken = env.MESSAGING_API_CHANNEL_ACCESS_TOKEN;
   if (!accessToken) {
     throw new Error('MESSAGING_API_CHANNEL_ACCESS_TOKEN is not configured');
   }
 
-  const liffUrls = buildShuttleLiffUrls();
-  if (!liffUrls) {
+  const scanUrl = buildShuttleLiffUrl('/scan', {
+    routeCode: params.scanRouteCode,
+  });
+  const homeUrl = buildShuttleLiffUrl('/');
+  if (!scanUrl || !homeUrl) {
     throw new Error('NEXT_PUBLIC_LIFF_ID or NEXT_PUBLIC_APP_URL is required');
   }
 
@@ -57,12 +67,187 @@ export async function sendLinePushShuttleCarousel(params: {
       ? {
           altPrefix: 'Shuttle notice',
           heroLabel: 'Arrival Alert',
-          buttonLabel: 'Board Now',
+          currentLabel: 'Current',
+          nextLabel: 'Next',
+          targetLabel: 'My Stop',
+          primaryButtonLabel: 'Scan to Board',
+          secondaryButtonLabel: 'Open Mini App',
+          oneStopBadge: '1 stop away',
+          twoStopsBadge: '2 stops away',
+          oneStopLead: `Shuttle has arrived at ${params.arrivedStopName}.`,
+          oneStopSummary: `Next stop is ${params.targetStopName}.`,
+          oneStopHint: 'It is almost here. Get ready to board.',
+          twoStopLead: `Shuttle has arrived at ${params.arrivedStopName}.`,
+          twoStopSummary: `${params.targetStopName} is 2 stops away.`,
+          twoStopHint: 'One more stop after the next stop.',
+          altText:
+            params.stopsAway === 1
+              ? `Shuttle reached ${params.arrivedStopName}. Next stop is ${params.targetStopName}.`
+              : `Shuttle reached ${params.arrivedStopName}. ${params.targetStopName} is 2 stops away.`,
         }
       : {
           altPrefix: '셔틀 알림',
           heroLabel: '도착 알림',
-          buttonLabel: '탑승하기',
+          currentLabel: '현재',
+          nextLabel: '다음',
+          targetLabel: '내 정류장',
+          primaryButtonLabel: '탑승 스캔',
+          secondaryButtonLabel: '경로보기',
+          oneStopBadge: '1정거장 전',
+          twoStopsBadge: '2정거장 전',
+          oneStopLead: `셔틀이 ${params.arrivedStopName}에 도착했습니다.`,
+          oneStopSummary: `다음 정류장은 ${params.targetStopName}입니다.`,
+          oneStopHint: '곧 도착합니다. 탑승을 준비하세요.',
+          twoStopLead: `셔틀이 ${params.arrivedStopName}에 도착했습니다.`,
+          twoStopSummary: `${params.targetStopName}까지 2정거장 남았습니다.`,
+          twoStopHint: '다음 정류장을 지나면 곧 도착합니다.',
+          altText:
+            params.stopsAway === 1
+              ? `셔틀이 ${params.arrivedStopName}에 도착했습니다. 다음 정류장은 ${params.targetStopName}입니다.`
+              : `셔틀이 ${params.arrivedStopName}에 도착했습니다. ${params.targetStopName}까지 2정거장 남았습니다.`,
+        };
+
+  const palette =
+    params.stopsAway === 1
+      ? {
+          header: '#D95D0F',
+          chip: '#FFF1E8',
+          chipText: '#D95D0F',
+          active: '#D95D0F',
+          target: '#FF8A00',
+          muted: '#D9DEE8',
+          targetBackground: '#FFF7ED',
+        }
+      : {
+          header: '#0367D3',
+          chip: '#EAF2FF',
+          chipText: '#0367D3',
+          active: '#3B82F6',
+          target: '#94A3B8',
+          muted: '#D9DEE8',
+          targetBackground: '#F8FAFC',
+        };
+
+  function buildNode(label: string, stopName: string, options: {
+    fillColor?: string;
+    borderColor: string;
+    textColor?: string;
+    labelColor?: string;
+  }) {
+    return {
+      type: 'box',
+      layout: 'vertical',
+      spacing: 'sm',
+      alignItems: 'center',
+      flex: 1,
+      contents: [
+        {
+          type: 'text',
+          text: label,
+          size: 'xs',
+          weight: 'bold',
+          color: options.labelColor ?? '#6B7280',
+          align: 'center',
+        },
+        {
+          type: 'box',
+          layout: 'vertical',
+          width: '14px',
+          height: '14px',
+          cornerRadius: '999px',
+          backgroundColor: options.fillColor ?? '#FFFFFF',
+          borderWidth: '2px',
+          borderColor: options.borderColor,
+          contents: [],
+        },
+        {
+          type: 'text',
+          text: stopName,
+          size: 'xs',
+          weight: 'bold',
+          wrap: true,
+          align: 'center',
+          color: options.textColor ?? '#111827',
+          maxLines: 2,
+        },
+      ],
+    };
+  }
+
+  function buildConnector(color: string) {
+    return {
+      type: 'box',
+      layout: 'vertical',
+      flex: 1,
+      margin: 'lg',
+      contents: [
+        {
+          type: 'box',
+          layout: 'vertical',
+          height: '4px',
+          cornerRadius: '999px',
+          backgroundColor: color,
+          contents: [],
+        },
+      ],
+    };
+  }
+
+  const routeStrip =
+    params.stopsAway === 1
+      ? {
+          type: 'box',
+          layout: 'horizontal',
+          alignItems: 'center',
+          margin: 'lg',
+          spacing: 'sm',
+          contents: [
+            buildNode(i18n.currentLabel, params.arrivedStopName, {
+              fillColor: palette.active,
+              borderColor: palette.active,
+              textColor: '#111827',
+              labelColor: palette.active,
+            }),
+            buildConnector(palette.active),
+            buildNode(i18n.targetLabel, params.targetStopName, {
+              fillColor: palette.target,
+              borderColor: palette.target,
+              textColor: palette.target,
+              labelColor: palette.target,
+            }),
+          ],
+        }
+      : {
+          type: 'box',
+          layout: 'horizontal',
+          alignItems: 'center',
+          margin: 'lg',
+          spacing: 'sm',
+          contents: [
+            buildNode(i18n.currentLabel, params.arrivedStopName, {
+              fillColor: palette.active,
+              borderColor: palette.active,
+              textColor: '#111827',
+              labelColor: palette.active,
+            }),
+            buildConnector(palette.active),
+            buildNode(
+              i18n.nextLabel,
+              params.intermediateStopName ?? i18n.nextLabel,
+              {
+                borderColor: palette.active,
+                textColor: '#111827',
+                labelColor: palette.active,
+              },
+            ),
+            buildConnector(palette.muted),
+            buildNode(i18n.targetLabel, params.targetStopName, {
+              borderColor: palette.target,
+              fillColor: palette.targetBackground,
+              textColor: '#475569',
+              labelColor: '#64748B',
+            }),
+          ],
         };
 
   const response = await fetch('https://api.line.me/v2/bot/message/push', {
@@ -76,71 +261,179 @@ export async function sendLinePushShuttleCarousel(params: {
       messages: [
         {
           type: 'flex',
-          altText: truncateForLine(`${i18n.altPrefix}: ${params.title} - ${params.body}`, 400),
+          altText: truncateForLine(`${i18n.altPrefix}: ${i18n.altText}`, 400),
           contents: {
-            type: 'carousel',
-            contents: [
-              {
-                type: 'bubble',
-                size: 'mega',
-                styles: {
-                  body: {
-                    backgroundColor: '#F5F8FF',
-                  },
-                  footer: {
-                    separator: true,
-                  },
+            type: 'bubble',
+            size: 'mega',
+            styles: {
+              body: {
+                backgroundColor: '#FFFFFF',
+              },
+              footer: {
+                separator: true,
+              },
+            },
+            header: {
+              type: 'box',
+              layout: 'vertical',
+              paddingAll: '20px',
+              paddingTop: '22px',
+              height: '154px',
+              spacing: 'md',
+              backgroundColor: palette.header,
+              contents: [
+                {
+                  type: 'text',
+                  text: i18n.heroLabel,
+                  size: 'sm',
+                  color: '#FFFFFFB3',
+                  weight: 'bold',
                 },
-                body: {
+                {
+                  type: 'text',
+                  text: params.routeLabel,
+                  size: 'xl',
+                  weight: 'bold',
+                  color: '#FFFFFF',
+                  wrap: true,
+                  maxLines: 2,
+                },
+                {
                   type: 'box',
-                  layout: 'vertical',
-                  spacing: 'md',
+                  layout: 'horizontal',
+                  spacing: 'sm',
+                  margin: 'md',
                   contents: [
                     {
                       type: 'box',
-                      layout: 'vertical',
-                      backgroundColor: '#2D5BFF',
-                      cornerRadius: '12px',
-                      paddingAll: '12px',
+                      layout: 'horizontal',
+                      flex: 0,
+                      cornerRadius: '999px',
+                      paddingTop: '4px',
+                      paddingBottom: '4px',
+                      paddingStart: '10px',
+                      paddingEnd: '10px',
+                      backgroundColor: '#FFFFFF',
                       contents: [
                         {
                           type: 'text',
-                          text: i18n.heroLabel,
-                          color: '#FFFFFF',
+                          text:
+                            params.stopsAway === 1
+                              ? i18n.oneStopBadge
+                              : i18n.twoStopsBadge,
+                          size: 'xs',
                           weight: 'bold',
-                          size: 'sm',
+                          color: palette.header,
                         },
                       ],
                     },
-                    {
-                      type: 'text',
-                      text: params.body,
-                      wrap: true,
-                      size: 'md',
-                      color: '#111827',
-                    },
                   ],
                 },
-                footer: {
+              ],
+            },
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'md',
+              paddingAll: '20px',
+              contents: [
+                {
+                  type: 'text',
+                  text:
+                    params.stopsAway === 1
+                      ? i18n.oneStopLead
+                      : i18n.twoStopLead,
+                  wrap: true,
+                  size: 'md',
+                  color: '#111827',
+                  weight: 'bold',
+                },
+                {
                   type: 'box',
                   layout: 'vertical',
+                  cornerRadius: '14px',
+                  backgroundColor: params.stopsAway === 1 ? '#FFF7ED' : '#F8FAFC',
+                  paddingAll: '14px',
                   spacing: 'sm',
                   contents: [
                     {
-                      type: 'button',
-                      style: 'primary',
-                      color: '#2D5BFF',
-                      action: {
-                        type: 'uri',
-                        label: i18n.buttonLabel,
-                        uri: liffUrls.scanUrl,
-                      },
+                      type: 'text',
+                      text:
+                        params.stopsAway === 1
+                          ? i18n.oneStopSummary
+                          : i18n.twoStopSummary,
+                      wrap: true,
+                      size: 'sm',
+                      color: '#374151',
+                    },
+                    routeStrip,
+                  ],
+                },
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  spacing: 'sm',
+                  cornerRadius: '12px',
+                  paddingAll: '14px',
+                  backgroundColor: palette.chip,
+                  contents: [
+                    {
+                      type: 'text',
+                      text: i18n.targetLabel,
+                      size: 'xs',
+                      weight: 'bold',
+                      color: palette.chipText,
+                    },
+                    {
+                      type: 'text',
+                      text: params.targetStopName,
+                      size: 'md',
+                      weight: 'bold',
+                      wrap: true,
+                      color: '#111827',
+                    },
+                    {
+                      type: 'text',
+                      text:
+                        params.stopsAway === 1
+                          ? i18n.oneStopHint
+                          : i18n.twoStopHint,
+                      size: 'sm',
+                      wrap: true,
+                      color: '#475569',
                     },
                   ],
-                  flex: 0,
                 },
-              },
-            ],
+              ],
+            },
+            footer: {
+              type: 'box',
+              layout: 'horizontal',
+              spacing: 'sm',
+              paddingAll: '16px',
+              contents: [
+                {
+                  type: 'button',
+                  style: 'primary',
+                  color: palette.header,
+                  action: {
+                    type: 'uri',
+                    label: i18n.primaryButtonLabel,
+                    uri: scanUrl,
+                  },
+                },
+                {
+                  type: 'button',
+                  style: 'secondary',
+                  action: {
+                    type: 'uri',
+                    label: i18n.secondaryButtonLabel,
+                    uri: homeUrl,
+                  },
+                },
+              ],
+              flex: 0,
+            },
           },
         },
       ],

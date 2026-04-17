@@ -7,11 +7,13 @@ interface ArrivedStopRow {
   route_id: string;
   route_code: string;
   route_label: string;
+  arrived_stop_name: string;
 }
 
 interface NextStopRow {
   id: string;
   sequence: number;
+  stop_name: string;
 }
 
 interface TargetUserRow {
@@ -48,9 +50,11 @@ export async function notifyApproachingUsers(
        rs.sequence,
        rs.route_id,
        r.route_code,
-       COALESCE(NULLIF(r.display_name, ''), NULLIF(r.name, ''), r.route_code) AS route_label
+       COALESCE(NULLIF(r.display_name, ''), NULLIF(r.name, ''), r.route_code) AS route_label,
+       COALESCE(NULLIF(p.display_name, ''), NULLIF(p.name, ''), CONCAT('Stop ', rs.sequence::text)) AS arrived_stop_name
      FROM route_stops rs
      JOIN routes r ON r.id = rs.route_id
+     JOIN places p ON p.id = rs.place_id
      WHERE rs.id = $1
      LIMIT 1`,
     [arrivedRouteStopId],
@@ -58,18 +62,29 @@ export async function notifyApproachingUsers(
   if (!arrived) return;
 
   const nextStops = await query<NextStopRow>(
-    `SELECT id, sequence
-     FROM route_stops
-     WHERE route_id = $1
-       AND active = true
-       AND sequence IN ($2, $3)`,
+    `SELECT
+       rs.id,
+       rs.sequence,
+       COALESCE(NULLIF(p.display_name, ''), NULLIF(p.name, ''), CONCAT('Stop ', rs.sequence::text)) AS stop_name
+     FROM route_stops rs
+     JOIN places p ON p.id = rs.place_id
+     WHERE rs.route_id = $1
+       AND rs.active = true
+       AND rs.sequence IN ($2, $3)
+     ORDER BY rs.sequence ASC`,
     [arrived.route_id, arrived.sequence + 1, arrived.sequence + 2],
   );
   if (nextStops.length === 0) return;
 
+  const stopBySequence = new Map(nextStops.map((stop) => [stop.sequence, stop]));
+
   for (const nextStop of nextStops) {
     const stopsAway = (nextStop.sequence - arrived.sequence) as 1 | 2;
     if (stopsAway !== 1 && stopsAway !== 2) continue;
+    const intermediateStopName =
+      stopsAway === 2
+        ? stopBySequence.get(arrived.sequence + 1)?.stop_name ?? null
+        : null;
 
     const users = await query<TargetUserRow>(
       `SELECT
@@ -120,8 +135,12 @@ export async function notifyApproachingUsers(
       sendLinePushShuttleCarousel({
         to: user.provider_uid,
         language: lang,
-        title: lang === 'ko' ? template.titleKo : template.titleEn,
-        body: lang === 'ko' ? template.bodyKo : template.bodyEn,
+        routeLabel: arrived.route_label,
+        arrivedStopName: arrived.arrived_stop_name,
+        targetStopName: nextStop.stop_name,
+        intermediateStopName,
+        stopsAway,
+        scanRouteCode: arrived.route_code,
       }).catch(
         (caught) => {
           console.error('[notifications] LINE push failed', {

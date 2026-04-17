@@ -9,18 +9,25 @@ function resolveConnectionString() {
   return connectionString;
 }
 
-const pool = new Pool({
-  connectionString: resolveConnectionString(),
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+let pool: Pool | null = null;
+
+function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: resolveConnectionString(),
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+  }
+  return pool;
+}
 
 export async function query<T = unknown>(
   sql: string,
   params?: unknown[],
 ): Promise<T[]> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     const result = await client.query(sql, params);
     return result.rows as T[];
@@ -40,7 +47,7 @@ export async function queryOne<T = unknown>(
 export async function withTransaction<T>(
   fn: (client: PoolClient) => Promise<T>,
 ): Promise<T> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     await client.query('BEGIN');
     const result = await fn(client);
@@ -54,4 +61,4 @@ export async function withTransaction<T>(
   }
 }
 
-export default pool;
+export default getPool;

@@ -10,7 +10,6 @@ import {
   type ScheduleStopSnapshotItem,
 } from '@/server/admin-route-sync';
 
-
 function generateScheduleName(existingNames: string[]): string {
   const base = new Date().toISOString().slice(0, 10);
   if (!existingNames.includes(base)) return base;
@@ -132,7 +131,7 @@ export async function handleAdminSchedules(
             place_notes: stop.place_notes,
             is_terminal: stop.is_terminal,
             stop_id: stop.stop_id,
-            change_type: 'unchanged',
+            change_type: 'unchanged' as const,
           }));
 
           await client.query(
@@ -594,8 +593,6 @@ export async function handleAdminSchedules(
       body.is_terminal !== undefined ||
       body.stop_id !== undefined;
 
-    // Persist route-scoped edits (pickup_time/notes/is_pickup_enabled) before
-    // shared metadata propagation so they are not lost.
     snapshot[stopIndex] = stop;
 
     if (sharedFieldTouched && targetGooglePlaceId) {
@@ -1096,7 +1093,6 @@ export async function handleAdminSchedules(
       await client.query('SET CONSTRAINTS ALL DEFERRED');
 
       for (const sr of scheduleRoutes) {
-        // Avoid transient unique(route_id, sequence) collisions while restoring stops.
         await client.query(
           `UPDATE route_stops
            SET sequence = -(ABS(sequence) + 100000)
@@ -1283,56 +1279,6 @@ export async function handleAdminSchedules(
       [scheduleId],
     );
     return json({ ...schedule, routes });
-  }
-
-  return error(405, 'Method not allowed');
-}
-
-async function handleAdminRegistrations(request: NextRequest, registrationId?: string) {
-  const actor = await requireActor(request, 'admin');
-  if (actor instanceof NextResponse) return actor;
-
-  if (request.method === 'GET') {
-    const status = request.nextUrl.searchParams.get('status') ?? 'active';
-    if (!['active', 'inactive', 'all'].includes(status)) {
-      return error(400, "status must be 'active', 'inactive', or 'all'");
-    }
-    const whereClause = status === 'all' ? '' : `WHERE ur.status = '${status}'`;
-    const rows = await query(
-      `SELECT
-         ur.id AS registration_id,
-         u.id AS user_id,
-         u.display_name,
-         u.picture_url,
-         r.route_code,
-         r.name AS route_name,
-         r.display_name AS route_display_name,
-         rs.id AS route_stop_id,
-         rs.sequence,
-         rs.pickup_time,
-         p.name AS place_name,
-         p.display_name AS place_display_name,
-         ur.status,
-         ur.registered_at,
-         ur.updated_at
-       FROM user_registrations ur
-       JOIN users u ON u.id = ur.user_id
-       JOIN routes r ON r.id = ur.route_id
-       JOIN route_stops rs ON rs.id = ur.route_stop_id
-       JOIN places p ON p.id = rs.place_id
-       ${whereClause}
-       ORDER BY ur.registered_at DESC NULLS LAST`,
-    );
-    return json(rows);
-  }
-
-  if (request.method === 'DELETE' && registrationId) {
-    const row = await queryOne<{ id: string }>(
-      `DELETE FROM user_registrations WHERE id = $1 RETURNING id`,
-      [registrationId],
-    );
-    if (!row) return error(404, 'Registration not found');
-    return json({ success: true, id: registrationId });
   }
 
   return error(405, 'Method not allowed');

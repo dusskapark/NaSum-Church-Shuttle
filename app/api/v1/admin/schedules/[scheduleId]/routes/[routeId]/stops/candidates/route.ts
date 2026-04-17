@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { handleAdminSchedules } from '../../../../../../_handlers';
+import { handleAdminSchedules } from '../../../../../../_schedules';
 
 export async function GET(
   request: NextRequest,

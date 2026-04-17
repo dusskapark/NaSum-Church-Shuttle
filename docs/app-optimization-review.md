@@ -14,6 +14,8 @@ Implementation progress note:
 - `admin/runs` handler 분리는 적용됨
 - `admin/places` handler 분리는 적용됨
 - `admin/routes` handler 분리는 적용됨
+- `admin/schedules` handler 분리는 적용됨
+- legacy `routes` endpoint wrapper 정리는 적용됨
 - `next.config` 중복 제거와 ESLint Next flat config 연결은 적용됨
 
 ## Summary

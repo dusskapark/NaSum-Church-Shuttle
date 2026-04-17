@@ -189,6 +189,32 @@ export async function fetchRouteDetailByCode(routeCode: string) {
   return mapRouteDetail(route, stops);
 }
 
+export async function fetchAllRouteDetails() {
+  const routeRows = await query<RouteRow>(
+    `SELECT id, route_code, name, display_name, line, service, revision,
+            google_maps_url, path_json, path_cache_status,
+            path_cache_updated_at, path_cache_expires_at, path_cache_error, active
+     FROM routes
+     WHERE active = true
+     ORDER BY line ASC, service ASC, revision ASC`,
+  );
+
+  if (routeRows.length === 0) return [];
+
+  const stopRows = await fetchRouteStops(routeRows.map((route) => route.id));
+  const stopsByRouteId = new Map<string, StopRow[]>();
+
+  stopRows.forEach((stop) => {
+    const list = stopsByRouteId.get(stop.route_id) ?? [];
+    list.push(stop);
+    stopsByRouteId.set(stop.route_id, list);
+  });
+
+  return routeRows.map((route) =>
+    mapRouteDetail(route, stopsByRouteId.get(route.id) ?? []),
+  );
+}
+
 export async function fetchPlaceSummaries() {
   const rows = await query<PlaceSummaryRow>(
     `SELECT DISTINCT ON (p.google_place_id)

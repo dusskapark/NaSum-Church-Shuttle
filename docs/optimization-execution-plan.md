@@ -17,6 +17,8 @@ Reviewed on: 2026-04-18
 - Completed: `admin/runs` handler를 `_handlers.ts`에서 분리
 - Completed: `admin/places` handler를 `_handlers.ts`에서 분리
 - Completed: `admin/routes` handler를 `_handlers.ts`에서 분리
+- Completed: `admin/schedules` handler를 `_handlers.ts`에서 분리
+- Completed: legacy `routes` endpoint를 공용 serializer wrapper로 정리
 - Completed: legacy `useRoutes` 훅 제거
 - Completed: `next.config` 단일화
 - Completed: ESLint flat config에 Next core-web-vitals 연결
@@ -291,14 +293,14 @@ Reviewed on: 2026-04-18
 - Task 15. `admin/runs` handler를 `_handlers.ts`에서 분리
 - Task 16. `admin/places` handler를 `_handlers.ts`에서 분리
 - Task 17. `admin/routes` handler를 `_handlers.ts`에서 분리
+- Task 18. `admin/schedules` handler를 `_handlers.ts`에서 분리
+- Task 19. legacy `routes` endpoint를 공용 serializer wrapper로 정리
 
 ### Next
 
-- Task 18. `/api/v1/routes` legacy endpoint를 더 작은 응답 또는 compatibility wrapper로 재정리
-- Task 19. `/api/v1/checkin/me` legacy endpoint 정리 여부 결정
-- Task 20. nested layout / route group으로 동적 범위 추가 축소
-- Task 21. `ClientProviders` 책임 축소
-- Task 22. admin `_handlers.ts`의 schedules 분리
+- Task 20. `/api/v1/checkin/me` legacy endpoint 정리 여부 결정
+- Task 21. nested layout / route group으로 동적 범위 추가 축소
+- Task 22. `ClientProviders` 책임 축소
 - Task 23. DB schema와 raw SQL drift 정리
 - Task 24. server logger 정리 및 verbose log 축소
 - Task 25. 미사용 의존성/전역 CSS 정리

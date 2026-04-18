@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "NEXT_IGNORE_INCORRECT_LOCKFILE=1 next lint",
     "typecheck": "rm -f tsconfig.tsbuildinfo && next typegen && tsc --noEmit",
     "test:admin-api-smoke": "node tests/e2e/admin-api-smoke.mjs",
     "test:admin-api-smoke:destructive": "node tests/e2e/admin-api-smoke.mjs --destructive",
@@ -42,7 +42,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "eruda": "^3.4.3",
-    "eslint": "^10.2.0",
+    "eslint": "^9.39.1",
     "eslint-config-next": "^16.2.3",
     "prisma": "^7.7.0",
     "typescript": "^5.8.3"

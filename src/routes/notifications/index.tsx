@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button, InfiniteScroll, List, Toast } from 'antd-mobile';
 import { BellOutline } from 'antd-mobile-icons';
 import { useNavigate } from '@/lib/router';
@@ -54,16 +54,12 @@ export default function NotificationsPage() {
   const hasServerNotifications = !!allNotifications && allNotifications.length > 0;
 
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
-  const [nowMs, setNowMs] = useState<number | null>(null);
+  const [nowMs] = useState(() => Date.now());
   const displayed = useMemo(
     () => allData.slice(0, pageSize),
     [allData, pageSize],
   );
   const hasMore = pageSize < allData.length;
-
-  useEffect(() => {
-    setNowMs(Date.now());
-  }, []);
 
   const loadMore = useCallback(async () => {
     await new Promise<void>((resolve) => setTimeout(resolve, 400));
@@ -268,7 +264,7 @@ export default function NotificationsPage() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {nowMs ? formatRelativeTime(n.created_at, lang, nowMs) : ''}
+                    {formatRelativeTime(n.created_at, lang, nowMs)}
                   </span>
                 }
               >

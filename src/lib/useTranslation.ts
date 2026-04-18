@@ -8,9 +8,6 @@ import i18n from '../locales';
  */
 export function useTranslation() {
   const { lang } = useAppSettings();
-  // Sync i18n.locale here to guarantee it matches React state on every render,
-  // and to ensure components re-render when the language changes.
-  i18n.locale = lang;
   return (key: string, opts?: Record<string, string | number>) =>
-    i18n.t(key, opts);
+    i18n.t(key, { ...opts, locale: lang });
 }

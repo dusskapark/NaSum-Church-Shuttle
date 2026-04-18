@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from '@/lib/router';
 import {
   Avatar,
@@ -41,17 +41,16 @@ export default function SettingsPage() {
       mutateApi('/api/v1/me/preferences', { method: 'PATCH', body }),
   });
 
-  const [pushEnabled, setPushEnabled] = useState<boolean>(true);
+  const [pushEnabled, setPushEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const storedValue = window.localStorage.getItem(PUSH_PREF_KEY);
+    return storedValue === null ? true : storedValue === 'true';
+  });
   const [pickerVisible, setPickerVisible] = useState(false);
   const langLabel =
     lang === 'ko'
       ? t('settings.languageKorean')
       : t('settings.languageEnglish');
-  useEffect(() => {
-    const storedValue = window.localStorage.getItem(PUSH_PREF_KEY);
-    setPushEnabled(storedValue === null ? true : storedValue === 'true');
-  }, []);
-
   const isLoading = lineLoading || registrationLoading;
 
   const listStyle = {

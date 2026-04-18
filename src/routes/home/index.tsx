@@ -87,18 +87,21 @@ export default function ShuttleHome() {
     route: fetchedSelectedRoute,
     loading: selectedRouteLoading,
   } = useRouteDetail(actualSelectedRouteCode, t('common.routeLoadError'));
-  const selectedRoute: Nullable<RouteDetailResponse> =
-    fetchedSelectedRoute ??
-    (registration?.route?.route_code === actualSelectedRouteCode
-      ? {
-          ...registration.route,
-          cachedPath: [],
-          pathCacheStatus: 'missing',
-          pathCacheUpdatedAt: null,
-          pathCacheExpiresAt: null,
-          pathCacheError: null,
-        }
-      : null);
+  const selectedRoute = useMemo<Nullable<RouteDetailResponse>>(
+    () =>
+      fetchedSelectedRoute ??
+      (registration?.route?.route_code === actualSelectedRouteCode
+        ? {
+            ...registration.route,
+            cachedPath: [],
+            pathCacheStatus: 'missing',
+            pathCacheUpdatedAt: null,
+            pathCacheExpiresAt: null,
+            pathCacheError: null,
+          }
+        : null),
+    [fetchedSelectedRoute, registration, actualSelectedRouteCode],
+  );
   const isLoading =
     lineLoading ||
     regLoading ||

@@ -60,7 +60,12 @@ export async function handleAdminPlaces(
   if (actor instanceof NextResponse) return actor;
 
   if (request.method === 'GET' && suffix?.[0] === 'lookup' && suffix?.[1]) {
-    const googlePlaceId = decodeURIComponent(suffix[1]).trim();
+    let googlePlaceId = '';
+    try {
+      googlePlaceId = decodeURIComponent(suffix[1]).trim();
+    } catch {
+      return error(400, 'invalid place id');
+    }
     if (!googlePlaceId || !/^[-_a-zA-Z0-9]+$/.test(googlePlaceId)) {
       return error(400, 'invalid place id');
     }

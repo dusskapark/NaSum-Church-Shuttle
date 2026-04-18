@@ -1,10 +1,13 @@
-import { Pool, type PoolClient } from 'pg';
+import { Pool, type PoolClient } from '@neondatabase/serverless';
 import { env } from './env';
 
 function resolveConnectionString() {
-  const connectionString = env.DATABASE_URL;
+  const connectionString =
+    env.DATABASE_URL ?? env.NEON_DATABASE_URL ?? env.DIRECT_URL;
   if (!connectionString) {
-    throw new Error('DATABASE_URL is required');
+    throw new Error(
+      'DATABASE_URL (or NEON_DATABASE_URL / DIRECT_URL) is required',
+    );
   }
   return connectionString;
 }

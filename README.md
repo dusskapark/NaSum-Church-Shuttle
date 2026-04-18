@@ -30,6 +30,12 @@ NEXT_PUBLIC_LIFF_ID=...
 NEXT_PUBLIC_LIFF_ID_DEV=...
 ```
 
+빠르게 시작하려면:
+
+```bash
+cp .env.local.example .env.local
+```
+
 현재 운영 방식은 local/Vercel이 같은 Neon production 브랜치를 공유하는 single-branch 구성입니다.
 
 ## LIFF QR 스캔

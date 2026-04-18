@@ -3,6 +3,10 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   typedRoutes: false,
+  allowedDevOrigins: [
+    '*.lhr.life',
+    '*.localhost.run',
+  ],
   transpilePackages: ['antd-mobile'],
   output: 'standalone',
   eslint: {

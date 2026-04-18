@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Button,
   Dialog,
@@ -106,16 +106,20 @@ const STRINGS = {
   },
 };
 
+interface RouteEditDraft {
+  key: string;
+  displayName: string;
+  mapsUrl: string;
+  active: boolean;
+}
+
 export default function AdminRouteDetailPage() {
   const { routeId } = useParams<{ routeId: string }>();
   const { lang } = useAppSettings();
   const t = STRINGS[lang === 'ko' ? 'ko' : 'en'];
   const queryClient = useQueryClient();
 
-  // Route edit state
-  const [editDisplayName, setEditDisplayName] = useState('');
-  const [editMapsUrl, setEditMapsUrl] = useState('');
-  const [editActive, setEditActive] = useState(true);
+  const [routeDraft, setRouteDraft] = useState<RouteEditDraft | null>(null);
 
   // Stop edit sheet
   const [editingStop, setEditingStop] = useState<AdminStop | null>(null);
@@ -133,13 +137,35 @@ export default function AdminRouteDetailPage() {
     enabled: !!routeId,
   });
 
-  useEffect(() => {
-    if (route) {
-      setEditDisplayName(route.display_name ?? '');
-      setEditMapsUrl(route.google_maps_url ?? '');
-      setEditActive(route.active);
-    }
-  }, [route]);
+  const draftKey = routeId ?? '';
+  const hasRouteDraft = routeDraft?.key === draftKey;
+  const editDisplayName = hasRouteDraft
+    ? routeDraft.displayName
+    : (route?.display_name ?? '');
+  const editMapsUrl = hasRouteDraft
+    ? routeDraft.mapsUrl
+    : (route?.google_maps_url ?? '');
+  const editActive = hasRouteDraft ? routeDraft.active : (route?.active ?? true);
+
+  const updateRouteDraft = (
+    patch: Partial<Omit<RouteEditDraft, 'key'>>,
+  ) => {
+    if (!draftKey) return;
+    setRouteDraft((prev) => {
+      const sameDraft = prev?.key === draftKey;
+      return {
+        key: draftKey,
+        displayName:
+          patch.displayName ??
+          (sameDraft ? prev.displayName : (route?.display_name ?? '')),
+        mapsUrl:
+          patch.mapsUrl ??
+          (sameDraft ? prev.mapsUrl : (route?.google_maps_url ?? '')),
+        active:
+          patch.active ?? (sameDraft ? prev.active : (route?.active ?? true)),
+      };
+    });
+  };
 
   useContainer(route?.display_name ?? route?.route_code ?? '...');
 
@@ -155,6 +181,7 @@ export default function AdminRouteDetailPage() {
       }),
     onSuccess: () => {
       Toast.show({ content: t.saveSuccess, icon: 'success' });
+      setRouteDraft(null);
       queryClient.invalidateQueries({ queryKey: ['admin', 'routes', routeId] });
     },
     onError: () => {
@@ -266,7 +293,9 @@ export default function AdminRouteDetailPage() {
             <Form.Item label={t.displayNameLabel}>
               <Input
                 value={editDisplayName}
-                onChange={setEditDisplayName}
+                onChange={(value) => {
+                  updateRouteDraft({ displayName: value });
+                }}
                 placeholder={route.name ?? route.route_code}
               />
             </Form.Item>
@@ -274,13 +303,20 @@ export default function AdminRouteDetailPage() {
             <Form.Item label={t.mapsUrlLabel}>
               <Input
                 value={editMapsUrl}
-                onChange={setEditMapsUrl}
+                onChange={(value) => {
+                  updateRouteDraft({ mapsUrl: value });
+                }}
                 placeholder="https://maps.google.com/..."
               />
             </Form.Item>
 
             <Form.Item label={t.activeLabel} childElementPosition="right">
-              <Switch checked={editActive} onChange={setEditActive} />
+              <Switch
+                checked={editActive}
+                onChange={(value) => {
+                  updateRouteDraft({ active: value });
+                }}
+              />
             </Form.Item>
           </Form>
 

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { query, withTransaction } from '@/server/db';
 import { json, error, requireActor } from '@/server/http';
+import { logError } from '@/lib/logger';
 import { notifyApproachingUsers } from '@/server/notifications';
 import type { RunRow } from './_shared';
 
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
 
   if (response.is_new_checkin) {
     notifyApproachingUsers(body.run_id, body.route_stop_id).catch((caught) => {
-      console.error('[checkin] notifyApproachingUsers failed', {
+      logError('[checkin] notifyApproachingUsers failed', {
         runId: body.run_id,
         routeStopId: body.route_stop_id,
         message: caught instanceof Error ? caught.message : String(caught),

@@ -1,7 +1,12 @@
 'use client';
 
+import { Suspense } from 'react';
 import NotificationsPage from '@/routes/notifications';
 
 export default function NotificationsRoutePage() {
-  return <NotificationsPage />;
+  return (
+    <Suspense fallback={null}>
+      <NotificationsPage />
+    </Suspense>
+  );
 }

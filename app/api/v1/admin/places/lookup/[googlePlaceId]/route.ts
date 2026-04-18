@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { handleAdminPlaces } from '../../../_handlers';
+import { handleAdminPlaces } from '../../../_places';
 
 export async function GET(
   request: NextRequest,

@@ -7,14 +7,19 @@ datasource db {
 }
 
 model User {
-  id            String             @id @default(cuid())
-  display_name  String?
-  picture_url   String?
-  role          String             @default("rider")
-  created_at    DateTime           @default(now())
-  identities    UserIdentity[]
-  registrations UserRegistration[]
-  scan_events   ScanEvent[]
+  id                         String             @id @default(cuid())
+  display_name               String?
+  picture_url                String?
+  role                       String             @default("rider")
+  preferred_language         String             @default("ko")
+  push_notifications_enabled Boolean            @default(true)
+  created_at                 DateTime           @default(now())
+  identities                 UserIdentity[]
+  registrations              UserRegistration[]
+  scan_events                ScanEvent[]
+
+  @@index([role])
+  @@map("users")
 }
 
 model UserIdentity {
@@ -26,6 +31,8 @@ model UserIdentity {
   user         User     @relation(fields: [user_id], references: [id])
 
   @@unique([provider, provider_uid])
+  @@index([user_id])
+  @@map("user_identities")
 }
 
 model Route {
@@ -56,24 +63,30 @@ model Route {
 
   @@index([active])
   @@index([line, service, revision])
+  @@map("routes")
 }
 
 model Place {
-  id              String    @id @default(cuid())
-  google_place_id String    @unique
-  name            String
-  display_name    String?
-  address         String?
-  lat             Float
-  lng             Float
-  place_types     String[]
-  notes           String?
-  is_terminal     Boolean   @default(false)
-  route_stops     RouteStop[]
+  id                        String      @id @default(cuid())
+  google_place_id           String      @unique
+  name                      String
+  display_name              String?
+  address                   String?
+  formatted_address         String?
+  primary_type              String?
+  primary_type_display_name String?
+  lat                       Float
+  lng                       Float
+  place_types               String[]
+  notes                     String?
+  is_terminal               Boolean     @default(false)
+  stop_id                   String?
+  route_stops               RouteStop[]
 
   @@index([google_place_id])
   @@index([lat, lng])
   @@index([is_terminal])
+  @@map("places")
 }
 
 model RouteStop {
@@ -84,6 +97,7 @@ model RouteStop {
   pickup_time       String?
   notes             String?
   is_pickup_enabled Boolean            @default(true)
+  active            Boolean            @default(true)
   route             Route              @relation(fields: [route_id], references: [id])
   place             Place              @relation(fields: [place_id], references: [id])
   registrations     UserRegistration[]
@@ -94,6 +108,8 @@ model RouteStop {
   @@index([route_id, sequence])
   @@index([place_id])
   @@index([is_pickup_enabled])
+  @@index([active])
+  @@map("route_stops")
 }
 
 model UserRegistration {
@@ -102,12 +118,15 @@ model UserRegistration {
   route_id      String
   route_stop_id String
   registered_at DateTime  @default(now())
+  updated_at    DateTime?
   status        String    @default("active")
   user          User      @relation(fields: [user_id], references: [id])
   route         Route     @relation(fields: [route_id], references: [id])
   route_stop    RouteStop @relation(fields: [route_stop_id], references: [id])
 
   @@unique([user_id, route_id])
+  @@index([status])
+  @@map("user_registrations")
 }
 
 model ShuttleRun {
@@ -115,19 +134,103 @@ model ShuttleRun {
   route_id     String
   service_date DateTime
   status       String      @default("scheduled")
+  started_at   DateTime?
+  ended_at     DateTime?
+  created_mode String?
+  created_by   String?
+  ended_mode   String?
+  ended_by     String?
   route        Route       @relation(fields: [route_id], references: [id])
   scan_events  ScanEvent[]
+
+  @@index([route_id, status])
+  @@map("shuttle_runs")
 }
 
 model ScanEvent {
-  id              String     @id @default(cuid())
-  user_id         String
-  run_id          String
-  route_stop_id   String
-  scanned_at      DateTime   @default(now())
-  result_code     String
-  idempotency_key String     @unique
-  user            User       @relation(fields: [user_id], references: [id])
-  run             ShuttleRun @relation(fields: [run_id], references: [id])
-  route_stop      RouteStop  @relation(fields: [route_stop_id], references: [id])
+  id                  String     @id @default(cuid())
+  user_id             String
+  run_id              String
+  route_stop_id       String
+  scanned_at          DateTime   @default(now())
+  result_code         String
+  additional_passengers Int      @default(0)
+  idempotency_key     String     @unique
+  user                User       @relation(fields: [user_id], references: [id])
+  run                 ShuttleRun @relation(fields: [run_id], references: [id])
+  route_stop          RouteStop  @relation(fields: [route_stop_id], references: [id])
+
+  @@index([run_id, route_stop_id])
+  @@map("scan_events")
+}
+
+model Notification {
+  id                 String   @id @default(cuid())
+  user_id            String
+  run_id             String
+  trigger_stop_id    String
+  stops_away         Int
+  title_ko           String
+  body_ko            String
+  title_en           String
+  body_en            String
+  is_read            Boolean  @default(false)
+  created_at         DateTime @default(now())
+  route_code         String?
+  user_route_stop_id String?
+
+  @@unique([user_id, run_id, trigger_stop_id])
+  @@index([user_id, is_read])
+  @@map("notifications")
+}
+
+model Schedule {
+  id           String   @id @default(cuid())
+  name         String
+  status       String
+  created_at   DateTime @default(now())
+  created_by   String?
+  published_at DateTime?
+  published_by String?
+
+  @@index([status])
+  @@map("schedules")
+}
+
+model ScheduleRoute {
+  id            String   @id @default(cuid())
+  schedule_id   String
+  route_id      String
+  stops_snapshot Json
+  sync_status   String   @default("pending")
+  synced_at     DateTime?
+  sync_error    String?
+
+  @@unique([schedule_id, route_id])
+  @@index([schedule_id])
+  @@map("schedule_routes")
+}
+
+model AdminStopOverride {
+  run_id                    String
+  route_stop_id             String
+  status                    String
+  total_passengers_override Int?
+  set_by                    String?
+  set_at                    DateTime @default(now())
+
+  @@id([run_id, route_stop_id])
+  @@map("admin_stop_overrides")
+}
+
+model AutoRunConfig {
+  id           String    @id
+  enabled      Boolean   @default(false)
+  days_of_week Int[]
+  start_time   String
+  end_time     String
+  updated_at   DateTime?
+  updated_by   String?
+
+  @@map("auto_run_config")
 }

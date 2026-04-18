@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import 'antd-mobile/es/global';
 import ErrorBlockPage from '@/components/ErrorBlockPage';
+import { logError } from '@/lib/logger';
 import { useClientTranslation } from '@/lib/useClientTranslation';
 
 export default function GlobalError({
@@ -15,7 +16,7 @@ export default function GlobalError({
   const { lang, t } = useClientTranslation();
 
   useEffect(() => {
-    console.error(error);
+    logError('[global-error]', error);
   }, [error]);
 
   return (

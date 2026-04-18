@@ -11,16 +11,21 @@ import {
 import { CompassOutline } from 'antd-mobile-icons';
 import Layout from '../../components/Layout';
 import HomeRouteDetail from '../../components/RouteDetails';
+import { useRouteDetail } from '../../hooks/useRouteDetail';
 import { useRegistration } from '../../hooks/useRegistration';
-import { useRoutes } from '../../hooks/useRoutes';
+import { useRouteSummaries } from '../../hooks/useRouteSummaries';
 import { useLineUser } from '../../hooks/useLineUser';
 import { useHideLoader } from '../../hooks/useHideLoader';
 import { useContainer } from '../../hooks/useContainer';
 import { useRunStatus } from '../../hooks/useRunStatus';
 import { useAppSettings } from '../../lib/app-settings';
 import { useTranslation } from '../../lib/useTranslation';
-import { getRouteLabel, getVisibleStops } from '../../lib/routeSelectors';
-import type { Nullable, RouteStopWithPlace } from '@app-types/core';
+import { getRouteLabel } from '../../lib/routeSelectors';
+import type {
+  Nullable,
+  RouteDetailResponse,
+  RouteStopWithPlace,
+} from '@app-types/core';
 
 const ShuttleMap = lazy(() =>
   import('../../components/Maps').then((mod) => ({ default: mod.ShuttleMap })),
@@ -41,7 +46,7 @@ export default function ShuttleHome() {
   const { lang } = useAppSettings();
   const t = useTranslation();
   useContainer(t('home.panelTitle'));
-  const { routes, loading: routesLoading } = useRoutes(
+  const { routes, loading: routesLoading } = useRouteSummaries(
     t('common.routeLoadError'),
   );
   const {
@@ -73,7 +78,35 @@ export default function ShuttleHome() {
 
   const panelRouteCode =
     !routesLoading && selectedRouteCode ? selectedRouteCode : null;
-  const isLoading = lineLoading || regLoading || routesLoading;
+  const actualSelectedRouteCode =
+    selectedRouteCode ??
+    registration?.route?.route_code ??
+    routes[0]?.route_code ??
+    null;
+  const {
+    route: fetchedSelectedRoute,
+    loading: selectedRouteLoading,
+  } = useRouteDetail(actualSelectedRouteCode, t('common.routeLoadError'));
+  const selectedRoute = useMemo<Nullable<RouteDetailResponse>>(
+    () =>
+      fetchedSelectedRoute ??
+      (registration?.route?.route_code === actualSelectedRouteCode
+        ? {
+            ...registration.route,
+            cachedPath: [],
+            pathCacheStatus: 'missing',
+            pathCacheUpdatedAt: null,
+            pathCacheExpiresAt: null,
+            pathCacheError: null,
+          }
+        : null),
+    [fetchedSelectedRoute, registration, actualSelectedRouteCode],
+  );
+  const isLoading =
+    lineLoading ||
+    regLoading ||
+    routesLoading ||
+    (!!actualSelectedRouteCode && selectedRouteLoading);
 
   // Invalid deep-link guard:
   // if route/stop query does not exist in current route data, redirect to root.
@@ -90,13 +123,21 @@ export default function ShuttleHome() {
 
       if (
         selectedRouteStopId &&
-        !route.stops.some((stop) => stop.id === selectedRouteStopId)
+        selectedRoute &&
+        !selectedRoute.stops.some((stop) => stop.id === selectedRouteStopId)
       ) {
         hasAutoNavigated.current = true;
         navigate('/', { replace: true });
       }
     }
-  }, [navigate, routes, routesLoading, selectedRouteCode, selectedRouteStopId]);
+  }, [
+    navigate,
+    routes,
+    routesLoading,
+    selectedRoute,
+    selectedRouteCode,
+    selectedRouteStopId,
+  ]);
 
   // On first load, auto-navigate to the registered route (replace history so back goes to list)
   useEffect(() => {
@@ -128,23 +169,7 @@ export default function ShuttleHome() {
     }
   }, [isLoading, registration, stop_active, lang, navigate]);
   useHideLoader(!isLoading);
-  const actualSelectedRouteCode =
-    selectedRouteCode ??
-    registration?.route?.route_code ??
-    routes[0]?.route_code ??
-    null;
-
-  const selectedRoute = useMemo(
-    () =>
-      routes.find((route) => route.route_code === actualSelectedRouteCode) ??
-      null,
-    [routes, actualSelectedRouteCode],
-  );
-
-  const panelRoute = useMemo(
-    () => routes.find((route) => route.route_code === panelRouteCode) ?? null,
-    [panelRouteCode, routes],
-  );
+  const panelRoute = panelRouteCode === actualSelectedRouteCode ? selectedRoute : null;
 
   const selectedStops = selectedRoute?.stops ?? [];
 
@@ -303,7 +328,7 @@ export default function ShuttleHome() {
                       }}
                     >
                       {routes.map((route) => {
-                        const stopCount = getVisibleStops(route).length;
+                        const stopCount = route.visible_stop_count;
 
                         return (
                           <List.Item

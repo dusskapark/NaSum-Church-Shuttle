@@ -35,6 +35,7 @@ import {
 } from '../../constants/appConfigs';
 import { authedFetch } from '../../lib/api';
 import { fetchApi, mutateApi } from '../../lib/queries';
+import { logDebug, logError } from '../../lib/logger';
 import type {
   AdminRouteListItem as AdminRoute,
   AdminLiveRoute as LiveRoute,
@@ -60,10 +61,10 @@ function QrCanvas({ text, size = 200 }: { text: string; size?: number }) {
 }
 
 async function copyText(text: string): Promise<void> {
-  console.log('[Copy] Attempting to copy:', `${text.substring(0, 100)}...`);
-  console.log('[Copy] Text length:', text.length);
-  console.log('[Copy] Clipboard available:', !!navigator.clipboard);
-  console.log('[Copy] Secure context:', window.isSecureContext);
+  logDebug('[Copy] Attempting to copy:', `${text.substring(0, 100)}...`);
+  logDebug('[Copy] Text length:', text.length);
+  logDebug('[Copy] Clipboard available:', !!navigator.clipboard);
+  logDebug('[Copy] Secure context:', window.isSecureContext);
 
   // Modern clipboard API with verification
   if (navigator.clipboard && window.isSecureContext) {
@@ -73,26 +74,26 @@ async function copyText(text: string): Promise<void> {
       // Verify copy by reading back
       const readText = await navigator.clipboard.readText();
       if (readText === text) {
-        console.log('[Copy] Clipboard API success - verified');
+        logDebug('[Copy] Clipboard API success - verified');
         Toast.show({ content: 'Copied to clipboard', icon: 'success' });
       } else {
-        console.log(
+        logDebug(
           '[Copy] Clipboard API failed verification - trying fallback',
         );
         fallbackCopyText(text);
       }
     } catch (err) {
-      console.error('[Copy] Clipboard API failed:', err);
+      logError('[Copy] Clipboard API failed:', err);
       fallbackCopyText(text);
     }
   } else {
-    console.log('[Copy] Using fallback method');
+    logDebug('[Copy] Using fallback method');
     fallbackCopyText(text);
   }
 }
 
 function fallbackCopyText(text: string): void {
-  console.log('[Copy] Attempting fallback copy method');
+  logDebug('[Copy] Attempting fallback copy method');
 
   try {
     // Try execCommand with textarea
@@ -113,14 +114,14 @@ function fallbackCopyText(text: string): void {
     document.body.removeChild(textArea);
 
     if (result) {
-      console.log('[Copy] Fallback execCommand success');
+      logDebug('[Copy] Fallback execCommand success');
       Toast.show({ content: 'Copied to clipboard', icon: 'success' });
       return;
     }
 
     throw new Error('execCommand returned false');
   } catch (err) {
-    console.error('[Copy] All copy methods failed:', err);
+    logError('[Copy] All copy methods failed:', err);
     Toast.show({
       content: 'Copy failed. Please try again.',
       icon: 'fail',
@@ -178,7 +179,7 @@ async function downloadQr(text: string, filename: string): Promise<void> {
     const fileUrl = `${getAbsoluteApiBaseUrl()}${downloadUrl}`;
     await downloadFile(fileUrl, responseFilename ?? filename);
   } catch (err) {
-    console.error('[Download] QR download failed:', err);
+    logError('[Download] QR download failed:', err);
     Toast.show({
       content: `Download failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
       icon: 'fail',
@@ -608,7 +609,7 @@ export default function AdminRoutesListPage() {
         await downloadScheduleMarkdown(scheduleId, scheduleName);
         dropdownRef.current?.close();
       } catch (err) {
-        console.error('[Download] handleDownload failed:', err);
+        logError('[Download] handleDownload failed:', err);
         Toast.show({ content: t.downloadError, icon: 'fail' });
       } finally {
         setDownloadingId(null);

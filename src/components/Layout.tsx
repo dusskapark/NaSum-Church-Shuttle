@@ -13,7 +13,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from '../lib/useTranslation';
 import { fetchApi } from '../lib/queries';
 import { useLineUser } from '../hooks/useLineUser';
-import type { AppNotification } from '@app-types/core';
 import { DEV_NOTIFICATIONS } from '../routes/notifications/_devData';
 
 
@@ -75,21 +74,23 @@ export default function Layout({
   const navigate = useNavigate();
   const { isReady } = useLineUser();
 
-  const { data: notifications } = useQuery<AppNotification[]>({
-    queryKey: ['notifications'],
-    queryFn: () => fetchApi<AppNotification[]>('/api/v1/notifications'),
+  const { data: unreadCountData } = useQuery<{ unread_count: number }>({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: () =>
+      fetchApi<{ unread_count: number }>('/api/v1/notifications/unread-count'),
     enabled: isReady,
+    staleTime: 30_000,
   });
 
   const unreadCount = useMemo(() => {
-    const list =
-      notifications && notifications.length > 0
-        ? notifications
-        : process.env.NODE_ENV === 'development'
-          ? DEV_NOTIFICATIONS
-          : [];
-    return list.filter((n) => !n.is_read).length;
-  }, [notifications]);
+    if (typeof unreadCountData?.unread_count === 'number') {
+      return unreadCountData.unread_count;
+    }
+
+    return process.env.NODE_ENV === 'development'
+      ? DEV_NOTIFICATIONS.filter((n) => !n.is_read).length
+      : 0;
+  }, [unreadCountData]);
 
   const t = useTranslation();
   const activeKey = useMemo(() => {

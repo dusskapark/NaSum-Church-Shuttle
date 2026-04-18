@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAppSettings } from '../lib/app-settings';
+import { logWarn } from '../lib/logger';
 
 export function useContainer(initialTitle?: string) {
   const [title, setTitle] = useState<string | undefined>(initialTitle);
@@ -24,12 +25,12 @@ export function useContainer(initialTitle?: string) {
         const bgColor = isDark ? '#0d1117' : '#f6f8fa';
         document.documentElement.style.backgroundColor = bgColor;
 
-        const params = Object.fromEntries(
+      const params = Object.fromEntries(
           new URLSearchParams(window.location.search),
         );
         setSessionParams(Object.keys(params).length > 0 ? params : null);
       } catch (error) {
-        console.warn('[Container] setup failed:', error);
+        logWarn('[Container] setup failed:', error);
       } finally {
         // Always mark sessionParams loading as complete, even if failed
         setSessionParamsLoading(false);

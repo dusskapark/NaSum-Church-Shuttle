@@ -1,3 +1,5 @@
+import { logDebug, logError } from '@/lib/logger';
+
 const PLACES_API_BASE = 'https://places.googleapis.com/v1';
 
 const SEARCH_FIELD_MASK = [
@@ -83,7 +85,7 @@ async function resolveUrl(url: string): Promise<string> {
       );
     }
 
-    console.log(`[google-places] resolveUrl: ${current} -> ${location}`);
+    logDebug(`[google-places] resolveUrl: ${current} -> ${location}`);
     current = location;
   }
 
@@ -109,7 +111,7 @@ function parseDataSegmentCoords(
     coords.push({ lat: Number(match[2]), lng: Number(match[1]) });
   }
 
-  console.log(
+  logDebug(
     `[google-places] data= coords found: ${coords.length}, path segments: ${pathCount}, extra: ${Math.max(0, coords.length - pathCount)}`,
   );
 
@@ -118,7 +120,7 @@ function parseDataSegmentCoords(
 
 export async function parseGoogleMapsUrl(url: string): Promise<WaypointInfo[]> {
   const resolved = await resolveUrl(url);
-  console.log(`[google-places] resolveUrl final: ${url} -> ${resolved}`);
+  logDebug(`[google-places] resolveUrl final: ${url} -> ${resolved}`);
 
   const parsed = new URL(resolved);
 
@@ -137,7 +139,7 @@ export async function parseGoogleMapsUrl(url: string): Promise<WaypointInfo[]> {
     }
     if (destination) waypoints.push(parseWaypointString(destination));
 
-    console.log(
+    logDebug(
       `[google-places] query-param format -> ${waypoints.length} waypoints`,
       waypoints.map((w) => w.raw),
     );
@@ -167,7 +169,7 @@ export async function parseGoogleMapsUrl(url: string): Promise<WaypointInfo[]> {
   if (dataSegment) {
     const extraCoords = parseDataSegmentCoords(dataSegment, segments.length);
     if (extraCoords.length > 0) {
-      console.log(
+      logDebug(
         `[google-places] data= extra waypoint coords: ${extraCoords.length}`,
         extraCoords,
       );
@@ -175,7 +177,7 @@ export async function parseGoogleMapsUrl(url: string): Promise<WaypointInfo[]> {
     }
   }
 
-  console.log(
+  logDebug(
     `[google-places] path format -> ${segments.length} waypoints`,
     segments,
   );
@@ -217,7 +219,7 @@ export async function getPlaceById(
   });
 
   if (!res.ok) {
-    console.error(
+    logError(
       `[google-places] getPlaceById failed (${res.status})`,
       await res.text().catch(() => ''),
     );
@@ -239,7 +241,7 @@ async function searchPlace(
   });
 
   if (!res.ok) {
-    console.error(
+    logError(
       `[google-places] searchText failed (${res.status})`,
       await res.text().catch(() => ''),
     );
@@ -275,7 +277,7 @@ async function searchNearby(
   });
 
   if (!res.ok) {
-    console.error(
+    logError(
       `[google-places] searchNearby failed (${res.status})`,
       await res.text().catch(() => ''),
     );
@@ -311,7 +313,7 @@ async function preferNearbyBusStop(
   const distance = distanceMeters(place.lat, place.lng, busStop.lat, busStop.lng);
   if (distance > 700) return place;
 
-  console.log(
+  logDebug(
     `[google-places] normalize to bus_stop: ${place.googlePlaceId} -> ${busStop.googlePlaceId} (${Math.round(distance)}m)`,
   );
   return busStop;
@@ -332,7 +334,7 @@ export async function resolveWaypoint(
   if (coordMatch) {
     const lat = Number(coordMatch[1]);
     const lng = Number(coordMatch[2]);
-    console.log(
+    logDebug(
       `[google-places] coordinate waypoint via nearby search: ${waypoint.raw}`,
     );
     const busStop = await searchNearbyBusStop(lat, lng, apiKey);

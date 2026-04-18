@@ -20,14 +20,13 @@ import {
 } from 'antd-mobile';
 import { EnvironmentOutline, UnorderedListOutline } from 'antd-mobile-icons';
 import Layout from '../../components/Layout';
-import { useRoutes } from '../../hooks/useRoutes';
+import { usePlaceSummaries } from '../../hooks/usePlaces';
 import { useSearchUrlState } from '../../hooks/useUrlState';
 import { useContainer } from '../../hooks/useContainer';
 import { useTranslation } from '../../lib/useTranslation';
 import {
   filterStationsByKeyword,
   getDistanceInKm,
-  getUniqueStations,
   groupStationsByIndex,
   sortStationIndexes,
   sortStationsByDistance,
@@ -56,7 +55,7 @@ export default function SearchPage() {
   const navigate = useNavigate();
   const t = useTranslation();
   useContainer(t('search.title'));
-  const { routes, loading: routesLoading } = useRoutes(
+  const { places, loading: placesLoading } = usePlaceSummaries(
     t('common.routeLoadError'),
   );
 
@@ -134,10 +133,9 @@ export default function SearchPage() {
     });
   }, [t]);
 
-  const stations = useMemo(() => getUniqueStations(routes), [routes]);
   const filteredStations = useMemo(
-    () => filterStationsByKeyword(stations, keyword),
-    [keyword, stations],
+    () => filterStationsByKeyword(places, keyword),
+    [keyword, places],
   );
   const distanceSortedStations = useMemo(
     () => sortStationsByDistance(filteredStations, coordinates),
@@ -256,7 +254,7 @@ export default function SearchPage() {
             position: 'relative',
           }}
         >
-          {routesLoading ? (
+          {placesLoading ? (
             <div style={{ padding: 16 }}>
               <Skeleton.Title animated />
               <Skeleton.Paragraph lineCount={8} animated />

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   Button,
@@ -35,6 +35,16 @@ interface Props {
   onClose: () => void;
   onSaved: () => void;
   lang: string;
+}
+
+interface StopEditDraft {
+  stopId: string;
+  displayName: string;
+  placeNotes: string;
+  routeNotes: string;
+  pickupTime: string;
+  pickupEnabled: boolean;
+  sequence: number;
 }
 
 const STRINGS = {
@@ -92,23 +102,55 @@ export default function StopEditSheet({
 }: Props) {
   const t = STRINGS[lang === 'ko' ? 'ko' : 'en'];
 
-  const [displayName, setDisplayName] = useState('');
-  const [placeNotes, setPlaceNotes] = useState('');
-  const [routeNotes, setRouteNotes] = useState('');
-  const [pickupTime, setPickupTime] = useState('');
-  const [pickupEnabled, setPickupEnabled] = useState(true);
-  const [sequence, setSequence] = useState(1);
+  const [draft, setDraft] = useState<StopEditDraft | null>(null);
+  const hasStopDraft = !!stop && draft?.stopId === stop.route_stop_id;
 
-  useEffect(() => {
-    if (stop) {
-      setDisplayName(stop.place_display_name ?? '');
-      setPlaceNotes(stop.place_notes ?? '');
-      setRouteNotes(stop.route_stop_notes ?? '');
-      setPickupTime(stop.pickup_time ?? '');
-      setPickupEnabled(stop.is_pickup_enabled);
-      setSequence(stop.sequence);
-    }
-  }, [stop]);
+  const displayName = hasStopDraft
+    ? draft.displayName
+    : (stop?.place_display_name ?? '');
+  const placeNotes = hasStopDraft ? draft.placeNotes : (stop?.place_notes ?? '');
+  const routeNotes = hasStopDraft
+    ? draft.routeNotes
+    : (stop?.route_stop_notes ?? '');
+  const pickupTime = hasStopDraft ? draft.pickupTime : (stop?.pickup_time ?? '');
+  const pickupEnabled = hasStopDraft
+    ? draft.pickupEnabled
+    : (stop?.is_pickup_enabled ?? true);
+  const sequence = hasStopDraft ? draft.sequence : (stop?.sequence ?? 1);
+
+  const updateDraft = (
+    patch: Partial<Omit<StopEditDraft, 'stopId'>>,
+  ) => {
+    if (!stop) return;
+    setDraft((prev) => {
+      const sameDraft = prev?.stopId === stop.route_stop_id;
+      return {
+        stopId: stop.route_stop_id,
+        displayName:
+          patch.displayName ??
+          (sameDraft ? prev.displayName : (stop.place_display_name ?? '')),
+        placeNotes:
+          patch.placeNotes ??
+          (sameDraft ? prev.placeNotes : (stop.place_notes ?? '')),
+        routeNotes:
+          patch.routeNotes ??
+          (sameDraft ? prev.routeNotes : (stop.route_stop_notes ?? '')),
+        pickupTime:
+          patch.pickupTime ??
+          (sameDraft ? prev.pickupTime : (stop.pickup_time ?? '')),
+        pickupEnabled:
+          patch.pickupEnabled ??
+          (sameDraft ? prev.pickupEnabled : stop.is_pickup_enabled),
+        sequence:
+          patch.sequence ?? (sameDraft ? prev.sequence : stop.sequence),
+      };
+    });
+  };
+
+  const handleClose = useCallback(() => {
+    setDraft(null);
+    onClose();
+  }, [onClose]);
 
   const saveMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
@@ -118,6 +160,7 @@ export default function StopEditSheet({
       ),
     onSuccess: () => {
       Toast.show({ content: t.saveSuccess, icon: 'success' });
+      setDraft(null);
       onSaved();
     },
     onError: () => {
@@ -157,7 +200,7 @@ export default function StopEditSheet({
   return (
     <Popup
       visible={visible}
-      onMaskClick={onClose}
+      onMaskClick={handleClose}
       position="bottom"
       bodyStyle={{
         borderRadius: '16px 16px 0 0',
@@ -197,7 +240,9 @@ export default function StopEditSheet({
             <Input
               placeholder={stop?.place_name ?? ''}
               value={displayName}
-              onChange={setDisplayName}
+              onChange={(value) => {
+                updateDraft({ displayName: value });
+              }}
             />
           </Form.Item>
 
@@ -205,7 +250,9 @@ export default function StopEditSheet({
             <TextArea
               placeholder={t.placeNotesHint}
               value={placeNotes}
-              onChange={setPlaceNotes}
+              onChange={(value) => {
+                updateDraft({ placeNotes: value });
+              }}
               rows={2}
             />
           </Form.Item>
@@ -214,7 +261,9 @@ export default function StopEditSheet({
             <TextArea
               placeholder={t.routeNotesHint}
               value={routeNotes}
-              onChange={setRouteNotes}
+              onChange={(value) => {
+                updateDraft({ routeNotes: value });
+              }}
               rows={2}
             />
           </Form.Item>
@@ -227,7 +276,9 @@ export default function StopEditSheet({
               <Input
                 placeholder={t.pickupTimePlaceholder}
                 value={pickupTime}
-                onChange={setPickupTime}
+                onChange={(value) => {
+                  updateDraft({ pickupTime: value });
+                }}
                 style={
                   pickupEnabled && !pickupTime.trim()
                     ? ({
@@ -242,18 +293,25 @@ export default function StopEditSheet({
               <Input
                 type="number"
                 value={String(sequence)}
-                onChange={(v) => setSequence(parseInt(v, 10) || 1)}
+                onChange={(value) => {
+                  updateDraft({ sequence: parseInt(value, 10) || 1 });
+                }}
               />
             </Form.Item>
           </div>
 
           <Form.Item label={t.pickupEnabled} childElementPosition="right">
-            <Switch checked={pickupEnabled} onChange={setPickupEnabled} />
+            <Switch
+              checked={pickupEnabled}
+              onChange={(value) => {
+                updateDraft({ pickupEnabled: value });
+              }}
+            />
           </Form.Item>
         </Form>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-          <Button block fill="outline" onClick={onClose} disabled={saving}>
+          <Button block fill="outline" onClick={handleClose} disabled={saving}>
             {t.cancel}
           </Button>
           <Button

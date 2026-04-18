@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import i18n from '../locales';
 import { APP_LANG_COOKIE, normalizeLangCookie, type AppCookieLanguage } from './app-settings-cookies';
 
@@ -13,31 +13,27 @@ function readLangCookie(): AppCookieLanguage | null {
 }
 
 export function useClientTranslation() {
-  const [lang, setLang] = useState<AppCookieLanguage>('en');
-
-  useEffect(() => {
+  const [lang] = useState<AppCookieLanguage>(() => {
+    if (typeof window === 'undefined') return 'en';
     const storedLang = window.localStorage.getItem('line-shuttle:language');
     if (storedLang === 'ko' || storedLang === 'en') {
-      setLang(storedLang);
-      return;
+      return storedLang;
     }
 
     const cookieLang = readLangCookie();
     if (cookieLang) {
-      setLang(cookieLang);
-      return;
+      return cookieLang;
     }
 
     const browserLang = normalizeLangCookie(new Intl.Locale(navigator.language).language);
-    setLang(browserLang);
-  }, []);
+    return browserLang;
+  });
 
   return useMemo(() => {
-    i18n.locale = lang;
     return {
       lang,
       t: (key: string, opts?: Record<string, string | number>) =>
-        i18n.t(key, opts),
+        i18n.t(key, { ...opts, locale: lang }),
     };
   }, [lang]);
 }

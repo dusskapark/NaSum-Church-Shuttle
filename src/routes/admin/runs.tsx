@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Avatar,
@@ -22,16 +22,17 @@ import {
 } from 'antd-mobile-icons';
 import Layout from '../../components/Layout';
 import { useContainer } from '../../hooks/useContainer';
+import { useRouteDetail } from '../../hooks/useRouteDetail';
+import { useRouteSummaries } from '../../hooks/useRouteSummaries';
 import { useTranslation } from '../../lib/useTranslation';
 import { getApiBaseUrl } from '../../constants/appConfigs';
 import { authedFetch } from '../../lib/api';
 import { fetchApi, mutateApi } from '../../lib/queries';
-import { useRoutes } from '../../hooks/useRoutes';
 import { getRouteLabel, getVisibleStops } from '../../lib/routeSelectors';
 import { formatDateTimeUtc } from '../../lib/date-format';
 import type {
   ActiveRun,
-  ApiRouteWithStops,
+  RouteSummary,
   RunResult,
   ShuttleRun,
   StopBoardingResult,
@@ -73,7 +74,7 @@ function formatDate(iso: string | null): string {
 }
 
 interface RunRowProps {
-  route: ApiRouteWithStops;
+  route: RouteSummary;
   activeRun: ActiveRun | null;
   t: ReturnType<typeof useTranslation>;
   onRefresh: () => void;
@@ -94,6 +95,10 @@ function RunRow({
   onRefresh,
   onViewResults,
 }: RunRowProps) {
+  const { route: routeDetail, loading: routeDetailLoading } = useRouteDetail(
+    route.route_code,
+    t('common.routeLoadError'),
+  );
   const [busy, setBusy] = useState(false);
   const [overrideModal, setOverrideModal] = useState<StopOverrideModal | null>(
     null,
@@ -215,7 +220,7 @@ function RunRow({
   }, [activeRun, t, onRefresh]);
 
   const routeLabel = getRouteLabel(route);
-  const visibleStops = getVisibleStops(route);
+  const visibleStops = getVisibleStops(routeDetail);
   const stopMap = new Map(
     visibleStops.map((s) => [s.id, s.place.display_name ?? s.place.name]),
   );
@@ -295,7 +300,9 @@ function RunRow({
 
       {activeRun && (
         <div style={{ marginTop: 4 }}>
-          {(() => {
+          {routeDetailLoading ? (
+            <Skeleton.Paragraph lineCount={4} animated />
+          ) : (() => {
             const stateMap = new Map(
               activeRun.stop_states.map((s) => [s.route_stop_id, s]),
             );
@@ -506,7 +513,6 @@ function RunRow({
 
 interface RunResultsPanelProps {
   result: RunResult;
-  stopMap: Map<string, string>;
   t: ReturnType<typeof useTranslation>;
 }
 
@@ -521,7 +527,7 @@ const thStyle: React.CSSProperties = {
   whiteSpace: 'nowrap',
 };
 
-function RunResultsPanel({ result, stopMap, t }: RunResultsPanelProps) {
+function RunResultsPanel({ result, t }: RunResultsPanelProps) {
   const totalBoarded = result.stop_results.reduce(
     (sum, s) => sum + s.total_passengers,
     0,
@@ -554,8 +560,7 @@ function RunResultsPanel({ result, stopMap, t }: RunResultsPanelProps) {
         </thead>
         <tbody>
           {result.stop_results.map((stopResult: StopBoardingResult, si) => {
-            const stopName =
-              stopMap.get(stopResult.route_stop_id) ?? stopResult.route_stop_id;
+            const stopName = stopResult.stop_name ?? stopResult.route_stop_id;
             const isArrived = stopResult.status === 'arrived';
             const { riders } = stopResult;
             const rowCount = Math.max(riders.length, 1);
@@ -720,7 +725,7 @@ export default function AdminRunsPage() {
 
   const queryClient = useQueryClient();
 
-  const { routes, loading: routesLoading } = useRoutes(
+  const { routes, loading: routesLoading } = useRouteSummaries(
     t('common.routeLoadError'),
   );
   const [activeTab, setActiveTab] = useState<'active' | 'history' | 'schedule'>(
@@ -802,16 +807,6 @@ export default function AdminRunsPage() {
     setViewingResult(null);
     setResultsLoading(false);
   }, []);
-
-  const allStopMap = useMemo(() => {
-    const m = new Map<string, string>();
-    routes.forEach((route) => {
-      getVisibleStops(route).forEach((stop) => {
-        m.set(stop.id, stop.place.display_name ?? stop.place.name);
-      });
-    });
-    return m;
-  }, [routes]);
 
   // ── Auto-run schedule (useQuery + useMutation) ────────────────────────────
   const [autoRunDraft, setAutoRunDraft] = useState<AutoRunConfig>({
@@ -1236,7 +1231,6 @@ export default function AdminRunsPage() {
           ) : viewingResult ? (
             <RunResultsPanel
               result={viewingResult}
-              stopMap={allStopMap}
               t={t}
             />
           ) : null}

@@ -55,29 +55,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let identity = await client
-      .query<{ id: string; user_id: string }>(
-        `SELECT id, user_id FROM user_identities WHERE provider = 'line' AND provider_uid = $1`,
-        [actor.providerUid],
-      )
-      .then((res) => res.rows[0] ?? null);
-    if (!identity) {
-      await client.query(
-        `INSERT INTO users (id, display_name, role)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (id) DO NOTHING`,
-        [actor.userId, 'Developer (admin)', actor.role],
-      );
-      await client.query(
-        `INSERT INTO user_identities (id, user_id, provider, provider_uid)
-         VALUES ($1, $2, 'line', $3)
-         ON CONFLICT (provider, provider_uid) DO NOTHING`,
-        [randomUUID(), actor.userId, actor.providerUid],
-      );
-      identity = { id: randomUUID(), user_id: actor.userId };
-    }
-
-    const idempotencyKey = `${identity.user_id}:${body.run_id}`;
+    const idempotencyKey = `${actor.userId}:${body.run_id}`;
     const newId = randomUUID();
     await client.query(
       `INSERT INTO scan_events
@@ -86,7 +64,7 @@ export async function POST(request: NextRequest) {
        ON CONFLICT (idempotency_key) DO NOTHING`,
       [
         newId,
-        identity.user_id,
+        actor.userId,
         body.run_id,
         body.route_stop_id,
         body.additional_passengers ?? 0,

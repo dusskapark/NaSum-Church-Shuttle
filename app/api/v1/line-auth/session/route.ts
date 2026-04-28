@@ -1,59 +1,53 @@
 import { NextRequest } from 'next/server';
-import { json, error } from '@/server/http';
-import { signSession } from '@/server/session';
-import { upsertLineIdentity, verifyLineIdToken } from '@/server/line-auth';
+import {
+  createAuthSession,
+  getAuthErrorResponse,
+  logAuthEvent,
+} from '@/server/auth';
+import { json } from '@/server/http';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as {
+    accessToken?: string;
+    access_token?: string;
     idToken?: string;
-    profile?: { displayName?: string | null; pictureUrl?: string | null } | null;
+    id_token?: string;
   };
 
-  if (!body.idToken) return error(400, 'idToken is required');
-
-  let actor: Awaited<ReturnType<typeof upsertLineIdentity>>;
   try {
-    const verified = await verifyLineIdToken(body.idToken);
-    actor = await upsertLineIdentity({
-      verified,
-      profile: body.profile ?? null,
+    const session = await createAuthSession(
+      {
+        provider: 'line',
+        credential: {
+          accessToken: body.accessToken,
+          access_token: body.access_token,
+          idToken: body.idToken,
+          id_token: body.id_token,
+        },
+      },
+      {
+        ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
+        userAgent: request.headers.get('user-agent'),
+      },
+    );
+
+    return json({
+      userId: session.userId,
+      providerUid: session.providerUid,
+      displayName: session.displayName,
+      pictureUrl: session.pictureUrl,
+      statusMessage: session.statusMessage,
+      email: session.email,
+      phone: null,
+      role: session.role,
+      sessionToken: session.sessionToken,
+      idToken: session.sessionToken,
     });
   } catch (caught) {
-    const code = (caught as { code?: string }).code;
-    const message = caught instanceof Error ? caught.message : 'LINE auth failed';
-
-    if (code === 'LINE_ID_TOKEN_EXPIRED' || /IdToken expired/i.test(message)) {
-      return json(
-        {
-          error: 'LINE ID token expired. Re-login required.',
-          code: 'LINE_ID_TOKEN_EXPIRED',
-        },
-        { status: 401 },
-      );
-    }
-
-    return json(
-      {
-        error: 'LINE token verification failed',
-        details: message,
-      },
-      { status: 502 },
-    );
+    logAuthEvent('failure', 'line');
+    const response = getAuthErrorResponse(caught);
+    return json(response.body, { status: response.status });
   }
-
-  const sessionToken = await signSession(actor);
-
-  return json({
-    userId: actor.userId,
-    providerUid: actor.providerUid,
-    displayName: actor.displayName,
-    pictureUrl: actor.pictureUrl,
-    statusMessage: actor.statusMessage,
-    email: actor.email,
-    phone: null,
-    role: actor.role,
-    idToken: sessionToken,
-  });
 }

@@ -99,6 +99,28 @@ export interface RegisteredUserResponse {
   stop_active?: boolean;
 }
 
+export interface MeResponse {
+  userId: string;
+  providerUid: Nullable<string>;
+  displayName: Nullable<string>;
+  pictureUrl: Nullable<string>;
+  email: Nullable<string>;
+  role: UserRole;
+  preferredLanguage: 'ko' | 'en';
+  pushNotificationsEnabled: boolean;
+  createdAt: string;
+}
+
+export interface PushTokenRegistrationResponse {
+  success: boolean;
+  id: string;
+  token: string;
+  bundle_id: string;
+  apns_environment: 'sandbox' | 'production';
+  is_active: boolean;
+  updated_at: string;
+}
+
 export interface UserRegistrationRequest {
   provider?: string;
   provider_uid: string;

@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { query } from './db';
 import { sendLinePushShuttleCarousel } from './line-messaging';
 import { logError } from '@/lib/logger';
+import { fetchActiveDevicePushTokensForUsers } from './push-tokens';
+import { isApnsConfigured, sendApnsNotification } from './apns';
 
 interface ArrivedStopRow {
   sequence: number;
@@ -17,7 +19,7 @@ interface NextStopRow {
 interface TargetUserRow {
   user_id: string;
   route_stop_id: string;
-  provider_uid: string;
+  provider_uid: string | null;
   preferred_language: 'ko' | 'en';
 }
 
@@ -28,7 +30,7 @@ interface NotificationTemplate {
   bodyEn: string;
 }
 
-function buildApproachingTemplate(
+export function buildApproachingTemplate(
   stopsAway: 1 | 2,
 ): NotificationTemplate {
   return {
@@ -42,7 +44,7 @@ function buildApproachingTemplate(
 interface PendingNotification {
   id: string;
   userId: string;
-  providerUid: string;
+  providerUid: string | null;
   preferredLanguage: 'ko' | 'en';
   routeStopId: string;
   routeCode: string;
@@ -66,19 +68,60 @@ function buildInsertPlaceholders(rowCount: number, columnCount: number): string 
 async function sendPushNotifications(
   notifications: PendingNotification[],
 ): Promise<void> {
+  const pushTokensByUserId = await fetchActiveDevicePushTokensForUsers(
+    notifications.map((notification) => notification.userId),
+  );
   const concurrency = 10;
 
   for (let index = 0; index < notifications.length; index += concurrency) {
     const batch = notifications.slice(index, index + concurrency);
     const results = await Promise.allSettled(
-      batch.map((notification) =>
-        sendLinePushShuttleCarousel({
+      batch.map(async (notification) => {
+        const title =
+          notification.preferredLanguage === 'en'
+            ? notification.titleEn
+            : notification.titleKo;
+        const body =
+          notification.preferredLanguage === 'en'
+            ? notification.bodyEn
+            : notification.bodyKo;
+        const apnsTokens = pushTokensByUserId.get(notification.userId) ?? [];
+
+        if (isApnsConfigured() && apnsTokens.length > 0) {
+          const apnsResults = await Promise.allSettled(
+            apnsTokens.map((token) =>
+              sendApnsNotification({
+                token,
+                payload: {
+                  title,
+                  body,
+                  routeCode: notification.routeCode,
+                  stopsAway: notification.stopsAway,
+                  notificationId: notification.id,
+                  triggerStopId: notification.routeStopId,
+                },
+              }),
+            ),
+          );
+          const deliveredViaApns = apnsResults.some(
+            (result) => result.status === 'fulfilled' && result.value.ok,
+          );
+          if (deliveredViaApns) {
+            return;
+          }
+        }
+
+        if (!notification.providerUid) {
+          throw new Error('No APNS token or LINE provider UID available');
+        }
+
+        await sendLinePushShuttleCarousel({
           to: notification.providerUid,
           language: notification.preferredLanguage,
           routeCode: notification.routeCode,
           stopsAway: notification.stopsAway,
-        }),
-      ),
+        });
+      }),
     );
 
     results.forEach((result, batchIndex) => {
@@ -145,7 +188,7 @@ export async function notifyApproachingUsers(
        COALESCE(u.preferred_language, 'ko')::text AS preferred_language
      FROM user_registrations ur
      JOIN users u ON u.id = ur.user_id
-     JOIN user_identities ui
+     LEFT JOIN user_identities ui
        ON ui.user_id = ur.user_id
       AND ui.provider = 'line'
      WHERE ur.route_stop_id IN (${placeholders})

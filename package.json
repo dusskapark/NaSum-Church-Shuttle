@@ -24,6 +24,7 @@
     "@vis.gl/react-google-maps": "^1.5.4",
     "antd-mobile": "^5.42.3",
     "antd-mobile-icons": "^0.3.0",
+    "bcryptjs": "^3.0.3",
     "i18n-js": "4.5.3",
     "jose": "^5.9.6",
     "next": "^15.3.1",

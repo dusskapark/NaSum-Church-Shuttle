@@ -49,6 +49,7 @@ export interface StoredAuth {
   phone: string | null;
   role: UserRole;
   idToken: string;
+  sessionToken?: string;
 }
 
 export function isIdTokenExpired(idToken: string): boolean {
@@ -326,9 +327,15 @@ export async function storeAuthFromBackend(): Promise<StoredAuth> {
   }
 
   const auth = (await res.json()) as Partial<StoredAuth>;
-  if (!auth.userId || !auth.providerUid || !auth.idToken) {
+  const sessionToken = auth.sessionToken ?? auth.idToken;
+  if (!auth.userId || !auth.providerUid || !sessionToken) {
     throw new Error('line-auth failed: invalid session payload');
   }
-  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
-  return auth as StoredAuth;
+  const normalizedAuth: StoredAuth = {
+    ...(auth as StoredAuth),
+    idToken: sessionToken,
+    sessionToken,
+  };
+  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalizedAuth));
+  return normalizedAuth;
 }

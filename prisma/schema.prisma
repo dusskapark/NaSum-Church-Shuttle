@@ -10,11 +10,14 @@ model User {
   id                         String             @id @default(cuid())
   display_name               String?
   picture_url                String?
+  email                      String?
   role                       String             @default("rider")
   preferred_language         String             @default("ko")
   push_notifications_enabled Boolean            @default(true)
   created_at                 DateTime           @default(now())
+  device_push_tokens         DevicePushToken[]
   identities                 UserIdentity[]
+  password_credential        PasswordCredential?
   registrations              UserRegistration[]
   scan_events                ScanEvent[]
 
@@ -23,16 +26,53 @@ model User {
 }
 
 model UserIdentity {
-  id           String   @id @default(cuid())
-  user_id      String
-  provider     String
-  provider_uid String
-  created_at   DateTime @default(now())
-  user         User     @relation(fields: [user_id], references: [id])
+  id             String    @id @default(cuid())
+  user_id        String
+  provider       String
+  provider_uid   String
+  provider_email String?
+  email_verified Boolean   @default(false)
+  last_login_at  DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now())
+  user           User      @relation(fields: [user_id], references: [id])
 
   @@unique([provider, provider_uid])
   @@index([user_id])
+  @@index([provider_email])
   @@map("user_identities")
+}
+
+model PasswordCredential {
+  user_id         String    @id
+  email           String    @unique
+  password_hash   String
+  is_active       Boolean   @default(true)
+  failed_attempts Int       @default(0)
+  locked_until    DateTime?
+  last_login_at   DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @default(now())
+  user            User      @relation(fields: [user_id], references: [id])
+
+  @@map("password_credentials")
+}
+
+model DevicePushToken {
+  id               String   @id @default(cuid())
+  user_id          String
+  platform         String
+  token            String   @unique
+  bundle_id        String
+  apns_environment String
+  is_active        Boolean  @default(true)
+  last_seen_at     DateTime @default(now())
+  created_at       DateTime @default(now())
+  updated_at       DateTime @default(now())
+  user             User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, is_active])
+  @@map("device_push_tokens")
 }
 
 model Route {

@@ -45,35 +45,28 @@ export async function GET(request: NextRequest) {
   } | null = null;
 
   if (actor) {
-    const identity = await queryOne<{ user_id: string }>(
-      `SELECT user_id FROM user_identities WHERE provider = 'line' AND provider_uid = $1`,
-      [actor.providerUid],
+    const idempotencyKey = `${actor.userId}:${run.id}`;
+    const existingCheckin = await queryOne<{ id: string; route_stop_id: string }>(
+      `SELECT id, route_stop_id FROM scan_events WHERE idempotency_key = $1`,
+      [idempotencyKey],
     );
 
-    if (identity) {
-      const idempotencyKey = `${identity.user_id}:${run.id}`;
-      const existingCheckin = await queryOne<{ id: string; route_stop_id: string }>(
-        `SELECT id, route_stop_id FROM scan_events WHERE idempotency_key = $1`,
-        [idempotencyKey],
+    if (existingCheckin) {
+      const count = await queryOne<{ total: bigint | number }>(
+        `SELECT COALESCE(SUM(1 + additional_passengers), 0) AS total
+           FROM scan_events WHERE run_id = $1 AND route_stop_id = $2`,
+        [run.id, existingCheckin.route_stop_id],
       );
 
-      if (existingCheckin) {
-        const count = await queryOne<{ total: bigint | number }>(
-          `SELECT COALESCE(SUM(1 + additional_passengers), 0) AS total
-           FROM scan_events WHERE run_id = $1 AND route_stop_id = $2`,
-          [run.id, existingCheckin.route_stop_id],
-        );
-
-        myCheckin = {
-          checkin_id: existingCheckin.id,
+      myCheckin = {
+        checkin_id: existingCheckin.id,
+        route_stop_id: existingCheckin.route_stop_id,
+        stop_state: {
           route_stop_id: existingCheckin.route_stop_id,
-          stop_state: {
-            route_stop_id: existingCheckin.route_stop_id,
-            total_passengers: Number(count?.total ?? 0),
-            status: 'arrived',
-          },
-        };
-      }
+          total_passengers: Number(count?.total ?? 0),
+          status: 'arrived',
+        },
+      };
     }
   }
 

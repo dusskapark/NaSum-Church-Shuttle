@@ -24,8 +24,10 @@ export async function getActor(
   ) {
     return {
       userId: 'dev-user-001',
-      providerUid: 'dev-user-001',
       role: 'admin',
+      authProvider: 'dev',
+      identityId: 'dev-user-001',
+      providerUid: 'dev-user-001',
     };
   }
   try {

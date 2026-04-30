@@ -11,6 +11,8 @@ interface PrivilegedUser {
   display_name: string | null;
   picture_url: string | null;
   role: string;
+  provider: string;
+  provider_uid: string;
 }
 
 export default function AdminUsersPage() {
@@ -25,10 +27,13 @@ export default function AdminUsersPage() {
   });
 
   const [assignUserId, setAssignUserId] = useState('');
+  const [assignProvider, setAssignProvider] = useState<
+    'line' | 'apple' | 'google' | 'email_password'
+  >('line');
   const [assignRole, setAssignRole] = useState<'admin' | 'driver'>('driver');
 
   const assignMutation = useMutation({
-    mutationFn: (params: { provider_uid: string; role: string }) =>
+    mutationFn: (params: { provider_uid: string; provider: string; role: string }) =>
       mutateApi<void>('/api/v1/admin/users', {
         method: 'POST',
         body: params,
@@ -61,9 +66,10 @@ export default function AdminUsersPage() {
     if (!assignUserId.trim()) return;
     assignMutation.mutate({
       provider_uid: assignUserId.trim(),
+      provider: assignProvider,
       role: assignRole,
     });
-  }, [assignUserId, assignRole, assignMutation]);
+  }, [assignUserId, assignProvider, assignRole, assignMutation]);
 
   const handleRevokeRole = useCallback(
     (userId: string) => {
@@ -100,6 +106,26 @@ export default function AdminUsersPage() {
             color: 'var(--app-color-title)',
           }}
         />
+        <select
+          value={assignProvider}
+          onChange={(e) =>
+            setAssignProvider(
+              e.target.value as 'line' | 'apple' | 'google' | 'email_password',
+            )
+          }
+          style={{
+            padding: '8px 12px',
+            borderRadius: 8,
+            border: '1px solid var(--app-color-border)',
+            background: 'var(--adm-color-background)',
+            color: 'var(--app-color-title)',
+          }}
+        >
+          <option value="line">LINE</option>
+          <option value="apple">Apple</option>
+          <option value="google">Google</option>
+          <option value="email_password">Email</option>
+        </select>
         <select
           value={assignRole}
           onChange={(e) => setAssignRole(e.target.value as 'admin' | 'driver')}
@@ -167,14 +193,17 @@ export default function AdminUsersPage() {
                 </Button>
               }
               description={
-                <Tag
-                  color={u.role === 'admin' ? 'primary' : 'default'}
-                  fill="outline"
-                >
-                  {u.role === 'admin'
-                    ? t('admin.roleAdmin')
-                    : t('admin.roleDriver')}
-                </Tag>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <Tag
+                    color={u.role === 'admin' ? 'primary' : 'default'}
+                    fill="outline"
+                  >
+                    {u.role === 'admin'
+                      ? t('admin.roleAdmin')
+                      : t('admin.roleDriver')}
+                  </Tag>
+                  <Tag fill="outline">{u.provider}</Tag>
+                </div>
               }
             >
               {u.display_name ?? u.user_id}

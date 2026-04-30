@@ -1,5 +1,6 @@
 .env.local
 .env*.local
+.DS_Store
 .next
 node_modules
 coverage
@@ -10,3 +11,11 @@ dist
 reference/
 .vercel
 test-results/
+.xcode-source-packages/
+*.mobileprovision
+*.p8
+ios/NaSumShuttle/Config/Secrets.xcconfig
+ios/**/xcuserdata/
+ios/.derived-simulator/
+ios/.DS_Store
+DerivedData/

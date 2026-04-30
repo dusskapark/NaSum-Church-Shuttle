@@ -1,0 +1,24 @@
+{
+  "originHash" : "e3ca8b08b53ad56b64edb844cb32c494593fa61bef9a2dd60b30882b049f0aa4",
+  "pins" : [
+    {
+      "identity" : "ios-maps-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/googlemaps/ios-maps-sdk",
+      "state" : {
+        "branch" : "main",
+        "revision" : "f2f8341edc8e9a6155f43ce788d4d2f91497177a"
+      }
+    },
+    {
+      "identity" : "line-sdk-ios-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/line/line-sdk-ios-swift",
+      "state" : {
+        "branch" : "master",
+        "revision" : "574643ea9316adcefcc88944b4eba1be9ab06588"
+      }
+    }
+  ],
+  "version" : 3
+}

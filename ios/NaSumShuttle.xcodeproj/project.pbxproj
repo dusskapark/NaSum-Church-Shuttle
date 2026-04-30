@@ -1,0 +1,412 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A0B0C0D11E00000000000001 /* NaSumShuttleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000001 /* NaSumShuttleApp.swift */; };
+		A0B0C0D11E00000000000002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000002 /* AppModel.swift */; };
+		A0B0C0D11E00000000000003 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000003 /* Configuration.swift */; };
+		A0B0C0D11E00000000000004 /* LineAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000004 /* LineAuthManager.swift */; };
+		A0B0C0D11E00000000000005 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000005 /* APIClient.swift */; };
+		A0B0C0D11E00000000000006 /* PushNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000006 /* PushNotificationManager.swift */; };
+		A0B0C0D11E00000000000007 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000007 /* APIModels.swift */; };
+		A0B0C0D11E00000000000008 /* PreviewFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000008 /* PreviewFixtures.swift */; };
+		A0B0C0D11E00000000000009 /* Maps.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000009 /* Maps.swift */; };
+		A0B0C0D11E0000000000000A /* RiderViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E0000000000000A /* RiderViews.swift */; };
+		A0B0C0D11E0000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E0000000000000B /* Assets.xcassets */; };
+		A0B0C0D11E0000000000000C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E0000000000000C /* Preview Assets.xcassets */; };
+		A0B0C0D11E0000000000000D /* LineSDK in Frameworks */ = {isa = PBXBuildFile; productRef = A0B0C0DA1E00000000000001 /* LineSDK */; };
+		A0B0C0D11E0000000000000E /* GoogleMaps in Frameworks */ = {isa = PBXBuildFile; productRef = A0B0C0DA1E00000000000002 /* GoogleMaps */; };
+		A0B0C0D11E0000000000000F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000013 /* LaunchScreen.storyboard */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A0B0C0D51E00000000000001 /* NaSumShuttleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaSumShuttleApp.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000002 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000003 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000004 /* LineAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineAuthManager.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000005 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000006 /* PushNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationManager.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000007 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000008 /* PreviewFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewFixtures.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000009 /* Maps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Maps.swift; sourceTree = "<group>"; };
+		A0B0C0D51E0000000000000A /* RiderViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiderViews.swift; sourceTree = "<group>"; };
+		A0B0C0D51E0000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A0B0C0D51E0000000000000C /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		A0B0C0D51E0000000000000D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A0B0C0D51E0000000000000E /* NaSumShuttle.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NaSumShuttle.entitlements; sourceTree = "<group>"; };
+		A0B0C0D51E0000000000000F /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000010 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000011 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000012 /* NaSumShuttle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = NaSumShuttle.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A0B0C0D51E00000000000013 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A0B0C0D21E00000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A0B0C0D11E0000000000000D /* LineSDK in Frameworks */,
+				A0B0C0D11E0000000000000E /* GoogleMaps in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A0B0C0D31E00000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D31E00000000000002 /* NaSumShuttle */,
+				A0B0C0D31E00000000000009 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E00000000000002 /* NaSumShuttle */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D31E00000000000003 /* AppShell */,
+				A0B0C0D31E00000000000004 /* Auth */,
+				A0B0C0D31E00000000000005 /* Networking */,
+				A0B0C0D31E00000000000006 /* Push */,
+				A0B0C0D31E00000000000007 /* RiderFeatures */,
+				A0B0C0D31E00000000000008 /* SharedModels */,
+				A0B0C0D31E0000000000000A /* Config */,
+				A0B0C0D31E0000000000000B /* Resources */,
+			);
+			path = NaSumShuttle;
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E00000000000003 /* AppShell */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E00000000000001 /* NaSumShuttleApp.swift */,
+				A0B0C0D51E00000000000002 /* AppModel.swift */,
+			);
+			path = AppShell;
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E00000000000004 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E00000000000004 /* LineAuthManager.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E00000000000005 /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E00000000000005 /* APIClient.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E00000000000006 /* Push */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E00000000000006 /* PushNotificationManager.swift */,
+			);
+			path = Push;
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E00000000000007 /* RiderFeatures */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E00000000000009 /* Maps.swift */,
+				A0B0C0D51E0000000000000A /* RiderViews.swift */,
+			);
+			path = RiderFeatures;
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E00000000000008 /* SharedModels */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E00000000000007 /* APIModels.swift */,
+				A0B0C0D51E00000000000008 /* PreviewFixtures.swift */,
+			);
+			path = SharedModels;
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E00000000000009 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E00000000000012 /* NaSumShuttle.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E0000000000000A /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E00000000000003 /* Configuration.swift */,
+				A0B0C0D51E0000000000000D /* Info.plist */,
+				A0B0C0D51E0000000000000E /* NaSumShuttle.entitlements */,
+				A0B0C0D51E0000000000000F /* Debug.xcconfig */,
+				A0B0C0D51E00000000000010 /* Release.xcconfig */,
+				A0B0C0D51E00000000000011 /* Secrets.xcconfig.example */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E0000000000000B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E0000000000000B /* Assets.xcassets */,
+				A0B0C0D51E00000000000013 /* LaunchScreen.storyboard */,
+				A0B0C0D31E0000000000000C /* Preview Content */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E0000000000000C /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E0000000000000C /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A0B0C0D01E00000000000001 /* NaSumShuttle */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A0B0C0D71E00000000000001 /* Build configuration list for PBXNativeTarget "NaSumShuttle" */;
+			buildPhases = (
+				A0B0C0D21E00000000000002 /* Sources */,
+				A0B0C0D21E00000000000001 /* Frameworks */,
+				A0B0C0D21E00000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NaSumShuttle;
+			packageProductDependencies = (
+				A0B0C0DA1E00000000000001 /* LineSDK */,
+				A0B0C0DA1E00000000000002 /* GoogleMaps */,
+			);
+			productName = NaSumShuttle;
+			productReference = A0B0C0D51E00000000000012 /* NaSumShuttle.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A0B0C0D41E00000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 2640;
+				TargetAttributes = {
+					A0B0C0D01E00000000000001 = {
+						CreatedOnToolsVersion = 26.4.1;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = A0B0C0D71E00000000000002 /* Build configuration list for PBXProject "NaSumShuttle" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A0B0C0D31E00000000000001;
+			packageReferences = (
+				A0B0C0D91E00000000000001 /* XCRemoteSwiftPackageReference "line-sdk-ios-swift" */,
+				A0B0C0D91E00000000000002 /* XCRemoteSwiftPackageReference "ios-maps-sdk" */,
+			);
+			productRefGroup = A0B0C0D31E00000000000009 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A0B0C0D01E00000000000001 /* NaSumShuttle */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A0B0C0D21E00000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A0B0C0D11E0000000000000B /* Assets.xcassets in Resources */,
+				A0B0C0D11E0000000000000C /* Preview Assets.xcassets in Resources */,
+				A0B0C0D11E0000000000000F /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A0B0C0D21E00000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A0B0C0D11E00000000000001 /* NaSumShuttleApp.swift in Sources */,
+				A0B0C0D11E00000000000002 /* AppModel.swift in Sources */,
+				A0B0C0D11E00000000000003 /* Configuration.swift in Sources */,
+				A0B0C0D11E00000000000004 /* LineAuthManager.swift in Sources */,
+				A0B0C0D11E00000000000005 /* APIClient.swift in Sources */,
+				A0B0C0D11E00000000000006 /* PushNotificationManager.swift in Sources */,
+				A0B0C0D11E00000000000007 /* APIModels.swift in Sources */,
+				A0B0C0D11E00000000000008 /* PreviewFixtures.swift in Sources */,
+				A0B0C0D11E00000000000009 /* Maps.swift in Sources */,
+				A0B0C0D11E0000000000000A /* RiderViews.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A0B0C0D61E00000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+			};
+			name = Debug;
+		};
+		A0B0C0D61E00000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A0B0C0D61E00000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A0B0C0D51E0000000000000F /* Debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = NaSumShuttle/Config/NaSumShuttle.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"NaSumShuttle/Resources/Preview Content\"";
+				DEVELOPMENT_TEAM = ZQC7QNZ4J8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NaSumShuttle/Config/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APNS_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A0B0C0D61E00000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A0B0C0D51E00000000000010 /* Release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = NaSumShuttle/Config/NaSumShuttle.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"NaSumShuttle/Resources/Preview Content\"";
+				DEVELOPMENT_TEAM = "$(APNS_TEAM_ID)";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NaSumShuttle/Config/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APNS_BUNDLE_ID)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A0B0C0D71E00000000000001 /* Build configuration list for PBXNativeTarget "NaSumShuttle" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A0B0C0D61E00000000000003 /* Debug */,
+				A0B0C0D61E00000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A0B0C0D71E00000000000002 /* Build configuration list for PBXProject "NaSumShuttle" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A0B0C0D61E00000000000001 /* Debug */,
+				A0B0C0D61E00000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A0B0C0D91E00000000000001 /* XCRemoteSwiftPackageReference "line-sdk-ios-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/line/line-sdk-ios-swift";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+		A0B0C0D91E00000000000002 /* XCRemoteSwiftPackageReference "ios-maps-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googlemaps/ios-maps-sdk";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A0B0C0DA1E00000000000001 /* LineSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A0B0C0D91E00000000000001 /* XCRemoteSwiftPackageReference "line-sdk-ios-swift" */;
+			productName = LineSDK;
+		};
+		A0B0C0DA1E00000000000002 /* GoogleMaps */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A0B0C0D91E00000000000002 /* XCRemoteSwiftPackageReference "ios-maps-sdk" */;
+			productName = GoogleMaps;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A0B0C0D41E00000000000001 /* Project object */;
+}

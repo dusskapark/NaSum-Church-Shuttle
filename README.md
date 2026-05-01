@@ -1,12 +1,12 @@
-# NaSum Church Shuttle (Frontend Reboot)
+# NaSum Church Shuttle
 
-기존 프론트엔드를 걷어내고 [`YKizou/Uber-Clone`](https://github.com/YKizou/Uber-Clone) 흐름을 기준으로 다시 시작한 버전입니다.
+나섬교회 셔틀 탑승, 노선 확인, QR 스캔, 관리자 운영을 위한 Next.js/LIFF 기반 앱입니다.
 
 ## 변경 포인트
 
-- 페이지 구조를 Uber-Clone 스타일(`index → search → confirm`)로 재구성
-- 지도/지오코딩/경로 시간 계산은 **원본 프로젝트 기준(Mapbox)** 으로 유지
-- Mapbox Directions API 응답 기반으로 예상 소요시간/요금을 계산
+- 탑승자용 노선/정류장 확인 화면 제공
+- LIFF 기반 QR 스캔 및 LINE 사용자 인증 흐름 제공
+- 관리자용 노선, 운행, 탑승 등록 관리 화면 제공
 
 ## 실행 방법
 

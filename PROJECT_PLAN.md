@@ -20,7 +20,7 @@
 - Auth/Identity: **LINE LIFF + LINE Login + Neon Auth(운영자용)**
 - Map: **OpenStreetMap**
 - Messaging: **LINE LIFF + LINE Messaging API**
-- Analytics: **Google Analytics 4 (GA4)**
+- Analytics: **운영 이벤트 로그 기반 분석**
 - Deployment: **Vercel Hobby (Web/API), Neon (DB)**
 
 ---
@@ -54,7 +54,7 @@
 - 사용자 탑승 이력 조회
 - 운영자용 이벤트 모니터링 페이지(웹)
 - LINE Messaging API 채널 구성, webhook 검증, push 발송
-- GA4 이벤트 수집(핵심 퍼널 중심)
+- 핵심 퍼널 이벤트 수집
 - Vercel+Neon 중심 배포 자동화
 - `/api/health`, `/api/ready` 기반 운영 점검
 - 환경변수/배포 체크리스트 문서화
@@ -143,7 +143,7 @@
 - 홈 또는 노선 상세에서 정류장 마커를 시각화해야 한다.
 - 현재 정류장/다음 정류장 상태를 구분 표시해야 한다.
 
-### FR-07. 분석 이벤트 수집 (GA4)
+### FR-07. 분석 이벤트 수집
 - 최소 이벤트: `liff_open`, `scan_start`, `scan_success`, `scan_fail`, `history_view`, `admin_event_fix`
 - 이벤트 파라미터: `route_id`, `stop_id`, `result_code`, `latency_ms`, `user_type`
 
@@ -181,7 +181,7 @@
 
 ### NFR-04. 운영/관측성
 - 서버 로그에 `request_id`, `user_id(hash)`, `result_code`를 남겨야 한다.
-- 오류율 임계치 초과 시 알림(예: Slack Webhook) 연동 가능 구조 확보
+- 오류율 임계치 초과 시 운영 알림 웹훅 연동 가능 구조 확보
 - Prisma 쿼리 실패/타임아웃을 추적할 수 있어야 한다.
 - LINE webhook 검증 실패 및 LINE push 발송 실패를 추적할 수 있어야 한다.
 
@@ -253,8 +253,8 @@ LINE App
 - Prisma Client 재사용 패턴 적용
 - 에러 응답 코드 표준화
 
-### 8.8 분석 (GA4)
-- 환경별 Measurement ID 분리(dev/stage/prod)
+### 8.8 분석
+- 환경별 이벤트 로그 분리(dev/stage/prod)
 - 개인정보 직접 식별값 전송 금지
 
 ---
@@ -362,7 +362,7 @@ LINE App
 
 ### 14.1 무료 플랜 운영 원칙
 1. 프론트엔드와 API는 단일 Next.js 프로젝트로 운영한다.
-2. 데이터베이스는 Supabase Free를 사용하되 pooled connection을 우선 검토한다.
+2. 데이터베이스는 Neon을 사용하되 pooled connection을 우선 검토한다.
 3. 비용이 증가하는 요소는 알림/관측 지표로 먼저 감지하고, 임계치 도달 전 유료 전환을 판단한다.
 
 ### 14.2 주의사항
@@ -370,7 +370,7 @@ LINE App
    - 무료 플랜의 함수 실행/리소스 제한을 넘지 않도록 API 로직을 가볍게 유지한다.
 2. **DB 커넥션 관리**
    - 서버리스에서 커넥션 폭증 방지가 필요하다.
-   - Supabase pooler와 Prisma 설정을 함께 점검한다.
+   - Neon pooled connection과 Prisma 설정을 함께 점검한다.
 3. **정책 변경 가능성**
    - 무료 플랜 한도는 변경될 수 있으므로 배포 시점에 최신 공식 문서를 재확인한다.
 4. **확장 기준 사전 정의**
@@ -402,7 +402,7 @@ LINE App
    - LIFF와 Messaging API는 같은 LINE 생태계 채널 운영 기준에서 관리한다.
 5. **배포/운영 워크스트림**
    - Vercel 배포 후 LIFF Endpoint와 LINE Webhook URL을 실제 배포 URL로 갱신한다.
-   - LINE Console Verify, 테스트 push 메시지, `/api/ready`, GA4 이벤트를 운영 시작 전 최종 검증한다.
+   - LINE Console Verify, 테스트 push 메시지, `/api/ready`, 핵심 이벤트 로그를 운영 시작 전 최종 검증한다.
 
 ### Phase 0 (1주): 기획/설계 확정
 - PRD, IA, 데이터 모델, KPI 사인오프
@@ -430,7 +430,7 @@ LINE App
 - Vercel 배포 + 환경변수 등록
 - LIFF Endpoint URL 갱신
 - LINE Webhook URL 갱신 + Verify + Use webhook 활성화
-- GA4 대시보드 검증
+- 운영 이벤트 로그 검증
 - 성능 최적화 및 버그 픽스
 
 ### Phase 4 (운영 시작 직전): 운영 검증
@@ -482,7 +482,7 @@ LINE App
 - 사용자는 LINE에서 LIFF 앱을 열고 60초 내 첫 스캔 완료 가능해야 한다.
 - 중복 스캔은 100% `DUPLICATE`로 분류되어야 한다.
 - 관리자 페이지에서 실패 이벤트를 필터링하고 사유를 확인할 수 있어야 한다.
-- GA4에서 핵심 퍼널(진입→스캔시작→성공)을 일 단위로 확인 가능해야 한다.
+- 운영 이벤트 로그에서 핵심 퍼널(진입→스캔시작→성공)을 일 단위로 확인 가능해야 한다.
 - `/api/health`와 `/api/ready`가 프로덕션에서 정상 응답해야 한다.
 - LINE Console Verify 요청이 `POST /api/webhooks/line`에서 200으로 통과해야 한다.
 - 친구 추가된 테스트 계정에 LINE push 메시지 1건 발송이 성공해야 한다.
@@ -492,7 +492,7 @@ LINE App
 
 ## 19. 오픈 이슈 (결정 필요)
 
-1. 운영자 인증 수단: Supabase Auth 단독 vs 사내 SSO
+1. 운영자 인증 수단: 이메일 기반 로그인 vs 사내 SSO
 2. 지도 라이브러리: Leaflet vs MapLibre 최종 선택
 3. 스캔 실패 자동 재시도 정책(클라이언트/서버)
 4. 개인정보 보존 기간 및 삭제 정책
@@ -506,8 +506,6 @@ LINE App
 - Vercel Functions limits: https://vercel.com/docs/functions/limitations
 - Vercel Hobby plan: https://vercel.com/docs/plans/hobby
 - Vercel + Next.js: https://vercel.com/docs/frameworks/full-stack/nextjs
-- Supabase Postgres 연결: https://supabase.com/docs/guides/database/connecting-to-postgres
-- Supabase Pricing: https://supabase.com/pricing
 - LINE LIFF Getting started: https://developers.line.biz/en/docs/liff/getting-started/
 - LINE LIFF Registering apps: https://developers.line.biz/en/docs/liff/registering-liff-apps/
 - LINE Login Getting started: https://developers.line.biz/en/docs/line-login/getting-started/
@@ -516,4 +514,4 @@ LINE App
 
 ## 21. 한 줄 결론
 
-NaSum Church Shuttle v1은 **LIFF 기반 스캔 경험을 중심으로 Next.js/React UI, Next.js API, Supabase Postgres, Prisma, OSM 지도, LINE Messaging API, GA4 분석, Vercel Hobby 배포 체계를 결합**해 "빠른 탑승 처리 + 운영 가시성 + LINE 기반 알림 + 무료 플랜 기반 빠른 MVP 운영"을 달성하는 것을 목표로 한다.
+NaSum Church Shuttle v1은 **LIFF 기반 스캔 경험을 중심으로 Next.js/React UI, Next.js API, Neon Postgres, Prisma, OSM 지도, LINE Messaging API, 운영 이벤트 로그, Vercel Hobby 배포 체계를 결합**해 "빠른 탑승 처리 + 운영 가시성 + LINE 기반 알림 + 무료 플랜 기반 빠른 MVP 운영"을 달성하는 것을 목표로 한다.

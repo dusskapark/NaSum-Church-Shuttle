@@ -182,7 +182,9 @@ export function getStopCandidates(routes: RouteWithStops[]): StopCandidate[] {
           googleMapsUrl: route.google_maps_url,
           address: stop.place.address,
           formattedAddress: stop.place.formatted_address,
+          primaryType: stop.place.primary_type,
           primaryTypeDisplayName: stop.place.primary_type_display_name,
+          placeTypes: stop.place.place_types ?? [],
           stopId: stop.place.stop_id ?? null,
         },
       ];

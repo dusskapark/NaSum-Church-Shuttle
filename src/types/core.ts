@@ -148,7 +148,9 @@ export interface StopCandidate extends PlaceSummary {
   googleMapsUrl: Nullable<string>;
   address: Nullable<string>;
   formattedAddress: Nullable<string>;
+  primaryType: Nullable<string>;
   primaryTypeDisplayName: Nullable<string>;
+  placeTypes: string[];
   stopId: Nullable<string>;
 }
 

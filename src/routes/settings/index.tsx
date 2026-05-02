@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from '@/lib/router';
 import {
   Avatar,
@@ -9,26 +9,30 @@ import {
   Switch,
   Toast,
 } from 'antd-mobile';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Layout from '../../components/Layout';
 import { canAccessAdmin } from '../../lib/roleUtils';
 import { useRegistration } from '../../hooks/useRegistration';
 import { useLineUser, clearStoredAuth } from '../../hooks/useLineUser';
 import { useContainer } from '../../hooks/useContainer';
-import { useAppSettings, type AppLanguage } from '../../lib/app-settings';
+import {
+  useAppSettings,
+  type AppLanguage,
+  type AppTheme,
+} from '../../lib/app-settings';
 import { copyTextToClipboard } from '../../lib/copy-to-clipboard';
 import { useTranslation } from '../../lib/useTranslation';
 import { getRouteLabel } from '../../lib/routeSelectors';
-import { mutateApi } from '../../lib/queries';
-
-const PUSH_PREF_KEY = 'line-shuttle:push-notifications-enabled';
+import { fetchApi, mutateApi } from '../../lib/queries';
+import type { MeResponse } from '@app-types/core';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { user, loading: lineLoading, isReady } = useLineUser();
   const showProfileSkeleton = lineLoading;
   const isAdmin = isReady && !!user && canAccessAdmin(user.role);
-  const { lang, setLang, isDark, toggleTheme } = useAppSettings();
+  const { lang, setLang, theme, setTheme } = useAppSettings();
+  const queryClient = useQueryClient();
   const t = useTranslation();
   useContainer(t('settings.title'));
   const { registration, loading: registrationLoading } = useRegistration(
@@ -36,27 +40,112 @@ export default function SettingsPage() {
     t('common.serverError'),
   );
 
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: () => fetchApi<MeResponse>('/api/v1/me'),
+    enabled: isReady && !!user,
+  });
+
   const prefMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       mutateApi('/api/v1/me/preferences', { method: 'PATCH', body }),
+    onSuccess: (_data, body) => {
+      queryClient.setQueryData<MeResponse>(['me'], (current) => {
+        if (!current) return current;
+
+        const nextLanguage =
+          body.preferred_language === 'en' || body.preferred_language === 'ko'
+            ? body.preferred_language
+            : current.preferredLanguage;
+        const nextPushEnabled =
+          typeof body.push_notifications_enabled === 'boolean'
+            ? body.push_notifications_enabled
+            : current.pushNotificationsEnabled;
+
+        return {
+          ...current,
+          preferredLanguage: nextLanguage,
+          pushNotificationsEnabled: nextPushEnabled,
+        };
+      });
+    },
   });
 
-  const [pushEnabled, setPushEnabled] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    const storedValue = window.localStorage.getItem(PUSH_PREF_KEY);
-    return storedValue === null ? true : storedValue === 'true';
-  });
-  const [pickerVisible, setPickerVisible] = useState(false);
+  const [pushPreferenceOverride, setPushPreferenceOverride] = useState<
+    boolean | null
+  >(null);
+  const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
+  const [themePickerVisible, setThemePickerVisible] = useState(false);
+  const appliedServerLanguageRef = useRef<AppLanguage | null>(null);
+  const pushEnabled =
+    pushPreferenceOverride ?? meQuery.data?.pushNotificationsEnabled ?? true;
   const langLabel =
     lang === 'ko'
       ? t('settings.languageKorean')
       : t('settings.languageEnglish');
+  const themeLabel =
+    theme === 'dark'
+      ? t('settings.themeDark')
+      : theme === 'light'
+        ? t('settings.themeLight')
+        : t('settings.themeSystem');
   const isLoading = lineLoading || registrationLoading;
+  const preferencesLoading = meQuery.isLoading && isReady;
 
   const listStyle = {
     '--border-radius': '12px',
     background: 'var(--app-color-surface)',
     overflow: 'hidden' as const,
+  };
+
+  useEffect(() => {
+    const preferredLanguage = meQuery.data?.preferredLanguage;
+    if (!preferredLanguage) return;
+    if (appliedServerLanguageRef.current === preferredLanguage) return;
+
+    appliedServerLanguageRef.current = preferredLanguage;
+    queueMicrotask(() => {
+      setLang(preferredLanguage);
+    });
+  }, [meQuery.data?.preferredLanguage, setLang]);
+
+  const savePushPreference = (checked: boolean) => {
+    const previousValue = pushEnabled;
+    setPushPreferenceOverride(checked);
+    prefMutation.mutate(
+      { push_notifications_enabled: checked },
+      {
+        onSuccess: () => {
+          setPushPreferenceOverride(null);
+        },
+        onError: () => {
+          setPushPreferenceOverride(previousValue);
+          Toast.show({
+            content: t('settings.pushNotificationsSaveFailed'),
+            duration: 1600,
+          });
+        },
+      },
+    );
+  };
+
+  const saveLanguagePreference = (nextLanguage: AppLanguage) => {
+    if (nextLanguage === lang) return;
+
+    const previousLanguage = lang;
+    setLang(nextLanguage);
+    prefMutation.mutate(
+      { preferred_language: nextLanguage },
+      {
+        onError: () => {
+          setLang(previousLanguage);
+          Toast.show({
+            content: t('settings.languageSaveFailed'),
+            duration: 1600,
+          });
+        },
+      },
+    );
   };
 
   return (
@@ -238,44 +327,47 @@ export default function SettingsPage() {
           extra={
             <Switch
               checked={pushEnabled}
-              onChange={(checked) => {
-                setPushEnabled(checked);
-                window.localStorage.setItem(PUSH_PREF_KEY, String(checked));
-                prefMutation.mutate({ push_notifications_enabled: checked });
-              }}
+              disabled={preferencesLoading || prefMutation.isPending}
+              onChange={savePushPreference}
             />
           }
-          description={t('settings.pushNotificationsHint')}
+          description={
+            preferencesLoading
+              ? t('settings.preferencesLoading')
+              : t('settings.pushNotificationsHint')
+          }
         >
           {t('settings.pushNotifications')}
         </List.Item>
-        {/* </List> */}
-        {/* <List header={t('settings.themeHeader')} style={listStyle}> */}
         <List.Item
           extra={
             <span style={{ color: 'var(--app-color-subtle-text)' }}>
               {langLabel}
             </span>
           }
+          description={
+            preferencesLoading
+              ? t('settings.preferencesLoading')
+              : t('settings.languageHint')
+          }
           onClick={() => {
-            setPickerVisible(true);
+            setLanguagePickerVisible(true);
           }}
         >
           {t('settings.language')}
         </List.Item>
         <List.Item
           extra={
-            <Switch
-              checked={isDark}
-              onChange={(checked) => {
-                if (checked !== isDark) {
-                  toggleTheme();
-                }
-              }}
-            />
+            <span style={{ color: 'var(--app-color-subtle-text)' }}>
+              {themeLabel}
+            </span>
           }
+          description={t('settings.themeHint')}
+          onClick={() => {
+            setThemePickerVisible(true);
+          }}
         >
-          {t('settings.darkMode')}
+          {t('settings.theme')}
         </List.Item>
       </List>
 
@@ -307,17 +399,42 @@ export default function SettingsPage() {
             { label: t('settings.languageKorean'), value: 'ko' },
           ],
         ]}
-        visible={pickerVisible}
+        visible={languagePickerVisible}
         onClose={() => {
-          setPickerVisible(false);
+          setLanguagePickerVisible(false);
         }}
         value={[lang]}
         onConfirm={(value) => {
           const nextLanguage = value[0];
 
           if (nextLanguage === 'en' || nextLanguage === 'ko') {
-            setLang(nextLanguage as AppLanguage);
-            prefMutation.mutate({ preferred_language: nextLanguage });
+            saveLanguagePreference(nextLanguage as AppLanguage);
+          }
+        }}
+      />
+
+      <Picker
+        columns={[
+          [
+            { label: t('settings.themeSystem'), value: 'system' },
+            { label: t('settings.themeLight'), value: 'light' },
+            { label: t('settings.themeDark'), value: 'dark' },
+          ],
+        ]}
+        visible={themePickerVisible}
+        onClose={() => {
+          setThemePickerVisible(false);
+        }}
+        value={[theme]}
+        onConfirm={(value) => {
+          const nextTheme = value[0];
+
+          if (
+            nextTheme === 'system' ||
+            nextTheme === 'light' ||
+            nextTheme === 'dark'
+          ) {
+            setTheme(nextTheme as AppTheme);
           }
         }}
       />

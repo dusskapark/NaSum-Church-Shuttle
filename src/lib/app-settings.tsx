@@ -16,16 +16,21 @@ import {
 } from './app-settings-cookies';
 
 export type AppLanguage = 'en' | 'ko';
-export type AppTheme = 'light' | 'dark';
+export type AppTheme = 'system' | 'light' | 'dark';
+export type ResolvedAppTheme = 'light' | 'dark';
 
 interface AppSettingsContextValue {
   lang: AppLanguage;
   setLang: (lang: AppLanguage) => void;
+  theme: AppTheme;
+  resolvedTheme: ResolvedAppTheme;
+  setTheme: (theme: AppTheme) => void;
   isDark: boolean;
   toggleTheme: () => void;
 }
 
 const LANGUAGE_KEY = 'line-shuttle:language';
+const THEME_KEY = 'line-shuttle:theme';
 const DARK_MODE_KEY = 'line-shuttle:dark-mode';
 
 function setClientCookie(name: string, value: string) {
@@ -59,12 +64,27 @@ function getInitialClientLanguage(initialLang: AppLanguage): AppLanguage {
 function getInitialClientTheme(initialTheme: AppTheme): AppTheme {
   if (typeof window === 'undefined') return initialTheme;
 
+  const storedTheme = window.localStorage.getItem(THEME_KEY);
+  if (
+    storedTheme === 'system' ||
+    storedTheme === 'light' ||
+    storedTheme === 'dark'
+  ) {
+    return storedTheme;
+  }
+
   const storedDark = window.localStorage.getItem(DARK_MODE_KEY);
   if (storedDark === 'true') return 'dark';
   if (storedDark === 'false') return 'light';
-
   const cookieTheme = getCookieValue(APP_THEME_COOKIE);
   return normalizeThemeCookie(cookieTheme ?? initialTheme);
+}
+
+function getSystemTheme(): ResolvedAppTheme {
+  if (typeof window === 'undefined') return 'light';
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
 }
 
 const AppSettingsContext = createContext<AppSettingsContextValue | null>(null);
@@ -85,9 +105,14 @@ export function AppSettingsProvider({
     i18n.locale = nextLang;
     return nextLang;
   });
-  const [isDark, setIsDarkState] = useState<boolean>(
-    getInitialClientTheme(initialTheme) === 'dark',
+  const [theme, setThemeState] = useState<AppTheme>(() =>
+    getInitialClientTheme(initialTheme),
   );
+  const [systemTheme, setSystemTheme] =
+    useState<ResolvedAppTheme>(getSystemTheme);
+  const resolvedTheme: ResolvedAppTheme =
+    theme === 'system' ? systemTheme : theme;
+  const isDark = resolvedTheme === 'dark';
 
   useEffect(() => {
     i18n.locale = lang;
@@ -99,9 +124,9 @@ export function AppSettingsProvider({
   }, [lang]);
 
   useEffect(() => {
-    const nextTheme = normalizeThemeCookie(isDark ? 'dark' : 'light');
+    const nextTheme = normalizeThemeCookie(theme);
     setClientCookie(APP_THEME_COOKIE, nextTheme);
-  }, [isDark]);
+  }, [theme]);
 
   // Read persisted preferences only on client to avoid hydration mismatch.
   useEffect(() => {
@@ -126,7 +151,22 @@ export function AppSettingsProvider({
   }, [initialLang]);
 
   useEffect(() => {
-    if (isDark) {
+    const media = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!media) return;
+
+    const handleChange = () => {
+      setSystemTheme(media.matches ? 'dark' : 'light');
+    };
+
+    handleChange();
+    media.addEventListener('change', handleChange);
+    return () => {
+      media.removeEventListener('change', handleChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (resolvedTheme === 'dark') {
       document.documentElement.setAttribute(
         'data-prefers-color-scheme',
         'dark',
@@ -135,7 +175,7 @@ export function AppSettingsProvider({
     }
 
     document.documentElement.removeAttribute('data-prefers-color-scheme');
-  }, [isDark]);
+  }, [resolvedTheme]);
 
   const value = useMemo<AppSettingsContextValue>(
     () => ({
@@ -145,14 +185,22 @@ export function AppSettingsProvider({
         i18n.locale = nextLang;
         window.localStorage.setItem(LANGUAGE_KEY, nextLang);
       },
+      theme,
+      resolvedTheme,
+      setTheme: (nextTheme) => {
+        setThemeState(nextTheme);
+        window.localStorage.setItem(THEME_KEY, nextTheme);
+        window.localStorage.removeItem(DARK_MODE_KEY);
+      },
       isDark,
       toggleTheme: () => {
-        const nextIsDark = !isDark;
-        setIsDarkState(nextIsDark);
-        window.localStorage.setItem(DARK_MODE_KEY, String(nextIsDark));
+        const nextTheme = isDark ? 'light' : 'dark';
+        setThemeState(nextTheme);
+        window.localStorage.setItem(THEME_KEY, nextTheme);
+        window.localStorage.removeItem(DARK_MODE_KEY);
       },
     }),
-    [isDark, lang],
+    [isDark, lang, resolvedTheme, theme],
   );
 
   return (

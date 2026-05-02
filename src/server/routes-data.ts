@@ -293,7 +293,9 @@ export async function fetchPlaceRouteCandidates(googlePlaceId: string) {
     googleMapsUrl: source.google_maps_url,
     address: source.address,
     formattedAddress: source.formatted_address,
+    primaryType: source.primary_type,
     primaryTypeDisplayName: source.primary_type_display_name,
+    placeTypes: source.place_types ?? [],
     stopId: source.stop_id ?? null,
   };
 
@@ -315,7 +317,9 @@ export async function fetchPlaceRouteCandidates(googlePlaceId: string) {
     googleMapsUrl: row.google_maps_url,
     address: row.address,
     formattedAddress: row.formatted_address,
+    primaryType: row.primary_type,
     primaryTypeDisplayName: row.primary_type_display_name,
+    placeTypes: row.place_types ?? [],
     stopId: row.stop_id ?? null,
   }));
 

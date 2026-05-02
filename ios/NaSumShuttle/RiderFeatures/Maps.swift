@@ -8,12 +8,24 @@ struct ShuttleMap: View {
     let route: RouteDetail?
     let selectedStopId: String?
     let activeStates: [StopBoardingState]
+    var focusedUserLocation: CLLocation?
+    var focusedUserLocationRequestId = 0
+    var bottomPadding: CGFloat = 360
+    var trailingPadding: CGFloat = 18
 
     var body: some View {
         Group {
             if let route {
                 #if canImport(GoogleMaps)
-                GoogleRouteMapView(route: route, selectedStopId: selectedStopId, activeStates: activeStates)
+                GoogleRouteMapView(
+                    route: route,
+                    selectedStopId: selectedStopId,
+                    activeStates: activeStates,
+                    focusedUserLocation: focusedUserLocation,
+                    focusedUserLocationRequestId: focusedUserLocationRequestId,
+                    bottomPadding: bottomPadding,
+                    trailingPadding: trailingPadding
+                )
                 #else
                 MapUnavailableView(title: "Google Maps package missing")
                 #endif
@@ -112,20 +124,27 @@ private struct GoogleRouteMapView: UIViewRepresentable {
     let route: RouteDetail
     let selectedStopId: String?
     let activeStates: [StopBoardingState]
+    let focusedUserLocation: CLLocation?
+    let focusedUserLocationRequestId: Int
+    let bottomPadding: CGFloat
+    let trailingPadding: CGFloat
 
     func makeUIView(context: Context) -> GMSMapView {
         let mapView = GMSMapView(options: GMSMapViewOptions())
-        mapView.isMyLocationEnabled = false
+        mapView.isMyLocationEnabled = true
         mapView.settings.compassButton = false
         mapView.settings.myLocationButton = false
         mapView.settings.rotateGestures = false
         mapView.settings.tiltGestures = false
-        mapView.padding = UIEdgeInsets(top: 72, left: 18, bottom: 360, right: 18)
+        mapView.padding = mapInsets
         return mapView
     }
 
     func updateUIView(_ mapView: GMSMapView, context: Context) {
         mapView.clear()
+        mapView.isMyLocationEnabled = true
+        mapView.settings.myLocationButton = false
+        mapView.padding = mapInsets
 
         let stateLookup = Dictionary(uniqueKeysWithValues: activeStates.map { ($0.routeStopId, $0) })
         let stopPoints = route.stops.map {
@@ -162,11 +181,66 @@ private struct GoogleRouteMapView: UIViewRepresentable {
             marker.map = mapView
         }
 
-        if route.stops.count == 1, let onlyStop = route.stops.first {
-            mapView.camera = GMSCameraPosition(latitude: onlyStop.place.lat, longitude: onlyStop.place.lng, zoom: 14)
-        } else if !route.stops.isEmpty {
-            mapView.animate(with: GMSCameraUpdate.fit(bounds, withPadding: 56))
+        let cameraSignature = routeCameraSignature
+        if context.coordinator.lastRouteCameraSignature != cameraSignature {
+            context.coordinator.lastRouteCameraSignature = cameraSignature
+            if route.stops.count == 1, let onlyStop = route.stops.first {
+                mapView.camera = GMSCameraPosition(latitude: onlyStop.place.lat, longitude: onlyStop.place.lng, zoom: 14)
+            } else if !route.stops.isEmpty {
+                mapView.animate(with: GMSCameraUpdate.fit(bounds, withPadding: 56))
+            }
         }
+
+        if
+            let selectedStopId,
+            let selectedStop = route.stops.first(where: { $0.id == selectedStopId })
+        {
+            let selectedStopCameraSignature = "\(route.routeCode)|\(selectedStopId)"
+            if context.coordinator.lastSelectedStopCameraSignature != selectedStopCameraSignature {
+                context.coordinator.lastSelectedStopCameraSignature = selectedStopCameraSignature
+                mapView.animate(to: GMSCameraPosition(
+                    latitude: selectedStop.place.lat,
+                    longitude: selectedStop.place.lng,
+                    zoom: max(mapView.camera.zoom, 14.2)
+                ))
+            }
+        }
+
+        if
+            let focusedUserLocation,
+            focusedUserLocationRequestId != context.coordinator.lastFocusedUserLocationRequestId
+        {
+            context.coordinator.lastFocusedUserLocationRequestId = focusedUserLocationRequestId
+            mapView.animate(to: GMSCameraPosition(
+                latitude: focusedUserLocation.coordinate.latitude,
+                longitude: focusedUserLocation.coordinate.longitude,
+                zoom: max(mapView.camera.zoom, 15)
+            ))
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    private var mapInsets: UIEdgeInsets {
+        UIEdgeInsets(
+            top: 72,
+            left: 18,
+            bottom: bottomPadding,
+            right: trailingPadding
+        )
+    }
+
+    private var routeCameraSignature: String {
+        let stopIds = route.stops.map(\.id).joined(separator: ",")
+        return "\(route.routeCode)|\(stopIds)"
+    }
+
+    final class Coordinator {
+        var lastRouteCameraSignature: String?
+        var lastSelectedStopCameraSignature: String?
+        var lastFocusedUserLocationRequestId = 0
     }
 
     private func markerIcon(label: String, isSelected: Bool, isArrived: Bool, runActive: Bool) -> UIImage? {

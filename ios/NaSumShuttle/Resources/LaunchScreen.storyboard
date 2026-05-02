@@ -16,18 +16,19 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="NaSum Shuttle" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8bC-Xf-vdC">
-                                <rect key="frame" x="112.5" y="410.5" width="168" height="31"/>
-                                <fontDescription key="fontDescription" type="boldSystem" pointSize="26"/>
-                                <color key="textColor" systemColor="systemGreenColor"/>
-                                <nil key="highlightedColor"/>
-                            </label>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Logo" translatesAutoresizingMaskIntoConstraints="NO" id="logo-image">
+                                <rect key="frame" x="126.5" y="356" width="140" height="140"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="140" id="logo-width"/>
+                                    <constraint firstAttribute="height" constant="140" id="logo-height"/>
+                                </constraints>
+                            </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <color key="backgroundColor" red="0.90196078429999997" green="0.95294117649999999" blue="0.98039215689999999" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="8bC-Xf-vdC" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="4jq-X2-vtm"/>
-                            <constraint firstItem="8bC-Xf-vdC" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="PpX-Xj-3uw"/>
+                            <constraint firstItem="logo-image" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="logo-center-x"/>
+                            <constraint firstItem="logo-image" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="logo-center-y"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -37,11 +38,6 @@
         </scene>
     </scenes>
     <resources>
-        <systemColor name="systemBackgroundColor">
-            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
-        <systemColor name="systemGreenColor">
-            <color red="0.2039215686" green="0.7803921569" blue="0.3490196078" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-        </systemColor>
+        <image name="Logo" width="200" height="201"/>
     </resources>
 </document>

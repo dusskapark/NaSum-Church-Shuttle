@@ -91,6 +91,23 @@ enum AppLanguage: String, Codable, CaseIterable, Sendable {
     }
 }
 
+enum AppThemePreference: String, Codable, CaseIterable, Sendable {
+    case system
+    case light
+    case dark
+
+    func label(language: AppLanguage) -> String {
+        switch self {
+        case .system:
+            return RiderStrings.settingsThemeSystem(language)
+        case .light:
+            return RiderStrings.settingsThemeLight(language)
+        case .dark:
+            return RiderStrings.settingsThemeDark(language)
+        }
+    }
+}
+
 struct RouteSummary: Codable, Identifiable, Sendable {
     let id: String
     let routeCode: String
@@ -203,11 +220,58 @@ struct StopCandidate: Codable, Identifiable, Hashable, Sendable {
     let googleMapsUrl: String?
     let address: String?
     let formattedAddress: String?
+    let primaryType: String?
     let primaryTypeDisplayName: String?
+    let placeTypes: [String]
+    let isTerminal: Bool
     let stopId: String?
     let name: String
     let lat: Double
     let lng: Double
+
+    enum CodingKeys: String, CodingKey {
+        case routeStopId
+        case routeCode
+        case routeLabel
+        case stopOrder
+        case pickupTime
+        case notes
+        case googleMapsUrl
+        case address
+        case formattedAddress
+        case primaryType
+        case primaryTypeDisplayName
+        case placeTypes
+        case isTerminal
+        case stopId
+        case name
+        case lat
+        case lng
+    }
+}
+
+extension StopCandidate {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        routeStopId = try container.decode(String.self, forKey: .routeStopId)
+        routeCode = try container.decode(String.self, forKey: .routeCode)
+        routeLabel = try container.decode(String.self, forKey: .routeLabel)
+        stopOrder = try container.decode(Int.self, forKey: .stopOrder)
+        pickupTime = try container.decodeIfPresent(String.self, forKey: .pickupTime)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
+        googleMapsUrl = try container.decodeIfPresent(String.self, forKey: .googleMapsUrl)
+        address = try container.decodeIfPresent(String.self, forKey: .address)
+        formattedAddress = try container.decodeIfPresent(String.self, forKey: .formattedAddress)
+        primaryType = try container.decodeIfPresent(String.self, forKey: .primaryType)
+        primaryTypeDisplayName = try container.decodeIfPresent(String.self, forKey: .primaryTypeDisplayName)
+        placeTypes = try container.decodeIfPresent([String].self, forKey: .placeTypes) ?? []
+        isTerminal = try container.decodeIfPresent(Bool.self, forKey: .isTerminal) ?? false
+        stopId = try container.decodeIfPresent(String.self, forKey: .stopId)
+        name = try container.decode(String.self, forKey: .name)
+        lat = try container.decode(Double.self, forKey: .lat)
+        lng = try container.decode(Double.self, forKey: .lng)
+    }
 }
 
 struct PlaceRoutesResponse: Codable, Sendable {

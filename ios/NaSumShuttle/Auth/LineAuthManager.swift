@@ -208,6 +208,19 @@ final class LineAuthManager: AuthProviding {
     }
 }
 
+@MainActor
+final class PreviewAuthProvider: AuthProviding {
+    func handleOpenURL(_ url: URL) -> Bool {
+        false
+    }
+
+    func login(presentingViewController: UIViewController?) async throws -> AuthIdentity {
+        throw AuthProviderError.lineConfigurationMissing
+    }
+
+    func logout() async {}
+}
+
 enum SecureStore {
     static func save(_ value: String, service: String, account: String) {
         let data = Data(value.utf8)

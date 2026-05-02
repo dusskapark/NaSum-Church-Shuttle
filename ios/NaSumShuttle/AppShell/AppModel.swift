@@ -1,6 +1,7 @@
 import CoreLocation
 import Foundation
 import Observation
+import SwiftUI
 import UIKit
 
 @MainActor
@@ -15,6 +16,7 @@ final class AppModel {
     private enum Constants {
         static let keychainService = "org.nasumik.NaSumShuttle"
         static let sessionAccount = "session-jwt"
+        static let themePreferenceKey = "org.nasumik.NaSumShuttle.themePreference"
     }
 
     let apiClient: APIClient
@@ -38,14 +40,25 @@ final class AppModel {
     var routeCandidates: [String: PlaceRoutesResponse] = [:]
     var runInfoByRouteCode: [String: CheckInRunInfoResponse] = [:]
     var lastCheckInResponse: CheckInResponse?
+    var themePreference: AppThemePreference = .system {
+        didSet {
+            UserDefaults.standard.set(themePreference.rawValue, forKey: Constants.themePreferenceKey)
+        }
+    }
 
     private let mode: Mode
 
+    private static var isRunningForPreviews: Bool {
+        ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+    }
+
     init(mode: Mode = .live) {
-        self.mode = mode
+        let effectiveMode: Mode = Self.isRunningForPreviews && mode == .live ? .previewLoggedOut : mode
+        self.mode = effectiveMode
         self.apiClient = APIClient()
-        self.authProvider = LineAuthManager()
+        self.authProvider = effectiveMode == .live ? LineAuthManager() : PreviewAuthProvider()
         self.pushManager = PushNotificationManager()
+        self.themePreference = Self.loadThemePreference()
 
         apiClient.sessionTokenProvider = { [weak self] in
             self?.sessionToken
@@ -61,8 +74,11 @@ final class AppModel {
             }
         }
 
-        if mode == .previewLoggedIn {
+        if effectiveMode == .previewLoggedIn {
             applyPreviewState()
+        }
+        if effectiveMode != .live {
+            isBootstrapping = false
         }
     }
 
@@ -70,13 +86,38 @@ final class AppModel {
         sessionToken != nil && currentUser != nil
     }
 
+    var isInitialDataLoading: Bool {
+        isBootstrapping || (isLoading && currentUser == nil)
+    }
+
     var preferredLanguage: AppLanguage {
         currentUser?.preferredLanguage ?? .ko
+    }
+
+    var preferredColorScheme: ColorScheme? {
+        switch themePreference {
+        case .system:
+            return nil
+        case .light:
+            return .light
+        case .dark:
+            return .dark
+        }
     }
 
     var isAdminSurfaceEnabled: Bool {
         guard let role = currentUser?.role else { return false }
         return role == .admin || role == .driver
+    }
+
+    private static func loadThemePreference() -> AppThemePreference {
+        guard
+            let rawValue = UserDefaults.standard.string(forKey: Constants.themePreferenceKey),
+            let preference = AppThemePreference(rawValue: rawValue)
+        else {
+            return .system
+        }
+        return preference
     }
 
     func bootstrap() async {

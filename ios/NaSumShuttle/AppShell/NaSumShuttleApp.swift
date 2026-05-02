@@ -31,6 +31,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" else {
+            return true
+        }
         #if canImport(GoogleMaps)
         importGoogleMapsIfPossible()
         #endif
@@ -59,13 +62,14 @@ struct NaSumShuttleApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(appModel: appModel)
+                .preferredColorScheme(appModel.preferredColorScheme)
                 .task {
                     await appModel.bootstrap()
                 }
                 .onOpenURL { url in
                     _ = appModel.handleIncomingURL(url)
                 }
-                .alert("Error", isPresented: Binding(
+                .alert(RiderStrings.commonServerError(appModel.preferredLanguage), isPresented: Binding(
                     get: { appModel.errorMessage != nil },
                     set: { newValue in
                         if !newValue {

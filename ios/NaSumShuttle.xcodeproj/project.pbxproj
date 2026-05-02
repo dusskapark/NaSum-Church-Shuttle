@@ -17,6 +17,13 @@
 		A0B0C0D11E00000000000008 /* PreviewFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000008 /* PreviewFixtures.swift */; };
 		A0B0C0D11E00000000000009 /* Maps.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000009 /* Maps.swift */; };
 		A0B0C0D11E0000000000000A /* RiderViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E0000000000000A /* RiderViews.swift */; };
+		A0B0C0D11E00000000000020 /* RiderShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000020 /* RiderShellView.swift */; };
+		A0B0C0D11E00000000000021 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000021 /* HomeView.swift */; };
+		A0B0C0D11E00000000000022 /* StopsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000022 /* StopsView.swift */; };
+		A0B0C0D11E00000000000023 /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000023 /* ScanView.swift */; };
+		A0B0C0D11E00000000000024 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000024 /* NotificationsView.swift */; };
+		A0B0C0D11E00000000000025 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000025 /* SettingsView.swift */; };
+		A0B0C0D11E00000000000026 /* SharedUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000026 /* SharedUI.swift */; };
 		A0B0C0D11E0000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E0000000000000B /* Assets.xcassets */; };
 		A0B0C0D11E0000000000000C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E0000000000000C /* Preview Assets.xcassets */; };
 		A0B0C0D11E0000000000000D /* LineSDK in Frameworks */ = {isa = PBXBuildFile; productRef = A0B0C0DA1E00000000000001 /* LineSDK */; };
@@ -35,6 +42,13 @@
 		A0B0C0D51E00000000000008 /* PreviewFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewFixtures.swift; sourceTree = "<group>"; };
 		A0B0C0D51E00000000000009 /* Maps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Maps.swift; sourceTree = "<group>"; };
 		A0B0C0D51E0000000000000A /* RiderViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiderViews.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000020 /* RiderShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiderShellView.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000021 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000022 /* StopsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopsView.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000023 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000024 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000025 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000026 /* SharedUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedUI.swift; sourceTree = "<group>"; };
 		A0B0C0D51E0000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A0B0C0D51E0000000000000C /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A0B0C0D51E0000000000000D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -120,6 +134,13 @@
 			children = (
 				A0B0C0D51E00000000000009 /* Maps.swift */,
 				A0B0C0D51E0000000000000A /* RiderViews.swift */,
+				A0B0C0D51E00000000000020 /* RiderShellView.swift */,
+				A0B0C0D51E00000000000021 /* HomeView.swift */,
+				A0B0C0D51E00000000000022 /* StopsView.swift */,
+				A0B0C0D51E00000000000023 /* ScanView.swift */,
+				A0B0C0D51E00000000000024 /* NotificationsView.swift */,
+				A0B0C0D51E00000000000025 /* SettingsView.swift */,
+				A0B0C0D51E00000000000026 /* SharedUI.swift */,
 			);
 			path = RiderFeatures;
 			sourceTree = "<group>";
@@ -260,6 +281,13 @@
 				A0B0C0D11E00000000000008 /* PreviewFixtures.swift in Sources */,
 				A0B0C0D11E00000000000009 /* Maps.swift in Sources */,
 				A0B0C0D11E0000000000000A /* RiderViews.swift in Sources */,
+				A0B0C0D11E00000000000020 /* RiderShellView.swift in Sources */,
+				A0B0C0D11E00000000000021 /* HomeView.swift in Sources */,
+				A0B0C0D11E00000000000022 /* StopsView.swift in Sources */,
+				A0B0C0D11E00000000000023 /* ScanView.swift in Sources */,
+				A0B0C0D11E00000000000024 /* NotificationsView.swift in Sources */,
+				A0B0C0D11E00000000000025 /* SettingsView.swift in Sources */,
+				A0B0C0D11E00000000000026 /* SharedUI.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -272,16 +300,18 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				ENABLE_TESTABILITY = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+					DEBUG_INFORMATION_FORMAT = dwarf;
+					ENABLE_TESTABILITY = YES;
+					GCC_OPTIMIZATION_LEVEL = 0;
+					GCC_C_LANGUAGE_STANDARD = gnu17;
+					MACOSX_DEPLOYMENT_TARGET = 14.0;
+					ONLY_ACTIVE_ARCH = YES;
+					SDKROOT = iphoneos;
+					SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+					SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				};
+				name = Debug;
 			};
-			name = Debug;
-		};
 		A0B0C0D61E00000000000002 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -316,14 +346,15 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(APNS_BUNDLE_ID)";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					SDKROOT = iphoneos;
+					SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+					SWIFT_EMIT_LOC_STRINGS = YES;
+					SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+					SWIFT_VERSION = 5.0;
+					TARGETED_DEVICE_FAMILY = 1;
+				};
+				name = Debug;
 		};
 		A0B0C0D61E00000000000004 /* Release */ = {
 			isa = XCBuildConfiguration;

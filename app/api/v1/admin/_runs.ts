@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne } from '@/server/db';
 import { error, json, requireActor } from '@/server/http';
 import { logError } from '@/lib/logger';
-import { notifyApproachingUsers } from '@/server/notifications';
+import { enqueueApproachingUsersPushJob } from '@/server/push-jobs';
 
 interface RunRow {
   id: string;
@@ -208,13 +208,15 @@ export async function handleAdminRuns(
     );
 
     if (body.status === 'arrived') {
-      notifyApproachingUsers(runId, stopId).catch((caught) => {
-        logError('[admin-runs] notifyApproachingUsers failed', {
+      try {
+        await enqueueApproachingUsersPushJob(runId, stopId);
+      } catch (caught) {
+        logError('[admin-runs] enqueueApproachingUsersPushJob failed', {
           runId,
           stopId,
           message: caught instanceof Error ? caught.message : String(caught),
         });
-      });
+      }
     }
 
     return json({

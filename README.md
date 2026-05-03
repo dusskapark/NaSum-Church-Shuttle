@@ -30,6 +30,7 @@ DIRECT_URL=postgresql://...
 NEXT_PUBLIC_LIFF_ID=...
 # Optional: localhost development LIFF ID override
 NEXT_PUBLIC_LIFF_ID_DEV=...
+CRON_SECRET=...
 
 # Universal Links / Android App Links
 IOS_UNIVERSAL_LINK_APP_IDS=ZQC7QNZ4J8.sg.nasumchurch.shuttle
@@ -73,7 +74,10 @@ cp .env.local.example .env.local
 
 ## 알림 전송
 
-- 정류장 접근 알림은 앱 내 `/notifications` 기록을 먼저 생성합니다.
+- 체크인/정류장 도착 API는 외부 푸시를 직접 보내지 않고 `notification_push_jobs`에 작업을 기록한 뒤 응답합니다.
+- worker는 `GET` 또는 `POST /api/internal/push-jobs?limit=10`을 `Authorization: Bearer $CRON_SECRET` 헤더와 함께 호출해 대기 중인 작업을 처리합니다. Vercel Cron, QStash, Inngest, Trigger.dev, Cloud Run 같은 외부 scheduler/worker에서 호출할 수 있습니다.
+- worker가 정류장 접근 알림을 처리할 때 앱 내 `/notifications` 기록을 먼저 생성합니다.
 - 사용자가 푸시 알림을 끄면 앱 내 기록은 유지하고 APNS/LINE 외부 발송만 건너뜁니다.
 - iOS device token이 있으면 APNS를 먼저 시도하고, Android FCM token이 있으면 FCM을 시도합니다. 네이티브 push가 없거나 실패하면 LINE Messaging API로 fallback합니다.
 - LINE fallback 링크는 `NEXT_PUBLIC_LIFF_ID`가 있으면 LIFF URL을, 없으면 `NEXT_PUBLIC_APP_URL`을 사용합니다.
+- APNS/FCM/LINE 전송 결과는 `notification_delivery_attempts`에 기록되고, worker job은 실패 시 exponential backoff로 재시도됩니다.

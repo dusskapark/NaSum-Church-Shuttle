@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query, withTransaction } from '@/server/db';
 import { json, error, requireActor } from '@/server/http';
 import { logError } from '@/lib/logger';
-import { notifyApproachingUsers } from '@/server/notifications';
+import { enqueueApproachingUsersPushJob } from '@/server/push-jobs';
 import type { RunRow } from './_shared';
 
 export const dynamic = 'force-dynamic';
@@ -106,13 +106,15 @@ export async function POST(request: NextRequest) {
   if (response instanceof NextResponse) return response;
 
   if (response.is_new_checkin) {
-    notifyApproachingUsers(body.run_id, body.route_stop_id).catch((caught) => {
-      logError('[checkin] notifyApproachingUsers failed', {
+    try {
+      await enqueueApproachingUsersPushJob(body.run_id, body.route_stop_id);
+    } catch (caught) {
+      logError('[checkin] enqueueApproachingUsersPushJob failed', {
         runId: body.run_id,
         routeStopId: body.route_stop_id,
         message: caught instanceof Error ? caught.message : String(caught),
       });
-    });
+    }
   }
 
   return json({

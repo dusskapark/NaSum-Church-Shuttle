@@ -143,6 +143,7 @@ model RouteStop {
   place             Place              @relation(fields: [place_id], references: [id])
   registrations     UserRegistration[]
   scan_events       ScanEvent[]
+  notification_push_jobs NotificationPushJob[]
 
   @@unique([route_id, sequence])
   @@unique([route_id, place_id])
@@ -183,6 +184,7 @@ model ShuttleRun {
   ended_by     String?
   route        Route       @relation(fields: [route_id], references: [id])
   scan_events  ScanEvent[]
+  notification_push_jobs NotificationPushJob[]
 
   @@index([route_id, status])
   @@map("shuttle_runs")
@@ -242,6 +244,31 @@ model NotificationDeliveryAttempt {
   @@index([user_id, attempted_at])
   @@index([channel, status])
   @@map("notification_delivery_attempts")
+}
+
+model NotificationPushJob {
+  id              String    @id @default(cuid())
+  type            String
+  run_id          String
+  trigger_stop_id String
+  payload         Json      @default("{}")
+  status          String    @default("pending")
+  attempts        Int       @default(0)
+  max_attempts    Int       @default(5)
+  available_at    DateTime  @default(now())
+  locked_at       DateTime?
+  locked_by       String?
+  last_error      String?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @default(now())
+  completed_at    DateTime?
+  run             ShuttleRun @relation(fields: [run_id], references: [id])
+  trigger_stop    RouteStop  @relation(fields: [trigger_stop_id], references: [id])
+
+  @@unique([type, run_id, trigger_stop_id])
+  @@index([status, available_at, created_at])
+  @@index([run_id, trigger_stop_id])
+  @@map("notification_push_jobs")
 }
 
 model Schedule {

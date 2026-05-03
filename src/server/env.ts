@@ -22,6 +22,7 @@ const envSchema = z.object({
   MESSAGING_API_CHANNEL_ID: z.string().min(1).optional(),
   MESSAGING_API_CHANNEL_SECRET: z.string().min(1).optional(),
   SESSION_SECRET: z.string().min(32).optional(),
+  CRON_SECRET: z.string().min(1).optional(),
   APNS_BUNDLE_ID: z.string().min(1).optional(),
   APNS_ENVIRONMENT: z.enum(['sandbox', 'production']).optional(),
   APNS_TEAM_ID: z.string().min(1).optional(),
@@ -68,6 +69,7 @@ export const env = envSchema.parse({
     process.env.MESSAGING_API_CHANNEL_SECRET,
   ),
   SESSION_SECRET: optionalEnvValue(process.env.SESSION_SECRET),
+  CRON_SECRET: optionalEnvValue(process.env.CRON_SECRET),
   APNS_BUNDLE_ID: optionalEnvValue(process.env.APNS_BUNDLE_ID),
   APNS_ENVIRONMENT: optionalEnvValue(process.env.APNS_ENVIRONMENT) as
     | 'sandbox'

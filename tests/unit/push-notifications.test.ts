@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { resolveApnsEnvironment } from '@/server/push-tokens';
 import {
+  computePushJobRetryDelaySeconds,
+  normalizePushJobLimit,
+} from '@/server/push-jobs';
+import {
   buildApnsDeliveryPayload,
   buildApproachingTemplate,
   buildFcmDeliveryPayload,
@@ -85,4 +89,18 @@ test('hashDeliveryTarget does not expose raw external identifiers', () => {
     hash,
     hashDeliveryTarget({ channel: 'line', target: rawTarget }),
   );
+});
+
+test('normalizePushJobLimit keeps worker batches bounded', () => {
+  assert.equal(normalizePushJobLimit(null), 10);
+  assert.equal(normalizePushJobLimit('0'), 10);
+  assert.equal(normalizePushJobLimit('7'), 7);
+  assert.equal(normalizePushJobLimit('500'), 50);
+});
+
+test('computePushJobRetryDelaySeconds backs off with a five minute cap', () => {
+  assert.equal(computePushJobRetryDelaySeconds(1), 30);
+  assert.equal(computePushJobRetryDelaySeconds(2), 60);
+  assert.equal(computePushJobRetryDelaySeconds(4), 240);
+  assert.equal(computePushJobRetryDelaySeconds(12), 300);
 });

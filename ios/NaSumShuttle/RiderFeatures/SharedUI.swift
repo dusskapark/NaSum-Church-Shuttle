@@ -171,6 +171,101 @@ struct AppInfoRow: View {
     }
 }
 
+struct ProviderLoginButton: View {
+    enum Style: Equatable {
+        case google
+        case line
+
+        var background: Color {
+            switch self {
+            case .google, .line:
+                return Color.white
+            }
+        }
+
+        var foreground: Color {
+            switch self {
+            case .google, .line:
+                return Color(red: 0.121569, green: 0.121569, blue: 0.121569)
+            }
+        }
+
+        var border: Color {
+            switch self {
+            case .google, .line:
+                return Color(red: 0.454902, green: 0.466667, blue: 0.458824)
+            }
+        }
+
+        var iconName: String {
+            switch self {
+            case .google:
+                return "GoogleSignInG"
+            case .line:
+                return "LineLoginIcon"
+            }
+        }
+
+        var iconSize: CGFloat {
+            switch self {
+            case .google:
+                return 20
+            case .line:
+                return 20
+            }
+        }
+
+        var contentSpacing: CGFloat {
+            switch self {
+            case .google, .line:
+                return 12
+            }
+        }
+
+        var cornerRadius: CGFloat {
+            switch self {
+            case .google, .line:
+                return 4
+            }
+        }
+    }
+
+    let style: Style
+    let title: String
+    let isDisabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: style.contentSpacing) {
+                Image(style.iconName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: style.iconSize, height: style.iconSize)
+
+                Text(title)
+                    .font(.system(size: 14, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.88)
+            }
+            .foregroundStyle(style.foreground)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(style.background, in: RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous)
+                    .stroke(style.border, lineWidth: 1)
+            }
+            .opacity(isDisabled ? 0.55 : 1)
+            .contentShape(RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .accessibilityLabel(title)
+    }
+}
+
 struct SkeletonSection: View {
     let rows: Int
 
@@ -286,211 +381,203 @@ struct SkeletonBlock: View {
 
 enum RiderStrings {
     static func commonLoadingUserName(_ language: AppLanguage) -> String {
-        text(language, en: "Developer", ko: "개발자")
+        text("common.loadingUserName", language)
     }
 
     static func commonServerError(_ language: AppLanguage) -> String {
-        text(language, en: "A server error occurred.", ko: "서버 오류가 발생했습니다.")
+        text("common.serverError", language)
     }
 
     static func commonLine(_ language: AppLanguage) -> String {
-        text(language, en: "LINE", ko: "LINE")
+        text("common.line", language)
     }
 
     static func tabsHome(_ language: AppLanguage) -> String {
-        text(language, en: "Home", ko: "홈")
+        text("tabs.home", language)
     }
 
     static func tabsNotifications(_ language: AppLanguage) -> String {
-        text(language, en: "Alerts", ko: "알림")
+        text("tabs.notifications", language)
     }
 
     static func homeScanQr(_ language: AppLanguage) -> String {
-        text(language, en: "Scan QR Code", ko: "QR 코드 스캔")
+        text("home.scanQr", language)
     }
 
     static func homeRoutesHeader(_ language: AppLanguage) -> String {
-        text(language, en: "Routes", ko: "노선")
+        text("home.routesHeader", language)
     }
 
     static func homeMyRouteHeader(_ language: AppLanguage) -> String {
-        text(language, en: "My Route", ko: "내 노선")
+        text("home.myRouteHeader", language)
     }
 
     static func homeSettings(_ language: AppLanguage) -> String {
-        text(language, en: "Settings", ko: "설정")
+        text("home.settings", language)
     }
 
     static func homeSelectedBadge(_ language: AppLanguage) -> String {
-        text(language, en: "Selected", ko: "선택됨")
+        text("home.selectedBadge", language)
     }
 
     static func homeProfileAriaLabel(_ language: AppLanguage) -> String {
-        text(language, en: "Open settings", ko: "설정 열기")
+        text("home.profileAriaLabel", language)
     }
 
     static func homeFooterLabel(_ language: AppLanguage) -> String {
-        text(language, en: "NaNum and SeomKim Church", ko: "나눔과섬김교회")
+        text("home.footerLabel", language)
     }
 
     static func homeFooterContent(_ language: AppLanguage) -> String {
-        text(
-            language,
-            en: "KPC(SINGAPORE) LTD. 12 Shelford Road Singapore 288370",
-            ko: "KPC(SINGAPORE) LTD. 12 Shelford Road Singapore 288370"
-        )
+        text("home.footerContent", language)
     }
 
     static func homeStopCount(_ count: Int, language: AppLanguage) -> String {
-        text(language, en: "\(count) stops", ko: "\(count) 정류장")
+        "\(count) \(text("home.stopCount", language))"
     }
 
     static func scanTitle(_ language: AppLanguage) -> String {
-        text(language, en: "QR Check-in", ko: "QR 체크인")
+        text("scan.title", language)
     }
 
     static func scanDescription(_ language: AppLanguage) -> String {
-        text(
-            language,
-            en: "Tap the button below to scan the shuttle bus QR code and check in.",
-            ko: "셔틀버스 QR 코드를 스캔하여 탑승을 확인하세요."
-        )
+        text("scan.description", language)
     }
 
     static func scanButton(_ language: AppLanguage) -> String {
-        text(language, en: "QR Scan", ko: "QR 스캔")
+        text("scan.scanButton", language)
     }
 
     static func scanAgainButton(_ language: AppLanguage) -> String {
-        text(language, en: "Scan Again", ko: "다시 스캔")
+        text("scan.scanAgainButton", language)
     }
 
     static func checkinTitle(_ language: AppLanguage) -> String {
-        text(language, en: "Check-in", ko: "체크인")
+        text("checkin.title", language)
     }
 
     static func checkinConfirmTitle(_ language: AppLanguage) -> String {
-        text(language, en: "Ready to board?", ko: "탑승하실 건가요?")
+        text("checkin.confirmTitle", language)
     }
 
     static func checkinWelcomeOnboard(_ language: AppLanguage) -> String {
-        text(language, en: "Welcome onboard!", ko: "탑승을 환영합니다!")
+        text("checkin.welcomeOnboard", language)
     }
 
     static func checkinRoute(_ language: AppLanguage) -> String {
-        text(language, en: "Route", ko: "노선")
+        text("checkin.route", language)
     }
 
     static func checkinSelectStop(_ language: AppLanguage) -> String {
-        text(language, en: "Stop", ko: "정류장")
+        text("checkin.selectStop", language)
     }
 
     static func checkinChooseStop(_ language: AppLanguage) -> String {
-        text(language, en: "Choose stop", ko: "정류장 선택")
+        text("checkin.chooseStop", language)
     }
 
     static func checkinAdditionalPassengers(_ language: AppLanguage) -> String {
-        text(language, en: "Passengers", ko: "동승자")
+        text("checkin.additionalPassengers", language)
     }
 
     static func checkinSubmit(_ language: AppLanguage) -> String {
-        text(language, en: "Check In", ko: "체크인")
+        text("checkin.submit", language)
     }
 
     static func checkinLoading(_ language: AppLanguage) -> String {
-        text(language, en: "Loading run info...", ko: "운행 정보를 불러오는 중...")
+        text("checkin.loading", language)
     }
 
     static func checkinTotalPassengers(_ count: Int, language: AppLanguage) -> String {
-        text(language, en: "\(count) boarded", ko: "\(count)명 탑승")
+        text("checkin.totalPassengers", language, values: ["count": String(count)])
     }
 
     static func notificationsTitle(_ language: AppLanguage) -> String {
-        text(language, en: "Notifications", ko: "알림")
+        text("notifications.title", language)
     }
 
     static func notificationsNoNotifications(_ language: AppLanguage) -> String {
-        text(language, en: "No notifications yet.", ko: "알림이 없습니다.")
+        text("notifications.noNotifications", language)
     }
 
     static func notificationsMarkAllRead(_ language: AppLanguage) -> String {
-        text(language, en: "Mark all read", ko: "전체 읽음")
+        text("notifications.markAllRead", language)
     }
 
     static func settingsTitle(_ language: AppLanguage) -> String {
-        text(language, en: "Settings", ko: "설정")
+        text("settings.title", language)
     }
 
     static func settingsProfileHeader(_ language: AppLanguage) -> String {
-        text(language, en: "Profile", ko: "프로필")
+        text("settings.profileHeader", language)
     }
 
     static func settingsRouteHeader(_ language: AppLanguage) -> String {
-        text(language, en: "Route", ko: "노선")
+        text("settings.routeHeader", language)
     }
 
     static func settingsPreferencesHeader(_ language: AppLanguage) -> String {
-        text(language, en: "Preferences", ko: "환경설정")
+        text("settings.preferencesHeader", language)
     }
 
     static func settingsUserId(_ language: AppLanguage) -> String {
-        text(language, en: "User ID", ko: "사용자 ID")
+        text("settings.userId", language)
     }
 
     static func settingsCurrentRoute(_ language: AppLanguage) -> String {
-        text(language, en: "Current Route", ko: "현재 노선")
+        text("settings.currentRoute", language)
     }
 
     static func settingsCurrentStop(_ language: AppLanguage) -> String {
-        text(language, en: "Current Stop", ko: "현재 정류장")
+        text("settings.currentStop", language)
     }
 
     static func settingsNoRouteSelected(_ language: AppLanguage) -> String {
-        text(language, en: "No route selected yet", ko: "아직 선택한 노선이 없습니다")
+        text("settings.noRouteSelected", language)
     }
 
     static func settingsPushNotifications(_ language: AppLanguage) -> String {
-        text(language, en: "Push Notifications", ko: "푸시 알림")
+        text("settings.pushNotifications", language)
     }
 
     static func settingsLanguage(_ language: AppLanguage) -> String {
-        text(language, en: "Language", ko: "언어")
+        text("settings.language", language)
     }
 
     static func settingsTheme(_ language: AppLanguage) -> String {
-        text(language, en: "Theme", ko: "테마")
+        text("settings.theme", language)
     }
 
     static func settingsThemeSystem(_ language: AppLanguage) -> String {
-        text(language, en: "System", ko: "시스템")
+        text("settings.themeSystem", language)
     }
 
     static func settingsThemeLight(_ language: AppLanguage) -> String {
-        text(language, en: "Light", ko: "라이트")
+        text("settings.themeLight", language)
     }
 
     static func settingsThemeDark(_ language: AppLanguage) -> String {
-        text(language, en: "Dark", ko: "다크")
+        text("settings.themeDark", language)
     }
 
     static func settingsAdminSection(_ language: AppLanguage) -> String {
-        text(language, en: "Admin", ko: "어드민")
+        text("tabs.admin", language)
     }
 
     static func settingsDeveloperSection(_ language: AppLanguage) -> String {
-        text(language, en: "Developer", ko: "개발자")
+        text("settings.developerSection", language)
     }
 
     static func settingsLogout(_ language: AppLanguage) -> String {
-        text(language, en: "Refresh", ko: "갱신")
+        text("settings.logout", language)
     }
 
     static func searchStopsTitle(_ language: AppLanguage) -> String {
-        text(language, en: "Stops", ko: "정류장")
+        text("tabs.stops", language)
     }
 
-    private static func text(_ language: AppLanguage, en: String, ko: String) -> String {
-        language == .ko ? ko : en
+    private static func text(_ key: String, _ language: AppLanguage, values: [String: String] = [:]) -> String {
+        RiderStringsGenerated.text(key, language: language, values: values)
     }
 }
 

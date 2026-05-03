@@ -63,6 +63,7 @@
     "app/**/*.ts",
     "app/**/*.tsx",
     "next-env.d.ts",
+    "shared/**/*.json",
     "src/**/*.ts",
     "src/**/*.tsx",
     ".next/types/**/*.ts"

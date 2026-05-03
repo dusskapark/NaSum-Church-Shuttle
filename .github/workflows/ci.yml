@@ -16,6 +16,8 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y imagemagick
       - run: npm ci
+      - run: npm run shared:check
       - run: npm run lint
       - run: npm run build

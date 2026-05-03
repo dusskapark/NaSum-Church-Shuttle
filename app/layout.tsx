@@ -7,10 +7,11 @@ import {
   DEFAULT_APP_LANGUAGE,
   DEFAULT_APP_THEME,
 } from '@/lib/app-settings-cookies';
+import brandMetadata from '../shared/brand/metadata.json';
 
 export const metadata: Metadata = {
-  title: 'NaSum Church Shuttle',
-  description: 'LINE LIFF mini app for shuttle route registration and check-in.',
+  title: brandMetadata.appName,
+  description: brandMetadata.description,
   manifest: '/manifest.json',
   icons: {
     icon: [

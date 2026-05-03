@@ -1,4 +1,4 @@
-const ko = {
+{
   "common": {
     "loadingUserName": "개발자",
     "serverError": "서버 오류가 발생했습니다.",
@@ -119,7 +119,7 @@ const ko = {
     "antdMobileVersion": "antd-mobile",
     "liffSdkVersion": "LIFF SDK",
     "lineVersion": "LINE",
-    "devModeHint": "개발자 모드까지 %{remaining}번 더",
+    "devModeHint": "개발자 모드까지 {remaining}번 더",
     "userIdCopied": "사용자 ID를 복사했습니다.",
     "userIdCopyFailed": "복사하지 못했습니다. 다시 시도해 주세요.",
     "logout": "갱신",
@@ -129,7 +129,7 @@ const ko = {
   "admin": {
     "title": "어드민",
     "subtitle": "등록자 현황",
-    "totalCount": "총 %{count}명 등록",
+    "totalCount": "총 {count}명 등록",
     "empty": "등록된 사용자가 없습니다.",
     "loadError": "데이터를 불러오지 못했습니다.",
     "runsSection": "운행 관리",
@@ -139,7 +139,7 @@ const ko = {
     "noRuns": "운행 기록이 없습니다.",
     "runStarted": "운행이 시작되었습니다.",
     "runEnded": "운행이 종료되었습니다.",
-    "boardingCount": "%{count}명 탑승",
+    "boardingCount": "{count}명 탑승",
     "riderList": "탑승자",
     "usersSection": "유저 역할 관리",
     "assignRole": "역할 지정",
@@ -159,7 +159,7 @@ const ko = {
     "scheduleEndTime": "운행 종료",
     "scheduleSave": "저장",
     "scheduleSaved": "스케줄이 저장되었습니다.",
-    "scheduleLastSaved": "마지막 저장: %{date}",
+    "scheduleLastSaved": "마지막 저장: {date}",
     "scheduleActiveTab": "활성",
     "scheduleHistoryTab": "기록",
     "scheduleTabLabel": "Auto-run schedule",
@@ -169,8 +169,8 @@ const ko = {
     "historyColEnded": "종료",
     "startAllRuns": "전체 운행 시작",
     "allRoutesActive": "모든 노선이 이미 운행 중입니다.",
-    "runsStartedCount": "%{started}개 시작, %{failed}개 실패.",
-    "runsStartedOk": "%{count}개 운행이 시작되었습니다.",
+    "runsStartedCount": "{started}개 시작, {failed}개 실패.",
+    "runsStartedOk": "{count}개 운행이 시작되었습니다.",
     "dayLabels": [
       "일",
       "월",
@@ -198,7 +198,7 @@ const ko = {
     "arrived": "도착",
     "waiting": "대기 중",
     "inProgress": "진행 중",
-    "totalPassengers": "%{count}명 탑승",
+    "totalPassengers": "{count}명 탑승",
     "totalPassengersLabel": "총 탑승",
     "inService": "운행 중",
     "loading": "운행 정보를 불러오는 중…",
@@ -259,6 +259,4 @@ const ko = {
     "authErrorTitle": "로그인 처리 중 오류가 발생했습니다",
     "authErrorDescription": "인증 콜백 처리에 실패했습니다."
   }
-} as const;
-
-export default ko;
+}

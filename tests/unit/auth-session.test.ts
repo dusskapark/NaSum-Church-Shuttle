@@ -36,6 +36,22 @@ test('auth audience list combines comma-separated config and fallbacks', async (
   );
 });
 
+test('auth audience list supports fallback-only Apple client IDs', async () => {
+  const { parseAuthAudienceList } = await import('@/server/auth');
+  assert.deepEqual(parseAuthAudienceList(undefined, ['service-id', 'bundle-id']), [
+    'service-id',
+    'bundle-id',
+  ]);
+});
+
+test('apple nonce candidates include native SHA-256 nonce claim', async () => {
+  const { getAppleNonceCandidates } = await import('@/server/auth');
+  assert.deepEqual(getAppleNonceCandidates('test-nonce'), [
+    'test-nonce',
+    'ed04c4e9ea6c49cf9ceb39098787c5b9842524f96b07ef45305476a11caec9b4',
+  ]);
+});
+
 test('auth/session rejects unsupported providers before credential verification', async () => {
   const authSessionRoute = await authSessionRoutePromise;
   const response = await authSessionRoute.POST(

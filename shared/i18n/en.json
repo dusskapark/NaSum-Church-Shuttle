@@ -1,4 +1,4 @@
-const en = {
+{
   "common": {
     "loadingUserName": "Developer",
     "serverError": "A server error occurred.",
@@ -119,7 +119,7 @@ const en = {
     "antdMobileVersion": "antd-mobile",
     "liffSdkVersion": "LIFF SDK",
     "lineVersion": "LINE",
-    "devModeHint": "%{remaining} more taps for developer mode",
+    "devModeHint": "{remaining} more taps for developer mode",
     "userIdCopied": "User ID copied.",
     "userIdCopyFailed": "Could not copy. Please try again.",
     "logout": "Refresh",
@@ -129,7 +129,7 @@ const en = {
   "admin": {
     "title": "Admin",
     "subtitle": "Registrations",
-    "totalCount": "%{count} total registrations",
+    "totalCount": "{count} total registrations",
     "empty": "No registrations yet.",
     "loadError": "Failed to load data.",
     "runsSection": "Run Management",
@@ -139,7 +139,7 @@ const en = {
     "noRuns": "No runs yet.",
     "runStarted": "Run started.",
     "runEnded": "Run ended.",
-    "boardingCount": "%{count} boarded",
+    "boardingCount": "{count} boarded",
     "riderList": "Riders",
     "usersSection": "User Roles",
     "assignRole": "Assign Role",
@@ -159,7 +159,7 @@ const en = {
     "scheduleEndTime": "End time",
     "scheduleSave": "Save",
     "scheduleSaved": "Schedule saved.",
-    "scheduleLastSaved": "Last saved: %{date}",
+    "scheduleLastSaved": "Last saved: {date}",
     "scheduleActiveTab": "Active",
     "scheduleHistoryTab": "History",
     "scheduleTabLabel": "Schedule",
@@ -169,8 +169,8 @@ const en = {
     "historyColEnded": "Ended",
     "startAllRuns": "Start All Runs",
     "allRoutesActive": "All routes already have an active run.",
-    "runsStartedCount": "%{started} started, %{failed} failed.",
-    "runsStartedOk": "%{count} run(s) started.",
+    "runsStartedCount": "{started} started, {failed} failed.",
+    "runsStartedOk": "{count} run(s) started.",
     "dayLabels": [
       "Sun",
       "Mon",
@@ -198,7 +198,7 @@ const en = {
     "arrived": "Arrived",
     "waiting": "Waiting",
     "inProgress": "In Progress",
-    "totalPassengers": "%{count} boarded",
+    "totalPassengers": "{count} boarded",
     "totalPassengersLabel": "Boarded",
     "inService": "In Service",
     "loading": "Loading run info…",
@@ -259,6 +259,4 @@ const en = {
     "authErrorTitle": "Sign-in callback failed",
     "authErrorDescription": "Authentication callback failed."
   }
-} as const;
-
-export default en;
+}

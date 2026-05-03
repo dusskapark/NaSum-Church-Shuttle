@@ -25,6 +25,7 @@
 		A0B0C0D11E00000000000024 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000024 /* NotificationsView.swift */; };
 		A0B0C0D11E00000000000025 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000025 /* SettingsView.swift */; };
 		A0B0C0D11E00000000000026 /* SharedUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000026 /* SharedUI.swift */; };
+		A0B0C0D11E00000000000028 /* RiderStringsGenerated.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000028 /* RiderStringsGenerated.swift */; };
 		A0B0C0D11E0000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E0000000000000B /* Assets.xcassets */; };
 		A0B0C0D11E0000000000000C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E0000000000000C /* Preview Assets.xcassets */; };
 		A0B0C0D11E0000000000000D /* LineSDK in Frameworks */ = {isa = PBXBuildFile; productRef = A0B0C0DA1E00000000000001 /* LineSDK */; };
@@ -53,6 +54,7 @@
 		A0B0C0D51E00000000000024 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 		A0B0C0D51E00000000000025 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A0B0C0D51E00000000000026 /* SharedUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedUI.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000028 /* RiderStringsGenerated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiderStringsGenerated.swift; sourceTree = "<group>"; };
 		A0B0C0D51E0000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A0B0C0D51E0000000000000C /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A0B0C0D51E0000000000000D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -96,6 +98,7 @@
 				A0B0C0D31E00000000000006 /* Push */,
 				A0B0C0D31E00000000000007 /* RiderFeatures */,
 				A0B0C0D31E00000000000008 /* SharedModels */,
+				A0B0C0D31E0000000000000D /* Generated */,
 				A0B0C0D31E0000000000000A /* Config */,
 				A0B0C0D31E0000000000000B /* Resources */,
 			);
@@ -200,6 +203,14 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		A0B0C0D31E0000000000000D /* Generated */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E00000000000028 /* RiderStringsGenerated.swift */,
+			);
+			path = Generated;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -299,6 +310,7 @@
 				A0B0C0D11E00000000000024 /* NotificationsView.swift in Sources */,
 				A0B0C0D11E00000000000025 /* SettingsView.swift in Sources */,
 				A0B0C0D11E00000000000026 /* SharedUI.swift in Sources */,
+				A0B0C0D11E00000000000028 /* RiderStringsGenerated.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -343,6 +355,7 @@
 			baseConfigurationReference = A0B0C0D51E0000000000000F /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = NaSumShuttle/Config/NaSumShuttle.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -372,6 +385,7 @@
 			baseConfigurationReference = A0B0C0D51E00000000000010 /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = NaSumShuttle/Config/NaSumShuttle.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

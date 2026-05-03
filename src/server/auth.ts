@@ -136,6 +136,15 @@ function getEmailHash(email: string) {
   return createHash('sha256').update(normalizeEmail(email)).digest('hex');
 }
 
+export function getAppleNonceCandidates(nonce: string) {
+  return Array.from(
+    new Set([
+      nonce,
+      createHash('sha256').update(nonce).digest('hex'),
+    ]),
+  );
+}
+
 function assertEmailPasswordRateLimit(email: string, context: AuthContext) {
   const now = Date.now();
   const key = `${context.ip ?? 'unknown'}:${getEmailHash(email)}`;
@@ -183,8 +192,11 @@ export function parseAuthAudienceList(
 
 function getProviderConfig(provider: 'apple' | 'google') {
   if (provider === 'apple') {
-    const audience = env.APPLE_CLIENT_ID ?? env.APPLE_BUNDLE_ID;
-    if (!audience) {
+    const audience = parseAuthAudienceList(undefined, [
+      env.APPLE_CLIENT_ID,
+      env.APPLE_BUNDLE_ID,
+    ]);
+    if (audience.length === 0) {
       throw Object.assign(new Error('APPLE_CLIENT_ID or APPLE_BUNDLE_ID is not configured'), {
         status: 500,
         code: 'AUTH_PROVIDER_NOT_CONFIGURED',
@@ -232,7 +244,7 @@ async function verifyAppleIdentityToken(
       code: 'APPLE_TOKEN_INVALID',
     });
   }
-  if (nonce && claims.nonce !== nonce) {
+  if (nonce && !getAppleNonceCandidates(nonce).includes(claims.nonce ?? '')) {
     throw Object.assign(new Error('Apple identity token nonce mismatch'), {
       status: 401,
       code: 'APPLE_NONCE_MISMATCH',

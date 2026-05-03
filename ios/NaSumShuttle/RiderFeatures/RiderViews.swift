@@ -1,5 +1,4 @@
 import AuthenticationServices
-import GoogleSignInSwift
 import Observation
 import SwiftUI
 import UIKit
@@ -129,39 +128,30 @@ private struct LoginView: View {
                             appModel.errorMessage = error.localizedDescription
                         }
                     }
-                    .signInWithAppleButtonStyle(.white)
+                    .signInWithAppleButtonStyle(.black)
                     .frame(height: 44)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .disabled(appModel.isAuthenticating)
 
-                    GoogleSignInButton(
-                        scheme: .dark,
-                        style: .wide,
-                        state: appModel.isAuthenticating ? .disabled : .normal
+                    ProviderLoginButton(
+                        style: .google,
+                        title: localizedGoogleLoginTitle,
+                        isDisabled: appModel.isAuthenticating
                     ) {
                         Task {
                             await appModel.signInWithGoogle(presentingViewController: presentingViewController)
                         }
                     }
-                    .frame(height: 44)
-                    .allowsHitTesting(!appModel.isAuthenticating)
 
-                    Button {
+                    ProviderLoginButton(
+                        style: .line,
+                        title: localizedLineLoginTitle,
+                        isDisabled: appModel.isAuthenticating
+                    ) {
                         Task {
                             await appModel.signIn(presentingViewController: presentingViewController)
                         }
-                    } label: {
-                        HStack(spacing: 10) {
-                            Text("Continue with LINE")
-                                .fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
                     }
-                    .shuttleButtonStyle(prominent: true)
-                    .controlSize(.large)
-                    .frame(height: 44)
-                    .tint(ShuttleTheme.success)
-                    .disabled(appModel.isAuthenticating)
 
                     Button {
                         isEmailLoginPresented = true
@@ -174,6 +164,7 @@ private struct LoginView: View {
                     .buttonStyle(.plain)
                     .disabled(appModel.isAuthenticating)
                 }
+                .allowsHitTesting(!appModel.isAuthenticating)
                 .padding(.horizontal, 28)
 
                 Spacer(minLength: 72)
@@ -190,6 +181,18 @@ private struct LoginView: View {
         .sheet(isPresented: $isEmailLoginPresented) {
             EmailLoginSheet(appModel: appModel)
         }
+    }
+
+    private var localizedGoogleLoginTitle: String {
+        locale.language.languageCode?.identifier == "ko"
+            ? "Google로 계속하기"
+            : "Continue with Google"
+    }
+
+    private var localizedLineLoginTitle: String {
+        locale.language.languageCode?.identifier == "ko"
+            ? "LINE으로 계속하기"
+            : "Continue with LINE"
     }
 }
 

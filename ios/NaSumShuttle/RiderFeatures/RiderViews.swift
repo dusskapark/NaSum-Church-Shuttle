@@ -1,3 +1,5 @@
+import AuthenticationServices
+import GoogleSignInSwift
 import Observation
 import SwiftUI
 import UIKit
@@ -60,6 +62,7 @@ private struct LoginView: View {
     @Environment(\.locale) private var locale
     @State private var presentingViewController: UIViewController?
     @State private var isEmailLoginPresented = false
+    @State private var appleLoginNonce: String?
 
     private var localizedLoginTitle: String {
         locale.language.languageCode?.identifier == "ko"
@@ -99,23 +102,64 @@ private struct LoginView: View {
                 }
 
                 VStack(spacing: 12) {
+                    SignInWithAppleButton(.continue) { request in
+                        let nonce = AppleNonce.randomString()
+                        appleLoginNonce = nonce
+                        request.requestedScopes = [.fullName, .email]
+                        request.nonce = AppleNonce.sha256(nonce)
+                    } onCompletion: { result in
+                        switch result {
+                        case let .success(authorization):
+                            guard let nonce = appleLoginNonce else {
+                                appModel.errorMessage = NativeAuthProviderError.missingAppleCredential.localizedDescription
+                                return
+                            }
+                            Task {
+                                await appModel.signInWithApple(
+                                    authorization: authorization,
+                                    nonce: nonce
+                                )
+                            }
+                        case let .failure(error):
+                            let nsError = error as NSError
+                            if nsError.domain == ASAuthorizationError.errorDomain,
+                               nsError.code == ASAuthorizationError.canceled.rawValue {
+                                return
+                            }
+                            appModel.errorMessage = error.localizedDescription
+                        }
+                    }
+                    .signInWithAppleButtonStyle(.white)
+                    .frame(height: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .disabled(appModel.isAuthenticating)
+
+                    GoogleSignInButton(
+                        scheme: .dark,
+                        style: .wide,
+                        state: appModel.isAuthenticating ? .disabled : .normal
+                    ) {
+                        Task {
+                            await appModel.signInWithGoogle(presentingViewController: presentingViewController)
+                        }
+                    }
+                    .frame(height: 44)
+                    .allowsHitTesting(!appModel.isAuthenticating)
+
                     Button {
                         Task {
                             await appModel.signIn(presentingViewController: presentingViewController)
                         }
                     } label: {
                         HStack(spacing: 10) {
-                            if appModel.isAuthenticating {
-                                ProgressView()
-                                    .progressViewStyle(.circular)
-                            }
-                            Text(appModel.isAuthenticating ? "Signing In..." : "Continue with LINE")
+                            Text("Continue with LINE")
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
                     }
                     .shuttleButtonStyle(prominent: true)
                     .controlSize(.large)
+                    .frame(height: 44)
                     .tint(ShuttleTheme.success)
                     .disabled(appModel.isAuthenticating)
 
@@ -138,10 +182,30 @@ private struct LoginView: View {
                 ViewControllerResolver { presentingViewController = $0 }
                     .allowsHitTesting(false)
             }
+
+            if appModel.isAuthenticating {
+                LoginProgressOverlay()
+            }
         }
         .sheet(isPresented: $isEmailLoginPresented) {
             EmailLoginSheet(appModel: appModel)
         }
+    }
+}
+
+private struct LoginProgressOverlay: View {
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.42)
+                .ignoresSafeArea()
+
+            ProgressView()
+                .controlSize(.large)
+                .tint(.white)
+                .padding(22)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+        .transition(.opacity)
     }
 }
 

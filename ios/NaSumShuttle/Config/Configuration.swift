@@ -9,6 +9,7 @@ enum AppConfiguration {
     static let authMode = "Provider auth session"
     static let lineChannelID = stringValue(for: "LINE_LOGIN_CHANNEL_ID")
     static let lineUniversalLinkURL = stringValue(for: "LINE_UNIVERSAL_LINK_URL").flatMap(URL.init(string:))
+    static let googleIOSClientID = stringValue(for: "GOOGLE_IOS_CLIENT_ID")
     static let googleMapsAPIKey = stringValue(for: "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")
     static let apnsBundleID = stringValue(for: "APNS_BUNDLE_ID")
     @MainActor

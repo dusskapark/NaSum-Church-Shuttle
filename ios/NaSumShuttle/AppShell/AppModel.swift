@@ -1,3 +1,4 @@
+import AuthenticationServices
 import CoreLocation
 import Foundation
 import Observation
@@ -21,6 +22,7 @@ final class AppModel {
 
     let apiClient: APIClient
     let authProvider: AuthProviding
+    let googleAuthProvider: GoogleAuthManager
     let pushManager: PushNotificationManager
 
     var isBootstrapping = true
@@ -57,6 +59,7 @@ final class AppModel {
         self.mode = effectiveMode
         self.apiClient = APIClient()
         self.authProvider = effectiveMode == .live ? LineAuthManager() : PreviewAuthProvider()
+        self.googleAuthProvider = GoogleAuthManager()
         self.pushManager = PushNotificationManager()
         self.themePreference = Self.loadThemePreference()
 
@@ -155,11 +158,45 @@ final class AppModel {
             let identity = try await authProvider.login(presentingViewController: presentingViewController)
             let session = try await apiClient.exchangeLineSession(accessToken: identity.accessToken)
 
-            sessionToken = session.sessionToken
-            SecureStore.save(session.sessionToken, service: Constants.keychainService, account: Constants.sessionAccount)
-            try await refreshAll()
-            await pushManager.requestAuthorizationIfNeeded()
-            await registerPushTokenIfPossible(token: pushManager.deviceTokenHex)
+            try await applySession(session)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func signInWithApple(authorization: ASAuthorization, nonce: String) async {
+        guard mode == .live else { return }
+        isAuthenticating = true
+        errorMessage = nil
+
+        defer { isAuthenticating = false }
+
+        do {
+            let credential = try AppleAuthParser.credential(from: authorization, nonce: nonce)
+            let session = try await apiClient.exchangeAppleSession(
+                identityToken: credential.identityToken,
+                authorizationCode: credential.authorizationCode,
+                nonce: credential.nonce
+            )
+
+            try await applySession(session)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func signInWithGoogle(presentingViewController: UIViewController?) async {
+        guard mode == .live else { return }
+        isAuthenticating = true
+        errorMessage = nil
+
+        defer { isAuthenticating = false }
+
+        do {
+            let credential = try await googleAuthProvider.signIn(presentingViewController: presentingViewController)
+            let session = try await apiClient.exchangeGoogleSession(idToken: credential.idToken)
+
+            try await applySession(session)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -178,11 +215,7 @@ final class AppModel {
                 password: password
             )
 
-            sessionToken = session.sessionToken
-            SecureStore.save(session.sessionToken, service: Constants.keychainService, account: Constants.sessionAccount)
-            try await refreshAll()
-            await pushManager.requestAuthorizationIfNeeded()
-            await registerPushTokenIfPossible(token: pushManager.deviceTokenHex)
+            try await applySession(session)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -194,6 +227,7 @@ final class AppModel {
         }
 
         await authProvider.logout()
+        googleAuthProvider.logout()
         sessionToken = nil
         currentUser = nil
         registration = nil
@@ -383,7 +417,7 @@ final class AppModel {
     }
 
     func handleIncomingURL(_ url: URL) -> Bool {
-        authProvider.handleOpenURL(url)
+        googleAuthProvider.handleOpenURL(url) || authProvider.handleOpenURL(url)
     }
 
     func registerPushTokenIfPossible(token: String?) async {
@@ -409,6 +443,14 @@ final class AppModel {
     private func handleUnauthorized() async {
         await logout()
         errorMessage = APIError.unauthorized.localizedDescription
+    }
+
+    private func applySession(_ session: SessionExchangeResponse) async throws {
+        sessionToken = session.sessionToken
+        SecureStore.save(session.sessionToken, service: Constants.keychainService, account: Constants.sessionAccount)
+        try await refreshAll()
+        await pushManager.requestAuthorizationIfNeeded()
+        await registerPushTokenIfPossible(token: pushManager.deviceTokenHex)
     }
 
     private func applyPreviewState() {

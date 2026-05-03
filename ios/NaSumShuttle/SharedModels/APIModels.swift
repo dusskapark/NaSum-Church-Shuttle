@@ -367,6 +367,38 @@ struct LineSessionCredential: Encodable, Sendable {
     let accessToken: String
 }
 
+struct AppleSessionExchangeRequest: Encodable, Sendable {
+    let provider = "apple"
+    let credential: AppleSessionCredential
+
+    init(identityToken: String, authorizationCode: String?, nonce: String) {
+        self.credential = AppleSessionCredential(
+            identityToken: identityToken,
+            authorizationCode: authorizationCode,
+            nonce: nonce
+        )
+    }
+}
+
+struct AppleSessionCredential: Encodable, Sendable {
+    let identityToken: String
+    let authorizationCode: String?
+    let nonce: String
+}
+
+struct GoogleSessionExchangeRequest: Encodable, Sendable {
+    let provider = "google"
+    let credential: GoogleSessionCredential
+
+    init(idToken: String) {
+        self.credential = GoogleSessionCredential(idToken: idToken)
+    }
+}
+
+struct GoogleSessionCredential: Encodable, Sendable {
+    let idToken: String
+}
+
 struct EmailPasswordSessionRequest: Encodable, Sendable {
     let provider = "email_password"
     let credential: EmailPasswordCredential

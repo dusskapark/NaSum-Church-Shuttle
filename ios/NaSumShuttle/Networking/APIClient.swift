@@ -55,6 +55,28 @@ final class APIClient {
         )
     }
 
+    func exchangeAppleSession(identityToken: String, authorizationCode: String?, nonce: String) async throws -> SessionExchangeResponse {
+        try await request(
+            path: "/api/v1/auth/session",
+            method: "POST",
+            body: AppleSessionExchangeRequest(
+                identityToken: identityToken,
+                authorizationCode: authorizationCode,
+                nonce: nonce
+            ),
+            requiresAuth: false
+        )
+    }
+
+    func exchangeGoogleSession(idToken: String) async throws -> SessionExchangeResponse {
+        try await request(
+            path: "/api/v1/auth/session",
+            method: "POST",
+            body: GoogleSessionExchangeRequest(idToken: idToken),
+            requiresAuth: false
+        )
+    }
+
     func exchangeEmailPasswordSession(email: String, password: String) async throws -> SessionExchangeResponse {
         try await request(
             path: "/api/v1/auth/session",

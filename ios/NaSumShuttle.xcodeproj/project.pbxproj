@@ -11,6 +11,7 @@
 		A0B0C0D11E00000000000002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000002 /* AppModel.swift */; };
 		A0B0C0D11E00000000000003 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000003 /* Configuration.swift */; };
 		A0B0C0D11E00000000000004 /* LineAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000004 /* LineAuthManager.swift */; };
+		A0B0C0D11E00000000000027 /* NativeAuthProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000027 /* NativeAuthProviders.swift */; };
 		A0B0C0D11E00000000000005 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000005 /* APIClient.swift */; };
 		A0B0C0D11E00000000000006 /* PushNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000006 /* PushNotificationManager.swift */; };
 		A0B0C0D11E00000000000007 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000007 /* APIModels.swift */; };
@@ -28,6 +29,8 @@
 		A0B0C0D11E0000000000000C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E0000000000000C /* Preview Assets.xcassets */; };
 		A0B0C0D11E0000000000000D /* LineSDK in Frameworks */ = {isa = PBXBuildFile; productRef = A0B0C0DA1E00000000000001 /* LineSDK */; };
 		A0B0C0D11E0000000000000E /* GoogleMaps in Frameworks */ = {isa = PBXBuildFile; productRef = A0B0C0DA1E00000000000002 /* GoogleMaps */; };
+		A0B0C0D11E00000000000010 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A0B0C0DA1E00000000000003 /* GoogleSignIn */; };
+		A0B0C0D11E00000000000011 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A0B0C0DA1E00000000000004 /* GoogleSignInSwift */; };
 		A0B0C0D11E0000000000000F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000013 /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
 
@@ -36,6 +39,7 @@
 		A0B0C0D51E00000000000002 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		A0B0C0D51E00000000000003 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
 		A0B0C0D51E00000000000004 /* LineAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineAuthManager.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000027 /* NativeAuthProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeAuthProviders.swift; sourceTree = "<group>"; };
 		A0B0C0D51E00000000000005 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		A0B0C0D51E00000000000006 /* PushNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationManager.swift; sourceTree = "<group>"; };
 		A0B0C0D51E00000000000007 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
@@ -67,6 +71,8 @@
 			files = (
 				A0B0C0D11E0000000000000D /* LineSDK in Frameworks */,
 				A0B0C0D11E0000000000000E /* GoogleMaps in Frameworks */,
+				A0B0C0D11E00000000000010 /* GoogleSignIn in Frameworks */,
+				A0B0C0D11E00000000000011 /* GoogleSignInSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -109,6 +115,7 @@
 			isa = PBXGroup;
 			children = (
 				A0B0C0D51E00000000000004 /* LineAuthManager.swift */,
+				A0B0C0D51E00000000000027 /* NativeAuthProviders.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -212,6 +219,8 @@
 			packageProductDependencies = (
 				A0B0C0DA1E00000000000001 /* LineSDK */,
 				A0B0C0DA1E00000000000002 /* GoogleMaps */,
+				A0B0C0DA1E00000000000003 /* GoogleSignIn */,
+				A0B0C0DA1E00000000000004 /* GoogleSignInSwift */,
 			);
 			productName = NaSumShuttle;
 			productReference = A0B0C0D51E00000000000012 /* NaSumShuttle.app */;
@@ -243,6 +252,7 @@
 			packageReferences = (
 				A0B0C0D91E00000000000001 /* XCRemoteSwiftPackageReference "line-sdk-ios-swift" */,
 				A0B0C0D91E00000000000002 /* XCRemoteSwiftPackageReference "ios-maps-sdk" */,
+				A0B0C0D91E00000000000003 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			productRefGroup = A0B0C0D31E00000000000009 /* Products */;
 			projectDirPath = "";
@@ -275,6 +285,7 @@
 				A0B0C0D11E00000000000002 /* AppModel.swift in Sources */,
 				A0B0C0D11E00000000000003 /* Configuration.swift in Sources */,
 				A0B0C0D11E00000000000004 /* LineAuthManager.swift in Sources */,
+				A0B0C0D11E00000000000027 /* NativeAuthProviders.swift in Sources */,
 				A0B0C0D11E00000000000005 /* APIClient.swift in Sources */,
 				A0B0C0D11E00000000000006 /* PushNotificationManager.swift in Sources */,
 				A0B0C0D11E00000000000007 /* APIModels.swift in Sources */,
@@ -424,6 +435,14 @@
 				kind = branch;
 			};
 		};
+		A0B0C0D91E00000000000003 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -436,6 +455,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A0B0C0D91E00000000000002 /* XCRemoteSwiftPackageReference "ios-maps-sdk" */;
 			productName = GoogleMaps;
+		};
+		A0B0C0DA1E00000000000003 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A0B0C0D91E00000000000003 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		A0B0C0DA1E00000000000004 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A0B0C0D91E00000000000003 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

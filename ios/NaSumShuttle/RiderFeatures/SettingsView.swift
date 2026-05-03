@@ -31,7 +31,7 @@ struct SettingsPage: View {
                         }
                     }
 
-                    LabeledContent(RiderStrings.settingsUserId(language), value: appModel.currentUser?.providerUid ?? "No LINE profile")
+                    LabeledContent(RiderStrings.settingsUserId(language), value: appModel.currentUser?.providerUid ?? "No provider profile")
                 }
             }
 

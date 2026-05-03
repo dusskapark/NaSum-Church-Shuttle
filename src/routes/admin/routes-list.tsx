@@ -31,7 +31,7 @@ import { formatDateUtc } from '../../lib/date-format';
 import {
   getApiBaseUrl,
   getAbsoluteApiBaseUrl,
-  buildLiffPermalink,
+  buildUniversalScanUrl,
 } from '../../constants/appConfigs';
 import { authedFetch } from '../../lib/api';
 import { fetchApi, mutateApi } from '../../lib/queries';
@@ -359,7 +359,7 @@ function QrCodePanel({
 }: {
   routeCode: string;
 }) {
-  const deeplink = buildLiffPermalink('prod', { routeCode });
+  const deeplink = buildUniversalScanUrl(routeCode, 'prod');
 
   return (
     <div style={{ padding: '12px 0' }}>
@@ -372,7 +372,7 @@ function QrCodePanel({
           lineHeight: 1.4,
         }}
       >
-        https://liff.line.me/
+        https://nasum-church-shuttle.vercel.app/scan
       </div>
 
       <div>

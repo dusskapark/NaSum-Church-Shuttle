@@ -3,12 +3,20 @@ import Observation
 import UIKit
 import UserNotifications
 
+struct PushNotificationTapPayload: Equatable, Sendable {
+    let notificationId: String?
+    let routeCode: String?
+    let userRouteStopId: String?
+    let deepLinkPath: String?
+}
+
 @Observable
 final class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate {
     var authorizationStatus: UNAuthorizationStatus = .notDetermined
     var deviceTokenHex: String?
     var latestErrorMessage: String?
     var onDeviceTokenUpdated: ((String) -> Void)?
+    var onNotificationTapped: ((PushNotificationTapPayload) -> Void)?
 
     override init() {
         super.init()
@@ -49,5 +57,21 @@ final class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate 
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound]
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        let userInfo = response.notification.request.content.userInfo
+        let payload = PushNotificationTapPayload(
+            notificationId: userInfo["notificationId"] as? String,
+            routeCode: userInfo["routeCode"] as? String,
+            userRouteStopId: userInfo["userRouteStopId"] as? String,
+            deepLinkPath: userInfo["deepLinkPath"] as? String
+        )
+        await MainActor.run {
+            onNotificationTapped?(payload)
+        }
     }
 }

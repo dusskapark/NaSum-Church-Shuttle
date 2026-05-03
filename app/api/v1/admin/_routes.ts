@@ -130,6 +130,150 @@ export async function handleAdminRoutes(
     }
   }
 
+  if (
+    request.method === 'PATCH' &&
+    routeId &&
+    suffix?.[0] === 'stops' &&
+    suffix?.[1] &&
+    (!suffix[2] || suffix[2] === 'full' || suffix[2] === 'place')
+  ) {
+    const stopId = suffix[1];
+    const mode = suffix[2] ?? 'route-stop';
+    const body = (await request.json()) as {
+      sequence?: number;
+      pickup_time?: string | null;
+      notes?: string | null;
+      is_pickup_enabled?: boolean;
+      display_name?: string | null;
+      place_notes?: string | null;
+      google_place_id?: string | null;
+      is_terminal?: boolean;
+      stop_id?: string | null;
+    };
+
+    const stop = await queryOne<{ place_id: string }>(
+      `SELECT place_id
+       FROM route_stops
+       WHERE id = $1 AND route_id = $2`,
+      [stopId, routeId],
+    );
+    if (!stop) return error(404, 'Route stop not found');
+
+    if (mode === 'route-stop' || mode === 'full') {
+      const updates: string[] = [];
+      const params: unknown[] = [];
+      let index = 1;
+
+      if (body.sequence !== undefined) {
+        if (!Number.isInteger(body.sequence) || body.sequence <= 0) {
+          return error(400, 'sequence must be a positive integer');
+        }
+        updates.push(`sequence = $${index++}`);
+        params.push(body.sequence);
+      }
+      if (body.pickup_time !== undefined) {
+        updates.push(`pickup_time = $${index++}`);
+        params.push(body.pickup_time);
+      }
+      if (body.notes !== undefined) {
+        updates.push(`notes = $${index++}`);
+        params.push(body.notes);
+      }
+      if (body.is_pickup_enabled !== undefined) {
+        updates.push(`is_pickup_enabled = $${index++}`);
+        params.push(body.is_pickup_enabled);
+      }
+
+      if (updates.length > 0) {
+        params.push(stopId, routeId);
+        await query(
+          `UPDATE route_stops
+           SET ${updates.join(', ')}
+           WHERE id = $${index++} AND route_id = $${index}`,
+          params,
+        );
+      }
+    }
+
+    if (mode === 'place' || mode === 'full') {
+      let targetPlaceId = stop.place_id;
+
+      if (body.google_place_id !== undefined && body.google_place_id) {
+        const existingPlace = await queryOne<{ id: string }>(
+          `SELECT id FROM places WHERE google_place_id = $1`,
+          [body.google_place_id],
+        );
+        if (existingPlace) {
+          targetPlaceId = existingPlace.id;
+          await query(
+            `UPDATE route_stops
+             SET place_id = $1
+             WHERE id = $2 AND route_id = $3`,
+            [targetPlaceId, stopId, routeId],
+          );
+        } else {
+          await query(
+            `UPDATE places
+             SET google_place_id = $1
+             WHERE id = $2`,
+            [body.google_place_id, targetPlaceId],
+          );
+        }
+      }
+
+      const updates: string[] = [];
+      const params: unknown[] = [];
+      let index = 1;
+
+      if (body.display_name !== undefined) {
+        updates.push(`display_name = $${index++}`);
+        params.push(body.display_name);
+      }
+      if (body.place_notes !== undefined) {
+        updates.push(`notes = $${index++}`);
+        params.push(body.place_notes);
+      }
+      if (body.is_terminal !== undefined) {
+        updates.push(`is_terminal = $${index++}`);
+        params.push(body.is_terminal);
+      }
+      if (body.stop_id !== undefined) {
+        updates.push(`stop_id = $${index++}`);
+        params.push(body.stop_id);
+      }
+
+      if (updates.length > 0) {
+        params.push(targetPlaceId);
+        await query(
+          `UPDATE places
+           SET ${updates.join(', ')}
+           WHERE id = $${index}`,
+          params,
+        );
+      }
+    }
+
+    return json({ success: true, route_stop_id: stopId });
+  }
+
+  if (
+    request.method === 'DELETE' &&
+    routeId &&
+    suffix?.[0] === 'stops' &&
+    suffix?.[1] &&
+    !suffix[2]
+  ) {
+    const deleted = await queryOne<{ id: string }>(
+      `UPDATE route_stops
+       SET active = false
+       WHERE id = $1 AND route_id = $2
+       RETURNING id`,
+      [suffix[1], routeId],
+    );
+    if (!deleted) return error(404, 'Route stop not found');
+    return json({ success: true, id: suffix[1] });
+  }
+
   if (request.method === 'GET' && !routeId) {
     const rows = await query(
       `SELECT

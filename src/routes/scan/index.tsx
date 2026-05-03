@@ -398,7 +398,7 @@ export default function ScanPage() {
         return;
       }
 
-      // Parse LIFF permalink or app web URL and extract routeCode
+      // Parse universal scan URL, LIFF permalink, or legacy QR payload.
       try {
         const scannedUrl = new URL(value);
         const extractedRouteCode = extractRouteCodeFromUrl(scannedUrl);
@@ -415,7 +415,7 @@ export default function ScanPage() {
         // Not a valid URL at all
         setScanStatus('warning');
         setScanError(
-          `${t('scan.lastResult')}: Invalid QR code format. Expected LIFF permalink.`,
+          `${t('scan.lastResult')}: Invalid QR code format. Expected shuttle QR link.`,
         );
       }
     } catch (error) {
@@ -456,7 +456,8 @@ export default function ScanPage() {
     (window.location.hostname === 'localhost' ||
       new URLSearchParams(window.location.search).get('dev') === 'true');
 
-  // External browser: auto-launch LINE app when routeCode is present.
+  // External browser fallback: if native Universal/App Links did not capture
+  // this QR URL, auto-launch LINE as the legacy check-in container.
   // Fires once lineLoading is false so we're certain isInClient is final.
   useEffect(() => {
     if (!routeCode) return;

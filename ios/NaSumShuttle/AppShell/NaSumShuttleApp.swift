@@ -29,6 +29,21 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(
         _ application: UIApplication,
+        continue userActivity: NSUserActivity,
+        restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+    ) -> Bool {
+        guard
+            userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+            let url = userActivity.webpageURL
+        else {
+            return false
+        }
+
+        return AppEnvironment.shared.appModel.handleIncomingURL(url)
+    }
+
+    func application(
+        _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" else {
@@ -69,7 +84,7 @@ struct NaSumShuttleApp: App {
                 .onOpenURL { url in
                     _ = appModel.handleIncomingURL(url)
                 }
-                .alert(RiderStrings.commonServerError(appModel.preferredLanguage), isPresented: Binding(
+                .alert(appModel.errorAlertTitle, isPresented: Binding(
                     get: { appModel.errorMessage != nil },
                     set: { newValue in
                         if !newValue {

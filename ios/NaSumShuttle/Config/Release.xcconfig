@@ -8,6 +8,7 @@ GOOGLE_IOS_CLIENT_ID =
 GOOGLE_REVERSED_CLIENT_ID =
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY =
 APNS_BUNDLE_ID = sg.nasumchurch.shuttle
+APNS_ENVIRONMENT = production
 APNS_TEAM_ID =
 
 #include? "Secrets.xcconfig"

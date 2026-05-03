@@ -111,6 +111,55 @@ async function main() {
       invalidSync.json,
     );
 
+    const invalidStopPatch = await request('/api/v1/admin/routes/not-found/stops/not-found', {
+      method: 'PATCH',
+      body: { pickup_time: null },
+    });
+    expectStatus(
+      invalidStopPatch.res.status,
+      404,
+      'PATCH /api/v1/admin/routes/not-found/stops/not-found',
+      invalidStopPatch.json,
+    );
+
+    const invalidStopPlacePatch = await request(
+      '/api/v1/admin/routes/not-found/stops/not-found/place',
+      {
+        method: 'PATCH',
+        body: { display_name: null },
+      },
+    );
+    expectStatus(
+      invalidStopPlacePatch.res.status,
+      404,
+      'PATCH /api/v1/admin/routes/not-found/stops/not-found/place',
+      invalidStopPlacePatch.json,
+    );
+
+    const invalidStopFullPatch = await request(
+      '/api/v1/admin/routes/not-found/stops/not-found/full',
+      {
+        method: 'PATCH',
+        body: { display_name: null, pickup_time: null },
+      },
+    );
+    expectStatus(
+      invalidStopFullPatch.res.status,
+      404,
+      'PATCH /api/v1/admin/routes/not-found/stops/not-found/full',
+      invalidStopFullPatch.json,
+    );
+
+    const invalidStopDelete = await request('/api/v1/admin/routes/not-found/stops/not-found', {
+      method: 'DELETE',
+    });
+    expectStatus(
+      invalidStopDelete.res.status,
+      404,
+      'DELETE /api/v1/admin/routes/not-found/stops/not-found',
+      invalidStopDelete.json,
+    );
+
     if (firstRoute?.id) {
       const detail = await request(`/api/v1/admin/routes/${encodeURIComponent(firstRoute.id)}`);
       expectStatus(
@@ -189,6 +238,22 @@ async function main() {
       404,
       'POST /api/v1/admin/runs/not-found/end',
       invalidEnd.json,
+    );
+  }
+
+  logStep('Users domain');
+  {
+    const usersRes = await request('/api/v1/admin/users');
+    expectStatus(usersRes.res.status, 200, 'GET /api/v1/admin/users', usersRes.json);
+
+    const invalidRevoke = await request('/api/v1/admin/users/not-found', {
+      method: 'DELETE',
+    });
+    expectStatus(
+      invalidRevoke.res.status,
+      404,
+      'DELETE /api/v1/admin/users/not-found',
+      invalidRevoke.json,
     );
   }
 

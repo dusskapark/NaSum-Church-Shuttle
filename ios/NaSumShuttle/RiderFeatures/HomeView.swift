@@ -323,9 +323,6 @@ struct ShuttleHome: View {
                 SettingsPage(appModel: appModel, onOpenStopSearch: openStopSearchFromSettings)
             }
             .preferredColorScheme(appModel.preferredColorScheme)
-            .mapSheetCloseOverlay {
-                isSettingsSheetPresented = false
-            }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(32)
@@ -375,6 +372,19 @@ struct ShuttleHome: View {
         .onChange(of: stopSortMode) { _, newValue in
             if newValue == .distance, currentLocation == nil {
                 Task { await requestLocation() }
+            }
+        }
+        .onChange(of: appModel.pendingNotificationNavigation) { _, target in
+            guard let target else { return }
+            applyNotificationNavigation(target)
+        }
+        .onChange(of: appModel.pendingScanNavigation) { _, target in
+            guard let target else { return }
+            applyScanNavigation(target)
+        }
+        .task {
+            if let target = appModel.pendingScanNavigation {
+                applyScanNavigation(target)
             }
         }
     }
@@ -454,7 +464,7 @@ struct ShuttleHome: View {
 
     private var routeDetailSubtitle: String? {
         guard let route = selectedRouteDetail else { return nil }
-        var parts = [routeShortTitle(line: route.line, service: route.service)]
+        var parts = [route.label]
         if let pickupTime = selectedRouteStop?.pickupTime {
             parts.append(pickupTime)
         }
@@ -534,6 +544,37 @@ struct ShuttleHome: View {
         appModel.selectedRouteCode = routeCode
         keepMapVisibleForRouteDetail()
         Task { await appModel.selectRoute(routeCode: routeCode) }
+    }
+
+    private func applyNotificationNavigation(_ target: AppModel.NotificationNavigationTarget) {
+        isSettingsSheetPresented = false
+        isNotificationsSheetPresented = false
+        isScanSheetPresented = false
+        isScannerSheetPresented = false
+        isStopSearchFocused = false
+        isStopSearchActive = false
+        selectedSearchPlace = nil
+        selectedSearchCandidateId = nil
+        selectedHomeStopId = target.routeStopId
+        showingRoutes = false
+        appModel.selectedRouteCode = target.routeCode
+        keepMapVisibleForRouteDetail()
+        Task { await appModel.selectRoute(routeCode: target.routeCode) }
+        appModel.pendingNotificationNavigation = nil
+    }
+
+    private func applyScanNavigation(_ target: AppModel.ScanNavigationTarget) {
+        isSettingsSheetPresented = false
+        isNotificationsSheetPresented = false
+        isScannerSheetPresented = false
+        isStopSearchFocused = false
+        isStopSearchActive = false
+        selectedSearchPlace = nil
+        selectedSearchCandidateId = nil
+        pendingScanRouteCode = target.routeCode
+        isScanSheetPresented = true
+        Task { try? await appModel.loadRunInfo(routeCode: target.routeCode) }
+        appModel.pendingScanNavigation = nil
     }
 
     private func showMyRouteDetail() {
@@ -1178,7 +1219,7 @@ private struct HomeRouteList: View {
                         } label: {
                             Label {
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(routeShortTitle(line: registration.route.line, service: registration.route.service))
+                                    Text(registration.route.label)
                                     Text(registration.routeStop.place.displayName ?? registration.routeStop.place.name)
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
@@ -1256,7 +1297,7 @@ private struct RouteSummaryRow: View {
     var body: some View {
         Label {
             VStack(alignment: .leading, spacing: 3) {
-                Text(routeShortTitle(line: route.line, service: route.service))
+                Text(route.label)
                 Text(RiderStrings.homeStopCount(route.visibleStopCount, language: language))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -1457,7 +1498,7 @@ private struct RouteDetailSheet: View {
     }
 
     private var subtitle: String {
-        var parts = [routeShortTitle(line: route.line, service: route.service)]
+        var parts = [route.label]
         if let pickupTime = selectedStop.pickupTime {
             parts.append(pickupTime)
         }

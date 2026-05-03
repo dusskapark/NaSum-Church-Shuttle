@@ -14,6 +14,16 @@ final class AppModel {
         case previewLoggedIn
     }
 
+    struct NotificationNavigationTarget: Equatable {
+        let notificationId: String?
+        let routeCode: String
+        let routeStopId: String?
+    }
+
+    struct ScanNavigationTarget: Equatable {
+        let routeCode: String
+    }
+
     private enum Constants {
         static let keychainService = "org.nasumik.NaSumShuttle"
         static let sessionAccount = "session-jwt"
@@ -24,6 +34,7 @@ final class AppModel {
     let authProvider: AuthProviding
     let googleAuthProvider: GoogleAuthManager
     let pushManager: PushNotificationManager
+    let adminStore: AdminStore
 
     var isBootstrapping = true
     var isLoading = false
@@ -38,6 +49,8 @@ final class AppModel {
     var notifications: [AppNotification] = []
     var unreadCount = 0
     var selectedRouteCode: String?
+    var pendingNotificationNavigation: NotificationNavigationTarget?
+    var pendingScanNavigation: ScanNavigationTarget?
     var routeDetails: [String: RouteDetail] = [:]
     var routeCandidates: [String: PlaceRoutesResponse] = [:]
     var runInfoByRouteCode: [String: CheckInRunInfoResponse] = [:]
@@ -61,6 +74,7 @@ final class AppModel {
         self.authProvider = effectiveMode == .live ? LineAuthManager() : PreviewAuthProvider()
         self.googleAuthProvider = GoogleAuthManager()
         self.pushManager = PushNotificationManager()
+        self.adminStore = AdminStore(apiClient: apiClient)
         self.themePreference = Self.loadThemePreference()
 
         apiClient.sessionTokenProvider = { [weak self] in
@@ -74,6 +88,11 @@ final class AppModel {
         pushManager.onDeviceTokenUpdated = { [weak self] token in
             Task { @MainActor in
                 await self?.registerPushTokenIfPossible(token: token)
+            }
+        }
+        pushManager.onNotificationTapped = { [weak self] payload in
+            Task { @MainActor in
+                await self?.handleNotificationTap(payload)
             }
         }
 
@@ -91,6 +110,13 @@ final class AppModel {
 
     var isInitialDataLoading: Bool {
         isBootstrapping || (isLoading && currentUser == nil)
+    }
+
+    var errorAlertTitle: String {
+        guard errorMessage == APIError.unauthorized.localizedDescription else {
+            return RiderStrings.commonServerError(preferredLanguage)
+        }
+        return preferredLanguage == .ko ? "세션이 만료되었습니다." : "Session Expired"
     }
 
     var preferredLanguage: AppLanguage {
@@ -236,6 +262,8 @@ final class AppModel {
         notifications = []
         unreadCount = 0
         selectedRouteCode = nil
+        pendingNotificationNavigation = nil
+        pendingScanNavigation = nil
         routeDetails = [:]
         runInfoByRouteCode = [:]
         SecureStore.delete(service: Constants.keychainService, account: Constants.sessionAccount)
@@ -392,24 +420,65 @@ final class AppModel {
     }
 
     func parseRouteCode(from scannedText: String) -> String? {
-        if let url = URL(string: scannedText), let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-            if let routeCode = components.queryItems?.first(where: { $0.name == "routeCode" })?.value {
-                return routeCode
-            }
-
-            if
-                let liffState = components.queryItems?.first(where: { $0.name == "liff.state" })?.value,
-                let stateURL = URL(string: liffState),
-                let nestedComponents = URLComponents(url: stateURL, resolvingAgainstBaseURL: false),
-                let routeCode = nestedComponents.queryItems?.first(where: { $0.name == "routeCode" })?.value
-            {
-                return routeCode
-            }
+        let trimmed = scannedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let url = URL(string: trimmed), let routeCode = routeCode(from: url) {
+            return routeCode
         }
 
-        return scannedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? nil
-            : scannedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func routeCode(from url: URL) -> String? {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return nil
+        }
+
+        if let routeCode = components.queryItems?.first(where: { $0.name == "routeCode" })?.value {
+            return routeCode
+        }
+
+        if
+            let liffState = components.queryItems?.first(where: { $0.name == "liff.state" })?.value,
+            let routeCode = routeCodeFromNestedURL(liffState)
+        {
+            return routeCode
+        }
+
+        if
+            let sessionParams = components.queryItems?.first(where: { $0.name == "sessionParams" })?.value,
+            let routeCode = routeCodeFromSessionParams(sessionParams)
+        {
+            return routeCode
+        }
+
+        return nil
+    }
+
+    private func routeCodeFromNestedURL(_ value: String) -> String? {
+        if let url = URL(string: value), let routeCode = routeCode(from: url) {
+            return routeCode
+        }
+
+        guard
+            let base = URL(string: "https://dummy.local"),
+            let relativeURL = URL(string: value, relativeTo: base)?.absoluteURL
+        else {
+            return nil
+        }
+
+        return routeCode(from: relativeURL)
+    }
+
+    private func routeCodeFromSessionParams(_ value: String) -> String? {
+        guard
+            let data = value.data(using: .utf8),
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let routeCode = json["routeCode"] as? String
+        else {
+            return nil
+        }
+
+        return routeCode
     }
 
     func clearError() {
@@ -417,7 +486,31 @@ final class AppModel {
     }
 
     func handleIncomingURL(_ url: URL) -> Bool {
-        googleAuthProvider.handleOpenURL(url) || authProvider.handleOpenURL(url)
+        if googleAuthProvider.handleOpenURL(url) || authProvider.handleOpenURL(url) {
+            return true
+        }
+
+        guard
+            isUniversalScanURL(url),
+            let routeCode = parseRouteCode(from: url.absoluteString)
+        else {
+            return false
+        }
+
+        pendingScanNavigation = ScanNavigationTarget(routeCode: routeCode)
+        selectedRouteCode = routeCode
+        return true
+    }
+
+    private func isUniversalScanURL(_ url: URL) -> Bool {
+        guard
+            let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+            components.scheme == "https",
+            components.host == "nasum-church-shuttle.vercel.app"
+        else {
+            return false
+        }
+        return components.path == "/scan"
     }
 
     func registerPushTokenIfPossible(token: String?) async {
@@ -433,7 +526,30 @@ final class AppModel {
             _ = try await apiClient.registerPushToken(
                 token: token,
                 bundleId: AppConfiguration.apnsBundleID,
-                environment: "sandbox"
+                environment: AppConfiguration.apnsEnvironment
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func handleNotificationTap(_ payload: PushNotificationTapPayload) async {
+        guard mode == .live else { return }
+
+        do {
+            if let notificationId = payload.notificationId {
+                _ = try? await apiClient.markNotificationRead(id: notificationId)
+            }
+            try? await reloadNotificationsAfterPushTap()
+
+            guard let routeCode = payload.routeCode else { return }
+            selectedRouteCode = routeCode
+            try await loadRouteDetail(routeCode: routeCode)
+            try? await loadRunInfo(routeCode: routeCode)
+            pendingNotificationNavigation = NotificationNavigationTarget(
+                notificationId: payload.notificationId,
+                routeCode: routeCode,
+                routeStopId: payload.userRouteStopId
             )
         } catch {
             errorMessage = error.localizedDescription
@@ -443,6 +559,11 @@ final class AppModel {
     private func handleUnauthorized() async {
         await logout()
         errorMessage = APIError.unauthorized.localizedDescription
+    }
+
+    private func reloadNotificationsAfterPushTap() async throws {
+        notifications = try await apiClient.fetchNotifications()
+        unreadCount = try await apiClient.fetchUnreadCount().unreadCount
     }
 
     private func applySession(_ session: SessionExchangeResponse) async throws {

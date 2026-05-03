@@ -29,6 +29,7 @@ export async function handleAdminRuns(
   if (request.method === 'GET' && !runId) {
     const status = request.nextUrl.searchParams.get('status');
     const routeCode = request.nextUrl.searchParams.get('routeCode');
+
     let sql = `
       SELECT sr.*, r.route_code
       FROM shuttle_runs sr

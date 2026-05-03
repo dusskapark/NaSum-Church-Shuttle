@@ -12,6 +12,7 @@ enum AppConfiguration {
     static let googleIOSClientID = stringValue(for: "GOOGLE_IOS_CLIENT_ID")
     static let googleMapsAPIKey = stringValue(for: "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")
     static let apnsBundleID = stringValue(for: "APNS_BUNDLE_ID")
+    static let apnsEnvironment = stringValue(for: "APNS_ENVIRONMENT") ?? "sandbox"
     @MainActor
     static var isLineAppAvailable: Bool {
         guard let url = URL(string: "lineauth2://authorize/") else { return false }

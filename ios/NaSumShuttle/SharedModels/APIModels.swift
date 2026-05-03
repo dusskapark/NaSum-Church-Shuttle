@@ -108,6 +108,35 @@ enum AppThemePreference: String, Codable, CaseIterable, Sendable {
     }
 }
 
+func preferredRouteLabel(
+    displayName: String?,
+    name: String?,
+    line: String,
+    service: String,
+    fallback: String = "Route"
+) -> String {
+    if let displayName {
+        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            return trimmed
+        }
+    }
+
+    if let name {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            return trimmed
+        }
+    }
+
+    let title = [line, service]
+        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty }
+        .joined(separator: " ")
+
+    return title.isEmpty ? fallback : title
+}
+
 struct RouteSummary: Codable, Identifiable, Sendable {
     let id: String
     let routeCode: String
@@ -121,9 +150,64 @@ struct RouteSummary: Codable, Identifiable, Sendable {
     let visibleStopCount: Int
 
     var label: String {
-        displayName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-            ? displayName!
-            : [line, service, "R\(revision)"].joined(separator: " · ")
+        preferredRouteLabel(displayName: displayName, name: name, line: line, service: service)
+    }
+
+    init(
+        id: String,
+        routeCode: String,
+        name: String?,
+        displayName: String?,
+        line: String,
+        service: String,
+        revision: String,
+        googleMapsUrl: String?,
+        active: Bool,
+        visibleStopCount: Int
+    ) {
+        self.id = id
+        self.routeCode = routeCode
+        self.name = name
+        self.displayName = displayName
+        self.line = line
+        self.service = service
+        self.revision = revision
+        self.googleMapsUrl = googleMapsUrl
+        self.active = active
+        self.visibleStopCount = visibleStopCount
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case routeCode
+        case name
+        case displayName
+        case line
+        case service
+        case revision
+        case googleMapsUrl
+        case active
+        case visibleStopCount
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        routeCode = try container.decode(String.self, forKey: .routeCode)
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+        displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
+        line = try container.decodeIfPresent(String.self, forKey: .line) ?? ""
+        service = try container.decodeIfPresent(String.self, forKey: .service) ?? ""
+        if let revisionString = try container.decodeIfPresent(String.self, forKey: .revision) {
+            revision = revisionString
+        } else if let revisionInt = try container.decodeIfPresent(Int.self, forKey: .revision) {
+            revision = String(revisionInt)
+        } else {
+            revision = ""
+        }
+        googleMapsUrl = try container.decodeIfPresent(String.self, forKey: .googleMapsUrl)
+        active = try container.decodeIfPresent(Bool.self, forKey: .active) ?? true
+        visibleStopCount = try container.decodeIfPresent(Int.self, forKey: .visibleStopCount) ?? 0
     }
 }
 
@@ -178,9 +262,84 @@ struct RouteDetail: Codable, Identifiable, Sendable {
     let pathCacheError: String?
 
     var label: String {
-        displayName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-            ? displayName!
-            : [line, service, "R\(revision)"].joined(separator: " · ")
+        preferredRouteLabel(displayName: displayName, name: name, line: line, service: service)
+    }
+
+    init(
+        id: String,
+        routeCode: String,
+        name: String?,
+        displayName: String?,
+        line: String,
+        service: String,
+        revision: String,
+        googleMapsUrl: String?,
+        active: Bool,
+        stops: [RouteStop],
+        cachedPath: [RoutePathPoint],
+        pathCacheStatus: String,
+        pathCacheUpdatedAt: String?,
+        pathCacheExpiresAt: String?,
+        pathCacheError: String?
+    ) {
+        self.id = id
+        self.routeCode = routeCode
+        self.name = name
+        self.displayName = displayName
+        self.line = line
+        self.service = service
+        self.revision = revision
+        self.googleMapsUrl = googleMapsUrl
+        self.active = active
+        self.stops = stops
+        self.cachedPath = cachedPath
+        self.pathCacheStatus = pathCacheStatus
+        self.pathCacheUpdatedAt = pathCacheUpdatedAt
+        self.pathCacheExpiresAt = pathCacheExpiresAt
+        self.pathCacheError = pathCacheError
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case routeCode
+        case name
+        case displayName
+        case line
+        case service
+        case revision
+        case googleMapsUrl
+        case active
+        case stops
+        case cachedPath
+        case pathCacheStatus
+        case pathCacheUpdatedAt
+        case pathCacheExpiresAt
+        case pathCacheError
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        routeCode = try container.decode(String.self, forKey: .routeCode)
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+        displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
+        line = try container.decodeIfPresent(String.self, forKey: .line) ?? ""
+        service = try container.decodeIfPresent(String.self, forKey: .service) ?? ""
+        if let revisionString = try container.decodeIfPresent(String.self, forKey: .revision) {
+            revision = revisionString
+        } else if let revisionInt = try container.decodeIfPresent(Int.self, forKey: .revision) {
+            revision = String(revisionInt)
+        } else {
+            revision = ""
+        }
+        googleMapsUrl = try container.decodeIfPresent(String.self, forKey: .googleMapsUrl)
+        active = try container.decodeIfPresent(Bool.self, forKey: .active) ?? true
+        stops = try container.decodeIfPresent([RouteStop].self, forKey: .stops) ?? []
+        cachedPath = try container.decodeIfPresent([RoutePathPoint].self, forKey: .cachedPath) ?? []
+        pathCacheStatus = try container.decodeIfPresent(String.self, forKey: .pathCacheStatus) ?? "missing"
+        pathCacheUpdatedAt = try container.decodeIfPresent(String.self, forKey: .pathCacheUpdatedAt)
+        pathCacheExpiresAt = try container.decodeIfPresent(String.self, forKey: .pathCacheExpiresAt)
+        pathCacheError = try container.decodeIfPresent(String.self, forKey: .pathCacheError)
     }
 }
 

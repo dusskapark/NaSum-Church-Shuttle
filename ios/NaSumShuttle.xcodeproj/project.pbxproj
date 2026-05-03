@@ -26,6 +26,9 @@
 		A0B0C0D11E00000000000025 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000025 /* SettingsView.swift */; };
 		A0B0C0D11E00000000000026 /* SharedUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000026 /* SharedUI.swift */; };
 		A0B0C0D11E00000000000028 /* RiderStringsGenerated.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000028 /* RiderStringsGenerated.swift */; };
+		A0B0C0D11E00000000000030 /* AdminModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000030 /* AdminModels.swift */; };
+		A0B0C0D11E00000000000031 /* AdminStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000031 /* AdminStore.swift */; };
+		A0B0C0D11E00000000000032 /* AdminViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E00000000000032 /* AdminViews.swift */; };
 		A0B0C0D11E0000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E0000000000000B /* Assets.xcassets */; };
 		A0B0C0D11E0000000000000C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0B0C0D51E0000000000000C /* Preview Assets.xcassets */; };
 		A0B0C0D11E0000000000000D /* LineSDK in Frameworks */ = {isa = PBXBuildFile; productRef = A0B0C0DA1E00000000000001 /* LineSDK */; };
@@ -55,6 +58,9 @@
 		A0B0C0D51E00000000000025 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A0B0C0D51E00000000000026 /* SharedUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedUI.swift; sourceTree = "<group>"; };
 		A0B0C0D51E00000000000028 /* RiderStringsGenerated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiderStringsGenerated.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000030 /* AdminModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminModels.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000031 /* AdminStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminStore.swift; sourceTree = "<group>"; };
+		A0B0C0D51E00000000000032 /* AdminViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminViews.swift; sourceTree = "<group>"; };
 		A0B0C0D51E0000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A0B0C0D51E0000000000000C /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A0B0C0D51E0000000000000D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -97,6 +103,7 @@
 				A0B0C0D31E00000000000005 /* Networking */,
 				A0B0C0D31E00000000000006 /* Push */,
 				A0B0C0D31E00000000000007 /* RiderFeatures */,
+				A0B0C0D31E0000000000000E /* AdminFeatures */,
 				A0B0C0D31E00000000000008 /* SharedModels */,
 				A0B0C0D31E0000000000000D /* Generated */,
 				A0B0C0D31E0000000000000A /* Config */,
@@ -162,6 +169,16 @@
 				A0B0C0D51E00000000000008 /* PreviewFixtures.swift */,
 			);
 			path = SharedModels;
+			sourceTree = "<group>";
+		};
+		A0B0C0D31E0000000000000E /* AdminFeatures */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0C0D51E00000000000030 /* AdminModels.swift */,
+				A0B0C0D51E00000000000031 /* AdminStore.swift */,
+				A0B0C0D51E00000000000032 /* AdminViews.swift */,
+			);
+			path = AdminFeatures;
 			sourceTree = "<group>";
 		};
 		A0B0C0D31E00000000000009 /* Products */ = {
@@ -311,6 +328,9 @@
 				A0B0C0D11E00000000000025 /* SettingsView.swift in Sources */,
 				A0B0C0D11E00000000000026 /* SharedUI.swift in Sources */,
 				A0B0C0D11E00000000000028 /* RiderStringsGenerated.swift in Sources */,
+				A0B0C0D11E00000000000030 /* AdminModels.swift in Sources */,
+				A0B0C0D11E00000000000031 /* AdminStore.swift in Sources */,
+				A0B0C0D11E00000000000032 /* AdminViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

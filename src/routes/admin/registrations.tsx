@@ -4,11 +4,14 @@ import {
   Avatar,
   Button,
   Dialog,
+  Form,
   List,
+  SearchBar,
   Skeleton,
   Tag,
   Toast,
 } from 'antd-mobile';
+import { FilterOutline } from 'antd-mobile-icons';
 import Layout from '../../components/Layout';
 import { useContainer } from '../../hooks/useContainer';
 import { useTranslation } from '../../lib/useTranslation';
@@ -220,6 +223,9 @@ export default function AdminRegistrationsPage() {
 
   const [regStatus, setRegStatus] = useState<RegStatus>('active');
   const [regGroupBy, setRegGroupBy] = useState<RegGroupBy>('route');
+  const [draftStatus, setDraftStatus] = useState<RegStatus>('active');
+  const [draftGroupBy, setDraftGroupBy] = useState<RegGroupBy>('route');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -292,15 +298,27 @@ export default function AdminRegistrationsPage() {
     );
   });
 
-  const segmentStyle = (active: boolean): React.CSSProperties => ({
-    padding: '4px 14px',
-    borderRadius: 16,
-    border: '1px solid var(--app-color-border)',
-    cursor: 'pointer',
-    background: active ? 'var(--adm-color-primary)' : 'transparent',
-    color: active ? '#fff' : 'var(--app-color-text)',
-    fontWeight: active ? 600 : 400,
-  });
+  const selectStyle: React.CSSProperties = {
+    width: '100%',
+    border: 'none',
+    background: 'transparent',
+    color: 'var(--app-color-title)',
+    font: 'inherit',
+    outline: 'none',
+    textAlign: 'right',
+  };
+
+  const openFilters = () => {
+    setDraftStatus(regStatus);
+    setDraftGroupBy(regGroupBy);
+    setFiltersOpen((open) => !open);
+  };
+
+  const applyFilters = () => {
+    setRegStatus(draftStatus);
+    setRegGroupBy(draftGroupBy);
+    setFiltersOpen(false);
+  };
 
   return (
     <Layout showTabBar={false}>
@@ -327,56 +345,81 @@ export default function AdminRegistrationsPage() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 8,
+                gap: 10,
               }}
             >
-              <div style={{ display: 'flex', gap: 4 }}>
-                {(['all', 'active', 'inactive'] as RegStatus[]).map((s) => (
-                  <button
-                    key={s}
-                    style={segmentStyle(regStatus === s)}
-                    onClick={() => setRegStatus(s)}
-                  >
-                    {s === 'all'
-                      ? 'All'
-                      : s === 'active'
-                        ? 'Active'
-                        : 'Inactive'}
-                  </button>
-                ))}
-              </div>
-              <button
+              <SearchBar
+                placeholder="Search by name, stop, or route..."
+                value={search}
+                onChange={setSearch}
+                clearable
                 style={{
-                  ...segmentStyle(false),
-                  padding: '4px 10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
+                  flex: 1,
+                  '--height': '40px',
+                  '--border-radius': '20px',
+                  '--background': 'var(--adm-color-background)',
                 }}
-                onClick={() =>
-                  setRegGroupBy((g) => (g === 'route' ? 'user' : 'route'))
-                }
+              />
+              <Button
+                fill="outline"
+                shape="rounded"
+                aria-label="Filters"
+                onClick={openFilters}
+                style={{
+                  '--border-radius': '50%',
+                  width: 40,
+                  height: 40,
+                  padding: 0,
+                  minWidth: 40,
+                }}
               >
-                {regGroupBy === 'route' ? '👤 By User' : '🚌 By Route'}
-              </button>
+                <FilterOutline fontSize={20} />
+              </Button>
             </div>
 
-            <input
-              type="text"
-              placeholder="Search by name, stop, or route..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '7px 12px',
-                borderRadius: 8,
-                border: '1px solid var(--app-color-border)',
-                background: 'var(--adm-color-background)',
-                color: 'var(--app-color-title)',
-                boxSizing: 'border-box',
-              }}
-            />
+            {filtersOpen && (
+              <Form
+                layout="horizontal"
+                mode="card"
+                footer={
+                  <Button block color="primary" onClick={applyFilters}>
+                    Apply
+                  </Button>
+                }
+                style={{
+                  margin: 0,
+                  '--border-top': '0',
+                  '--border-bottom': '0',
+                  '--border-inner': '1px solid var(--app-color-border)',
+                }}
+              >
+                <Form.Item label="Status">
+                  <select
+                    value={draftStatus}
+                    onChange={(event) =>
+                      setDraftStatus(event.target.value as RegStatus)
+                    }
+                    style={selectStyle}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="all">All</option>
+                  </select>
+                </Form.Item>
+                <Form.Item label="Group">
+                  <select
+                    value={draftGroupBy}
+                    onChange={(event) =>
+                      setDraftGroupBy(event.target.value as RegGroupBy)
+                    }
+                    style={selectStyle}
+                  >
+                    <option value="route">By Route</option>
+                    <option value="user">By User</option>
+                  </select>
+                </Form.Item>
+              </Form>
+            )}
 
             <div style={{ color: 'var(--app-color-subtle-text)' }}>
               {t('admin.totalCount', { count: filtered.length })}

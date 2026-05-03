@@ -100,7 +100,7 @@ struct SettingsPage: View {
             if appModel.isAdminSurfaceEnabled {
                 Section(RiderStrings.settingsAdminSection(language)) {
                     NavigationLink {
-                        AdminPlaceholderView(appModel: appModel)
+                        AdminDashboardView(appModel: appModel)
                     } label: {
                         Label(RiderStrings.settingsAdminSection(language), systemImage: "person.2.crop.square.stack.fill")
                     }
@@ -258,27 +258,5 @@ private struct SettingsProfileAvatar: View {
             .resizable()
             .scaledToFit()
             .foregroundStyle(ShuttleTheme.primary)
-    }
-}
-
-struct AdminPlaceholderView: View {
-    @Bindable var appModel: AppModel
-
-    var body: some View {
-        let language = appModel.preferredLanguage
-
-        Form {
-            Section(RiderStrings.settingsAdminSection(language)) {
-                Label("Run start / end", systemImage: "playpause.fill")
-                Label("Stop override", systemImage: "slider.horizontal.3")
-                Label("Schedules and users", systemImage: "list.bullet.rectangle.portrait")
-            }
-
-            Section(RiderStrings.settingsDeveloperSection(language)) {
-                LabeledContent("Role", value: appModel.currentUser?.role.rawValue ?? "unknown")
-            }
-        }
-        .navigationTitle(RiderStrings.settingsAdminSection(language))
-        .navigationBarTitleDisplayMode(.inline)
     }
 }

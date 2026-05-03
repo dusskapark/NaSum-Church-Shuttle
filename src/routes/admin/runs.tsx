@@ -38,6 +38,8 @@ import type {
   StopBoardingResult,
 } from '@app-types/core';
 
+type ActiveRunListRow = ShuttleRun & { route_code: string };
+
 interface AutoRunConfig {
   enabled: boolean;
   days_of_week: number[]; // 0=Sun … 6=Sat
@@ -75,9 +77,9 @@ function formatDate(iso: string | null): string {
 
 interface RunRowProps {
   route: RouteSummary;
-  activeRun: ActiveRun | null;
+  activeRun: ActiveRunListRow | null;
   t: ReturnType<typeof useTranslation>;
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
   onViewResults: (runId: string, title: string) => void;
 }
 
@@ -99,6 +101,17 @@ function RunRow({
     route.route_code,
     t('common.routeLoadError'),
   );
+  const {
+    data: activeRunStatus = null,
+    isLoading: activeRunStatusLoading,
+  } = useQuery({
+    queryKey: ['admin', 'run-status', route.route_code],
+    queryFn: () =>
+      fetchApi<ActiveRun | null>(
+        `/api/v1/checkin/run-status?routeCode=${encodeURIComponent(route.route_code)}`,
+      ),
+    enabled: !!activeRun,
+  });
   const [busy, setBusy] = useState(false);
   const [overrideModal, setOverrideModal] = useState<StopOverrideModal | null>(
     null,
@@ -129,14 +142,14 @@ function RunRow({
   };
 
   const handleApplyOverride = useCallback(async () => {
-    if (!activeRun || !overrideModal) return;
+    if (!activeRunStatus || !overrideModal) return;
     setModalBusy(true);
     try {
       const body: Record<string, unknown> = { status: modalStatus };
       if (modalPassengersEnabled)
         body.total_passengers_override = modalPassengers;
       const res = await authedFetch(
-        `${getApiBaseUrl()}/api/v1/admin/runs/${activeRun.run_id}/stops/${overrideModal.stopId}`,
+        `${getApiBaseUrl()}/api/v1/admin/runs/${activeRunStatus.run_id}/stops/${overrideModal.stopId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -152,7 +165,7 @@ function RunRow({
       setModalBusy(false);
     }
   }, [
-    activeRun,
+    activeRunStatus,
     overrideModal,
     modalStatus,
     modalPassengers,
@@ -162,11 +175,11 @@ function RunRow({
   ]);
 
   const handleResetOverride = useCallback(async () => {
-    if (!activeRun || !overrideModal) return;
+    if (!activeRunStatus || !overrideModal) return;
     setModalBusy(true);
     try {
       const res = await authedFetch(
-        `${getApiBaseUrl()}/api/v1/admin/runs/${activeRun.run_id}/stops/${overrideModal.stopId}`,
+        `${getApiBaseUrl()}/api/v1/admin/runs/${activeRunStatus.run_id}/stops/${overrideModal.stopId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -181,7 +194,7 @@ function RunRow({
     } finally {
       setModalBusy(false);
     }
-  }, [activeRun, overrideModal, t, onRefresh]);
+  }, [activeRunStatus, overrideModal, t, onRefresh]);
 
   const handleStartRun = useCallback(async () => {
     setBusy(true);
@@ -206,7 +219,7 @@ function RunRow({
     setBusy(true);
     try {
       const res = await authedFetch(
-        `${getApiBaseUrl()}/api/v1/admin/runs/${activeRun.run_id}/end`,
+        `${getApiBaseUrl()}/api/v1/admin/runs/${activeRun.id}/end`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' } },
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -256,7 +269,7 @@ function RunRow({
               </Tag>
               <span style={{ color: 'var(--app-color-subtle-text)' }}>
                 {t('admin.boardingCount', {
-                  count: activeRun.stop_states.reduce(
+                  count: (activeRunStatus?.stop_states ?? []).reduce(
                     (sum, s) => sum + s.total_passengers,
                     0,
                   ),
@@ -272,7 +285,7 @@ function RunRow({
               <Button
                 size="small"
                 color="default"
-                onClick={() => onViewResults(activeRun.run_id, routeLabel)}
+                onClick={() => onViewResults(activeRun.id, routeLabel)}
               >
                 {t('admin.viewResults')}
               </Button>
@@ -300,11 +313,11 @@ function RunRow({
 
       {activeRun && (
         <div style={{ marginTop: 4 }}>
-          {routeDetailLoading ? (
+          {routeDetailLoading || activeRunStatusLoading ? (
             <Skeleton.Paragraph lineCount={4} animated />
-          ) : (() => {
+          ) : activeRunStatus ? (() => {
             const stateMap = new Map(
-              activeRun.stop_states.map((s) => [s.route_stop_id, s]),
+              activeRunStatus.stop_states.map((s) => [s.route_stop_id, s]),
             );
             const lastArrivedIndex = visibleStops.reduce((last, stop, idx) => {
               return stateMap.get(stop.id)?.status === 'arrived' ? idx : last;
@@ -384,7 +397,7 @@ function RunRow({
                 })}
               </Steps>
             );
-          })()}
+          })() : null}
         </div>
       )}
 
@@ -734,32 +747,20 @@ export default function AdminRunsPage() {
 
   // ── Active runs (useQuery) ────────────────────────────────────────────────
   const {
-    data: activeRuns = new Map<string, ActiveRun | null>(),
+    data: activeRuns = new Map<string, ActiveRunListRow | null>(),
     isLoading: runsLoading,
   } = useQuery({
     queryKey: ['admin', 'runs', 'active'],
     queryFn: async () => {
-      const runs = await fetchApi<
-        (ShuttleRun & { route_code: string; stop_states: [] })[]
-      >('/api/v1/admin/runs?status=active');
+      const runs =
+        await fetchApi<ActiveRunListRow[]>('/api/v1/admin/runs?status=active');
 
-      const entries = await Promise.all(
-        routes.map(async (route) => {
-          const activeRun = runs.find(
-            (r) => r.route_code === route.route_code && r.status === 'active',
-          );
-          if (!activeRun) return [route.route_code, null] as const;
-
-          try {
-            const activeRunData = await fetchApi<ActiveRun | null>(
-              `/api/v1/checkin/run-status?routeCode=${encodeURIComponent(route.route_code)}`,
-            );
-            return [route.route_code, activeRunData] as const;
-          } catch {
-            return [route.route_code, null] as const;
-          }
-        }),
-      );
+      const entries = routes.map((route) => {
+        const activeRun = runs.find(
+          (r) => r.route_code === route.route_code && r.status === 'active',
+        );
+        return [route.route_code, activeRun ?? null] as const;
+      });
       return new Map(entries);
     },
     enabled: !routesLoading && routes.length > 0,
@@ -776,6 +777,16 @@ export default function AdminRunsPage() {
     },
     enabled: activeTab === 'history',
   });
+
+  const refreshActiveRuns = useCallback(() => {
+    void queryClient.refetchQueries({
+      queryKey: ['admin', 'runs', 'active'],
+      type: 'active',
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ['admin', 'run-status'],
+    });
+  }, [queryClient]);
 
   // ── Results full-page modal ───────────────────────────────────────────────
   const [viewingResult, setViewingResult] = useState<RunResult | null>(null);
@@ -895,8 +906,8 @@ export default function AdminRunsPage() {
         icon: 'fail',
       });
     }
-    queryClient.invalidateQueries({ queryKey: ['admin', 'runs', 'active'] });
-  }, [routes, activeRuns, queryClient, t]);
+    refreshActiveRuns();
+  }, [routes, activeRuns, refreshActiveRuns, t]);
 
   const isResultsOpen = viewingResultTitle !== '' || resultsLoading;
 
@@ -955,11 +966,7 @@ export default function AdminRunsPage() {
                 route={route}
                 activeRun={activeRuns.get(route.route_code) ?? null}
                 t={t}
-                onRefresh={() =>
-                  queryClient.invalidateQueries({
-                    queryKey: ['admin', 'runs', 'active'],
-                  })
-                }
+                onRefresh={refreshActiveRuns}
                 onViewResults={handleViewResults}
               />
             ))

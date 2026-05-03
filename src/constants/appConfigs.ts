@@ -5,6 +5,7 @@ const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ??
   process.env.NEXT_PUBLIC_LIFF_ENDPOINT_URL ??
   'http://localhost:3000';
+const PRODUCTION_UNIVERSAL_LINK_BASE = 'https://nasum-church-shuttle.vercel.app';
 
 const LINE_LIFF_URL =
   process.env.NEXT_PUBLIC_LIFF_ENDPOINT_URL ?? process.env.NEXT_PUBLIC_APP_URL;
@@ -34,8 +35,22 @@ export function getAbsoluteApiBaseUrl(): string {
  * the scan page auto-opens the LINE app via LIFF permalink.
  */
 export function buildQrUrl(routeCode: string, env: 'qa' | 'prod'): string {
-  const base = env === 'prod' ? LINE_LIFF_URL ?? APP_URL : APP_URL;
-  return `${base}/scan?routeCode=${encodeURIComponent(routeCode)}`;
+  return buildUniversalScanUrl(routeCode, env);
+}
+
+/**
+ * Builds the canonical HTTPS scan URL used in printed QR codes.
+ * Native iOS/Android apps can claim this URL via Universal Links/App Links,
+ * while devices without the app still land on the web /scan fallback.
+ */
+export function buildUniversalScanUrl(
+  routeCode: string,
+  env: 'qa' | 'prod',
+): string {
+  const base = env === 'prod' ? PRODUCTION_UNIVERSAL_LINK_BASE : APP_URL;
+  const url = new URL('/scan', base);
+  url.searchParams.set('routeCode', routeCode);
+  return url.toString();
 }
 
 function getLiffIdForEnv(env: 'qa' | 'prod'): string {

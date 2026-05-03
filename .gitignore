@@ -12,6 +12,7 @@ reference/
 .vercel
 test-results/
 .xcode-source-packages/
+.xcode-derived/
 *.mobileprovision
 *.p8
 ios/NaSumShuttle/Config/Secrets.xcconfig

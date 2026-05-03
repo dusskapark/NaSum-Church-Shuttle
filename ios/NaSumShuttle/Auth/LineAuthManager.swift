@@ -92,6 +92,12 @@ private func stripMarkup(from string: String) -> String {
     return withoutEntities
 }
 
+private func debugLineAuthLog(_ message: @autoclosure () -> String) {
+    #if DEBUG
+    print("[LineAuthManager] \(message())")
+    #endif
+}
+
 @MainActor
 final class LineAuthManager: AuthProviding {
     private let channelID: String?
@@ -108,7 +114,7 @@ final class LineAuthManager: AuthProviding {
     func handleOpenURL(_ url: URL) -> Bool {
         #if canImport(LineSDK)
         let handled = LoginManager.shared.application(.shared, open: url)
-        print("[LineAuthManager] handleOpenURL url=\(url.absoluteString) handled=\(handled)")
+        debugLineAuthLog("handleOpenURL url=\(url.absoluteString) handled=\(handled)")
         return handled
         #else
         return false
@@ -122,9 +128,9 @@ final class LineAuthManager: AuthProviding {
         guard let channelID, !channelID.isEmpty else {
             throw AuthProviderError.lineConfigurationMissing
         }
-        print("[LineAuthManager] login requested channelID=\(channelID) bundleID=\(Bundle.main.bundleIdentifier ?? "nil") lineAppAvailable=\(isLineAppAvailable) universalLink=\(universalLinkURL?.absoluteString ?? "nil")")
+        debugLineAuthLog("login requested channelID=\(channelID) bundleID=\(Bundle.main.bundleIdentifier ?? "nil") lineAppAvailable=\(isLineAppAvailable) universalLink=\(universalLinkURL?.absoluteString ?? "nil")")
         guard isLineAppAvailable else {
-            print("[LineAuthManager] aborting before LINE SDK login because lineauth2 scheme is unavailable.")
+            debugLineAuthLog("aborting before LINE SDK login because lineauth2 scheme is unavailable.")
             throw AuthProviderError.lineAppUnavailable
         }
 
@@ -143,10 +149,10 @@ final class LineAuthManager: AuthProviding {
                 case let .success(loginResult):
                     let grantedPermissions = loginResult.permissions.map(\.rawValue).sorted().joined(separator: ",")
                     let tokenPermissions = loginResult.accessToken.permissions.map(\.rawValue).sorted().joined(separator: ",")
-                    print("[LineAuthManager] login success grantedPermissions=\(grantedPermissions) tokenPermissions=\(tokenPermissions) hasIDToken=\(loginResult.accessToken.IDTokenRaw != nil) nonceReturned=\(loginResult.IDTokenNonce != nil)")
+                    debugLineAuthLog("login success grantedPermissions=\(grantedPermissions) tokenPermissions=\(tokenPermissions) hasIDToken=\(loginResult.accessToken.IDTokenRaw != nil) nonceReturned=\(loginResult.IDTokenNonce != nil)")
                     let accessToken = loginResult.accessToken.value
                     guard !accessToken.isEmpty else {
-                        print("[LineAuthManager] login returned without accessToken.")
+                        debugLineAuthLog("login returned without accessToken.")
                         continuation.resume(throwing: AuthProviderError.missingAccessToken)
                         return
                     }
@@ -158,7 +164,7 @@ final class LineAuthManager: AuthProviding {
 
                 case let .failure(error):
                     let nsError = error as NSError
-                    print("[LineAuthManager] login failed domain=\(nsError.domain) code=\(nsError.code) description=\(nsError.localizedDescription)")
+                    debugLineAuthLog("login failed domain=\(nsError.domain) code=\(nsError.code) description=\(nsError.localizedDescription)")
                     if (error as NSError).code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
                         continuation.resume(throwing: AuthProviderError.cancelled)
                     } else {
@@ -190,8 +196,8 @@ final class LineAuthManager: AuthProviding {
     private func setupIfNeeded() {
         #if canImport(LineSDK)
         guard !didSetup, let channelID, !channelID.isEmpty else { return }
-        print("[LineAuthManager] setup channelID=\(channelID) universalLinkURL=nil")
-        LoginManager.shared.setup(channelID: channelID, universalLinkURL: nil)
+        debugLineAuthLog("setup channelID=\(channelID) universalLinkURL=\(universalLinkURL?.absoluteString ?? "nil")")
+        LoginManager.shared.setup(channelID: channelID, universalLinkURL: universalLinkURL)
         didSetup = true
         #endif
     }

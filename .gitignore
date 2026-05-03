@@ -20,3 +20,4 @@ ios/**/xcuserdata/
 ios/.derived-simulator/
 ios/.DS_Store
 DerivedData/
+/build/ios-upload

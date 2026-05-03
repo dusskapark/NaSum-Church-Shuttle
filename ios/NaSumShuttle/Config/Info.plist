@@ -46,7 +46,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 	<key>LINE_UNIVERSAL_LINK_URL</key>
 	<string>$(LINE_UNIVERSAL_LINK_URL)</string>
 	<key>LINE_LOGIN_CHANNEL_ID</key>

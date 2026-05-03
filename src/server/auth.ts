@@ -167,6 +167,20 @@ function titleizeEmailPrefix(email: string): string {
     .join(' ');
 }
 
+export function parseAuthAudienceList(
+  configuredList: string | undefined,
+  fallbacks: Array<string | undefined>,
+) {
+  const values = [
+    ...(configuredList ?? '').split(','),
+    ...fallbacks,
+  ]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  return Array.from(new Set(values));
+}
+
 function getProviderConfig(provider: 'apple' | 'google') {
   if (provider === 'apple') {
     const audience = env.APPLE_CLIENT_ID ?? env.APPLE_BUNDLE_ID;
@@ -179,13 +193,20 @@ function getProviderConfig(provider: 'apple' | 'google') {
     return { audience };
   }
 
-  if (!env.GOOGLE_CLIENT_ID) {
-    throw Object.assign(new Error('GOOGLE_CLIENT_ID is not configured'), {
+  const audience = parseAuthAudienceList(env.GOOGLE_AUTH_CLIENT_IDS, [
+    env.GOOGLE_CLIENT_ID,
+    env.GOOGLE_SERVER_CLIENT_ID,
+    env.GOOGLE_IOS_CLIENT_ID,
+    env.GOOGLE_ANDROID_CLIENT_ID,
+  ]);
+
+  if (audience.length === 0) {
+    throw Object.assign(new Error('Google auth client IDs are not configured'), {
       status: 500,
       code: 'AUTH_PROVIDER_NOT_CONFIGURED',
     });
   }
-  return { audience: env.GOOGLE_CLIENT_ID };
+  return { audience };
 }
 
 async function verifyAppleIdentityToken(
@@ -652,6 +673,7 @@ export async function createAuthSession(
     role: user.role,
     authProvider: verified.provider,
     identityId,
+    providerUid: verified.providerUid,
   });
 
   const response: AuthSessionResponse = {
@@ -697,7 +719,12 @@ export function getAuthErrorResponse(caught: unknown) {
   if (status === 500 && code === 'AUTH_PROVIDER_NOT_CONFIGURED') {
     return { status, body: { error: message, code } };
   }
-  if (status === 401 || /token|password|credential|login/i.test(message)) {
+  if (
+    status === 401 ||
+    code?.startsWith('ERR_JWS') ||
+    code?.startsWith('ERR_JWT') ||
+    /token|password|credential|login|jws|jwt/i.test(message)
+  ) {
     return {
       status: 401,
       body: {

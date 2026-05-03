@@ -30,6 +30,10 @@ const envSchema = z.object({
   APPLE_CLIENT_ID: z.string().min(1).optional(),
   APPLE_BUNDLE_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_SERVER_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_IOS_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_ANDROID_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_AUTH_CLIENT_IDS: z.string().min(1).optional(),
   APPLE_REVIEW_ADMIN_EMAIL: z.string().email().optional(),
   APPLE_REVIEW_ADMIN_PASSWORD: z.string().min(8).optional(),
   APPLE_REVIEW_ADMIN_NAME: z.string().min(1).optional(),
@@ -58,7 +62,7 @@ export const env = envSchema.parse({
   ),
   SESSION_SECRET: optionalEnvValue(process.env.SESSION_SECRET),
   APNS_BUNDLE_ID: optionalEnvValue(process.env.APNS_BUNDLE_ID),
-  APNS_ENVIRONMENT: process.env.APNS_ENVIRONMENT as
+  APNS_ENVIRONMENT: optionalEnvValue(process.env.APNS_ENVIRONMENT) as
     | 'sandbox'
     | 'production'
     | undefined,
@@ -68,6 +72,10 @@ export const env = envSchema.parse({
   APPLE_CLIENT_ID: optionalEnvValue(process.env.APPLE_CLIENT_ID),
   APPLE_BUNDLE_ID: optionalEnvValue(process.env.APPLE_BUNDLE_ID),
   GOOGLE_CLIENT_ID: optionalEnvValue(process.env.GOOGLE_CLIENT_ID),
+  GOOGLE_SERVER_CLIENT_ID: optionalEnvValue(process.env.GOOGLE_SERVER_CLIENT_ID),
+  GOOGLE_IOS_CLIENT_ID: optionalEnvValue(process.env.GOOGLE_IOS_CLIENT_ID),
+  GOOGLE_ANDROID_CLIENT_ID: optionalEnvValue(process.env.GOOGLE_ANDROID_CLIENT_ID),
+  GOOGLE_AUTH_CLIENT_IDS: optionalEnvValue(process.env.GOOGLE_AUTH_CLIENT_IDS),
   APPLE_REVIEW_ADMIN_EMAIL: optionalEnvValue(
     process.env.APPLE_REVIEW_ADMIN_EMAIL,
   ),

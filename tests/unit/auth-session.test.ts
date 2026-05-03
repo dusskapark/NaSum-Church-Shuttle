@@ -13,6 +13,7 @@ test('session JWT only requires userId and role', async () => {
     role: 'admin',
     authProvider: 'email_password',
     identityId: 'identity-1',
+    providerUid: 'review@example.com',
   });
 
   const actor = await verifySession(token);
@@ -20,7 +21,19 @@ test('session JWT only requires userId and role', async () => {
   assert.equal(actor.role, 'admin');
   assert.equal(actor.authProvider, 'email_password');
   assert.equal(actor.identityId, 'identity-1');
-  assert.equal(actor.providerUid, null);
+  assert.equal(actor.providerUid, 'review@example.com');
+});
+
+test('auth audience list combines comma-separated config and fallbacks', async () => {
+  const { parseAuthAudienceList } = await import('@/server/auth');
+  assert.deepEqual(
+    parseAuthAudienceList('web-client, ios-client,web-client', [
+      'ios-client',
+      'android-client',
+      undefined,
+    ]),
+    ['web-client', 'ios-client', 'android-client'],
+  );
 });
 
 test('auth/session rejects unsupported providers before credential verification', async () => {

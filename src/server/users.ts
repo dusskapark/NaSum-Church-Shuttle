@@ -14,6 +14,7 @@ export interface ActorProfile {
 
 export async function fetchActorProfile(
   userId: string,
+  identityId?: string | null,
 ): Promise<ActorProfile | null> {
   const row = await queryOne<{
     user_id: string;
@@ -37,12 +38,19 @@ export async function fetchActorProfile(
        u.push_notifications_enabled,
        u.created_at
      FROM users u
-     LEFT JOIN user_identities ui
-       ON ui.user_id = u.id
-      AND ui.provider = 'line'
+     LEFT JOIN LATERAL (
+       SELECT provider_uid
+       FROM user_identities
+       WHERE user_id = u.id
+       ORDER BY
+         CASE WHEN id = $2 THEN 0 ELSE 1 END,
+         last_login_at DESC NULLS LAST,
+         created_at DESC
+       LIMIT 1
+     ) ui ON true
      WHERE u.id = $1
      LIMIT 1`,
-    [userId],
+    [userId, identityId ?? null],
   );
 
   if (!row) return null;

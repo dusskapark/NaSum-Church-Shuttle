@@ -24,6 +24,7 @@ export async function signSession(actor: SessionActor): Promise<string> {
     role: actor.role,
     auth_provider: actor.authProvider ?? undefined,
     identity_id: actor.identityId ?? undefined,
+    provider_uid: actor.providerUid ?? undefined,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(actor.userId)

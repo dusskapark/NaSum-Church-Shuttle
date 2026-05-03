@@ -524,6 +524,14 @@ enum RiderStrings {
         text("settings.userId", language)
     }
 
+    static func settingsUserIdCopied(_ language: AppLanguage) -> String {
+        text("settings.userIdCopied", language)
+    }
+
+    static func settingsUserIdCopyFailed(_ language: AppLanguage) -> String {
+        text("settings.userIdCopyFailed", language)
+    }
+
     static func settingsCurrentRoute(_ language: AppLanguage) -> String {
         text("settings.currentRoute", language)
     }

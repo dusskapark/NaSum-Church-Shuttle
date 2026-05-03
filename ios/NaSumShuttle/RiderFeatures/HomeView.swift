@@ -320,7 +320,7 @@ struct ShuttleHome: View {
         .navigationBarHidden(true)
         .sheet(isPresented: $isSettingsSheetPresented) {
             NavigationStack {
-                SettingsPage(appModel: appModel)
+                SettingsPage(appModel: appModel, onOpenStopSearch: openStopSearchFromSettings)
             }
             .preferredColorScheme(appModel.preferredColorScheme)
             .mapSheetCloseOverlay {
@@ -473,6 +473,18 @@ struct ShuttleHome: View {
         }
         Task { @MainActor in
             isStopSearchFocused = true
+        }
+    }
+
+    private func openStopSearchFromSettings() {
+        isSettingsSheetPresented = false
+        stopSearchQuery = ""
+        selectedSearchPlace = nil
+        selectedSearchCandidateId = nil
+        selectedHomeStopId = nil
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            activateStopSearch()
         }
     }
 

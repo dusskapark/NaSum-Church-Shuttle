@@ -1,8 +1,10 @@
 import Observation
 import SwiftUI
+import UIKit
 
 struct SettingsPage: View {
     @Bindable var appModel: AppModel
+    let onOpenStopSearch: () -> Void
 
     private var language: AppLanguage {
         appModel.preferredLanguage
@@ -14,24 +16,31 @@ struct SettingsPage: View {
                 if appModel.isInitialDataLoading && appModel.currentUser == nil {
                     SettingsProfileSkeleton()
                 } else {
-                    Button {
-                        Task { try? await appModel.refreshAll() }
-                    } label: {
-                        Label {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(appModel.currentUser?.displayName ?? RiderStrings.commonLoadingUserName(language))
-                                if let email = appModel.currentUser?.email {
-                                    Text(email)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                }
+                    HStack(spacing: 12) {
+                        SettingsProfileAvatar(urlString: appModel.currentUser?.pictureUrl)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(appModel.currentUser?.displayName ?? RiderStrings.commonLoadingUserName(language))
+                                .foregroundStyle(ShuttleTheme.text)
+                            if let email = appModel.currentUser?.email {
+                                Text(email)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
                             }
-                        } icon: {
-                            SettingsProfileAvatar(urlString: appModel.currentUser?.pictureUrl)
+                        }
+
+                        Spacer()
+
+                        SettingsRefreshButton(isRefreshing: appModel.isLoading, language: language) {
+                            Task { try? await appModel.refreshAll() }
                         }
                     }
+                    .padding(.vertical, 4)
 
-                    LabeledContent(RiderStrings.settingsUserId(language), value: appModel.currentUser?.providerUid ?? "No provider profile")
+                    SettingsUserIdRow(
+                        userId: appModel.currentUser?.userId,
+                        language: language
+                    )
                 }
             }
 
@@ -40,13 +49,15 @@ struct SettingsPage: View {
                     SkeletonLabeledContent(label: RiderStrings.settingsCurrentRoute(language))
                     SkeletonLabeledContent(label: RiderStrings.settingsCurrentStop(language))
                 } else {
-                    LabeledContent(
-                        RiderStrings.settingsCurrentRoute(language),
-                        value: appModel.registration?.registration?.route.label ?? RiderStrings.settingsNoRouteSelected(language)
+                    SettingsValueButtonRow(
+                        title: RiderStrings.settingsCurrentRoute(language),
+                        value: appModel.registration?.registration?.route.label ?? RiderStrings.settingsNoRouteSelected(language),
+                        action: onOpenStopSearch
                     )
-                    LabeledContent(
-                        RiderStrings.settingsCurrentStop(language),
-                        value: appModel.registration?.registration.map { $0.routeStop.place.displayName ?? $0.routeStop.place.name } ?? "-"
+                    SettingsValueButtonRow(
+                        title: RiderStrings.settingsCurrentStop(language),
+                        value: appModel.registration?.registration.map { $0.routeStop.place.displayName ?? $0.routeStop.place.name } ?? "-",
+                        action: onOpenStopSearch
                     )
                 }
             }
@@ -111,6 +122,112 @@ struct SettingsPage: View {
     }
 }
 
+private struct SettingsRefreshButton: View {
+    let isRefreshing: Bool
+    let language: AppLanguage
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Group {
+                if isRefreshing {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.body.weight(.semibold))
+                }
+            }
+            .frame(width: 34, height: 34)
+        }
+        .buttonStyle(.borderless)
+        .disabled(isRefreshing)
+        .accessibilityLabel(RiderStrings.settingsLogout(language))
+    }
+}
+
+private struct SettingsUserIdRow: View {
+    let userId: String?
+    let language: AppLanguage
+    @State private var feedbackText: String?
+
+    var body: some View {
+        Button {
+            copyUserId()
+        } label: {
+            HStack {
+                Text(RiderStrings.settingsUserId(language))
+                    .foregroundStyle(ShuttleTheme.text)
+
+                Spacer()
+
+                Text(feedbackText ?? userId.map(middleTruncated) ?? "-")
+                    .font(.subheadline.monospaced())
+                    .foregroundStyle(feedbackText == nil ? ShuttleTheme.secondaryText : ShuttleTheme.success)
+                    .lineLimit(1)
+
+                Image(systemName: "doc.on.doc")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(ShuttleTheme.secondaryText)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(userId == nil)
+        .accessibilityLabel(RiderStrings.settingsUserId(language))
+        .accessibilityValue(userId ?? "-")
+        .accessibilityHint(feedbackText ?? "")
+    }
+
+    private func copyUserId() {
+        guard let userId, !userId.isEmpty else { return }
+        UIPasteboard.general.string = userId
+        let copied = RiderStrings.settingsUserIdCopied(language)
+        feedbackText = copied
+        UIAccessibility.post(notification: .announcement, argument: copied)
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_250_000_000)
+            feedbackText = nil
+        }
+    }
+
+    private func middleTruncated(_ value: String) -> String {
+        let prefixCount = 8
+        let suffixCount = 6
+        guard value.count > prefixCount + suffixCount + 3 else { return value }
+        return "\(value.prefix(prefixCount))...\(value.suffix(suffixCount))"
+    }
+}
+
+private struct SettingsValueButtonRow: View {
+    let title: String
+    let value: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                    .foregroundStyle(ShuttleTheme.text)
+
+                Spacer()
+
+                Text(value)
+                    .font(.subheadline)
+                    .foregroundStyle(ShuttleTheme.secondaryText)
+                    .lineLimit(1)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(ShuttleTheme.secondaryText)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct SettingsProfileAvatar: View {
     let urlString: String?
 
@@ -131,7 +248,7 @@ private struct SettingsProfileAvatar: View {
                 fallbackAvatar
             }
         }
-        .frame(width: 24, height: 24)
+        .frame(width: 40, height: 40)
         .clipShape(Circle())
         .accessibilityHidden(true)
     }

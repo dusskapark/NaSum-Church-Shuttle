@@ -1,5 +1,4 @@
 import AuthenticationServices
-import GoogleSignInSwift
 import Observation
 import SwiftUI
 import UIKit
@@ -134,33 +133,38 @@ private struct LoginView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .disabled(appModel.isAuthenticating)
 
-                    GoogleSignInButton(
-                        scheme: .dark,
-                        style: .wide,
-                        state: appModel.isAuthenticating ? .disabled : .normal
+                    PlatformLoginButton(
+                        title: "Continue with Google",
+                        foreground: .black,
+                        background: .white,
+                        borderColor: Color.black.opacity(0.12),
+                        icon: {
+                            Text("G")
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .foregroundStyle(.blue)
+                        }
                     ) {
                         Task {
                             await appModel.signInWithGoogle(presentingViewController: presentingViewController)
                         }
                     }
-                    .frame(height: 44)
-                    .allowsHitTesting(!appModel.isAuthenticating)
+                    .disabled(appModel.isAuthenticating)
 
-                    Button {
+                    PlatformLoginButton(
+                        title: "Continue with LINE",
+                        foreground: .white,
+                        background: Color(red: 0.024, green: 0.78, blue: 0.333),
+                        borderColor: .clear,
+                        icon: {
+                            Image("LineLogo")
+                                .resizable()
+                                .scaledToFit()
+                        }
+                    ) {
                         Task {
                             await appModel.signIn(presentingViewController: presentingViewController)
                         }
-                    } label: {
-                        HStack(spacing: 10) {
-                            Text("Continue with LINE")
-                                .fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
                     }
-                    .shuttleButtonStyle(prominent: true)
-                    .controlSize(.large)
-                    .frame(height: 44)
-                    .tint(ShuttleTheme.success)
                     .disabled(appModel.isAuthenticating)
 
                     Button {
@@ -189,6 +193,38 @@ private struct LoginView: View {
         }
         .sheet(isPresented: $isEmailLoginPresented) {
             EmailLoginSheet(appModel: appModel)
+        }
+    }
+}
+
+
+private struct PlatformLoginButton<Icon: View>: View {
+    let title: String
+    let foreground: Color
+    let background: Color
+    let borderColor: Color
+    @ViewBuilder let icon: () -> Icon
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                icon()
+                    .frame(width: 20, height: 20)
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 14)
+        }
+        .buttonStyle(.plain)
+        .frame(height: 44)
+        .foregroundStyle(foreground)
+        .background(background, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(borderColor, lineWidth: borderColor == .clear ? 0 : 1)
         }
     }
 }

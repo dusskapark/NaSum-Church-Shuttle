@@ -1,3 +1,4 @@
+import { connect, constants } from 'node:http2';
 import { importPKCS8, SignJWT } from 'jose';
 import { env } from './env';
 import { deactivateDevicePushToken, type DevicePushTokenRecord } from './push-tokens';
@@ -9,6 +10,8 @@ export interface ApnsDeliveryPayload {
   stopsAway: 1 | 2;
   notificationId: string;
   triggerStopId: string;
+  userRouteStopId: string;
+  deepLinkPath: string;
 }
 
 export interface ApnsDeliveryResult {
@@ -48,6 +51,79 @@ export function isApnsConfigured(): boolean {
   );
 }
 
+function parseApnsErrorBody(bodyText: string): { reason?: string } {
+  try {
+    return JSON.parse(bodyText || '{}') as { reason?: string };
+  } catch {
+    return {};
+  }
+}
+
+async function postApnsRequest(params: {
+  host: string;
+  deviceToken: string;
+  bearerToken: string;
+  topic: string;
+  body: string;
+}): Promise<{ status: number; bodyText: string }> {
+  return new Promise((resolve, reject) => {
+    const client = connect(params.host);
+    let settled = false;
+
+    const settle = (
+      callback: () => void,
+      error?: Error,
+    ) => {
+      if (settled) return;
+      settled = true;
+      client.close();
+      if (error) {
+        reject(error);
+      } else {
+        callback();
+      }
+    };
+
+    client.once('error', (err) => {
+      settle(() => undefined, err);
+    });
+
+    const request = client.request({
+      [constants.HTTP2_HEADER_METHOD]: constants.HTTP2_METHOD_POST,
+      [constants.HTTP2_HEADER_PATH]: `/3/device/${params.deviceToken}`,
+      authorization: `bearer ${params.bearerToken}`,
+      'apns-topic': params.topic,
+      'apns-push-type': 'alert',
+      'content-type': 'application/json',
+    });
+
+    let status = 0;
+    const chunks: Buffer[] = [];
+
+    request.setEncoding('utf8');
+    request.on('response', (headers) => {
+      const rawStatus = headers[constants.HTTP2_HEADER_STATUS];
+      status = typeof rawStatus === 'number' ? rawStatus : Number(rawStatus ?? 0);
+    });
+    request.on('data', (chunk) => {
+      chunks.push(Buffer.from(chunk));
+    });
+    request.once('error', (err) => {
+      settle(() => undefined, err);
+    });
+    request.once('end', () => {
+      settle(() => {
+        resolve({
+          status,
+          bodyText: Buffer.concat(chunks).toString('utf8'),
+        });
+      });
+    });
+
+    request.end(params.body);
+  });
+}
+
 async function createApnsBearerToken(): Promise<string> {
   const teamId = env.APNS_TEAM_ID;
   const keyId = env.APNS_KEY_ID;
@@ -77,40 +153,36 @@ export async function sendApnsNotification(params: {
 
   const bearerToken = await createApnsBearerToken();
   const topic = params.token.bundle_id || env.APNS_BUNDLE_ID!;
-  const response = await fetch(
-    `${getApnsHost(params.token.apns_environment)}/3/device/${params.token.token}`,
-    {
-      method: 'POST',
-      headers: {
-        authorization: `bearer ${bearerToken}`,
-        'apns-topic': topic,
-        'apns-push-type': 'alert',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        aps: {
-          alert: {
-            title: params.payload.title,
-            body: params.payload.body,
-          },
-          sound: 'default',
+  const response = await postApnsRequest({
+    host: getApnsHost(params.token.apns_environment),
+    deviceToken: params.token.token,
+    bearerToken,
+    topic,
+    body: JSON.stringify({
+      aps: {
+        alert: {
+          title: params.payload.title,
+          body: params.payload.body,
         },
-        notificationId: params.payload.notificationId,
-        routeCode: params.payload.routeCode,
-        stopsAway: params.payload.stopsAway,
-        triggerStopId: params.payload.triggerStopId,
-      }),
-    },
-  );
+        sound: 'default',
+      },
+      notificationId: params.payload.notificationId,
+      routeCode: params.payload.routeCode,
+      stopsAway: params.payload.stopsAway,
+      triggerStopId: params.payload.triggerStopId,
+      userRouteStopId: params.payload.userRouteStopId,
+      deepLinkPath: params.payload.deepLinkPath,
+    }),
+  });
 
-  if (response.ok) {
+  if (response.status >= 200 && response.status < 300) {
     return {
       ok: true,
       status: response.status,
     };
   }
 
-  const body = (await response.json().catch(() => ({}))) as { reason?: string };
+  const body = parseApnsErrorBody(response.bodyText);
   const reason = body.reason ?? 'APNS request failed';
   if (
     reason === 'BadDeviceToken' ||

@@ -156,9 +156,8 @@ private struct LoginView: View {
                         background: Color(red: 0.024, green: 0.78, blue: 0.333),
                         borderColor: .clear,
                         icon: {
-                            Image("LineLogo")
-                                .resizable()
-                                .scaledToFit()
+                            Image(systemName: "message.fill")
+                                .font(.system(size: 16, weight: .bold))
                         }
                     ) {
                         Task {

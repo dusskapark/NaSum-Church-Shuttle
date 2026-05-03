@@ -10,8 +10,10 @@ export async function POST(request: NextRequest) {
 
   const body = (await request.json()) as {
     token?: string;
+    platform?: 'ios' | 'android' | null;
     bundle_id?: string | null;
     apns_environment?: 'sandbox' | 'production' | null;
+    package_name?: string | null;
   };
 
   if (!body.token) {
@@ -22,15 +24,19 @@ export async function POST(request: NextRequest) {
     const pushToken = await upsertDevicePushToken({
       userId: actor.userId,
       token: body.token,
+      platform: body.platform,
       bundleId: body.bundle_id,
       apnsEnvironment: body.apns_environment,
+      packageName: body.package_name,
     });
     return json({
       success: true,
       id: pushToken.id,
+      platform: pushToken.platform,
       token: pushToken.token,
       bundle_id: pushToken.bundle_id,
       apns_environment: pushToken.apns_environment,
+      package_name: pushToken.package_name,
       is_active: pushToken.is_active,
       updated_at: pushToken.updated_at,
     });

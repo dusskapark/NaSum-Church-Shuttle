@@ -27,6 +27,13 @@ const envSchema = z.object({
   APNS_TEAM_ID: z.string().min(1).optional(),
   APNS_KEY_ID: z.string().min(1).optional(),
   APNS_PRIVATE_KEY_BASE64: z.string().min(1).optional(),
+  FIREBASE_PROJECT_ID: z.string().min(1).optional(),
+  FIREBASE_CLIENT_EMAIL: z.string().email().optional(),
+  FIREBASE_PRIVATE_KEY_BASE64: z.string().min(1).optional(),
+  FIREBASE_SERVICE_ACCOUNT_JSON_BASE64: z.string().min(1).optional(),
+  IOS_UNIVERSAL_LINK_APP_IDS: z.string().min(1).optional(),
+  ANDROID_APP_PACKAGE_NAME: z.string().min(1).optional(),
+  ANDROID_SHA256_CERT_FINGERPRINTS: z.string().min(1).optional(),
   APPLE_CLIENT_ID: z.string().min(1).optional(),
   APPLE_BUNDLE_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
@@ -69,6 +76,23 @@ export const env = envSchema.parse({
   APNS_TEAM_ID: optionalEnvValue(process.env.APNS_TEAM_ID),
   APNS_KEY_ID: optionalEnvValue(process.env.APNS_KEY_ID),
   APNS_PRIVATE_KEY_BASE64: optionalEnvValue(process.env.APNS_PRIVATE_KEY_BASE64),
+  FIREBASE_PROJECT_ID: optionalEnvValue(process.env.FIREBASE_PROJECT_ID),
+  FIREBASE_CLIENT_EMAIL: optionalEnvValue(process.env.FIREBASE_CLIENT_EMAIL),
+  FIREBASE_PRIVATE_KEY_BASE64: optionalEnvValue(
+    process.env.FIREBASE_PRIVATE_KEY_BASE64,
+  ),
+  FIREBASE_SERVICE_ACCOUNT_JSON_BASE64: optionalEnvValue(
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64,
+  ),
+  IOS_UNIVERSAL_LINK_APP_IDS: optionalEnvValue(
+    process.env.IOS_UNIVERSAL_LINK_APP_IDS,
+  ),
+  ANDROID_APP_PACKAGE_NAME: optionalEnvValue(
+    process.env.ANDROID_APP_PACKAGE_NAME,
+  ),
+  ANDROID_SHA256_CERT_FINGERPRINTS: optionalEnvValue(
+    process.env.ANDROID_SHA256_CERT_FINGERPRINTS,
+  ),
   APPLE_CLIENT_ID: optionalEnvValue(process.env.APPLE_CLIENT_ID),
   APPLE_BUNDLE_ID: optionalEnvValue(process.env.APPLE_BUNDLE_ID),
   GOOGLE_CLIENT_ID: optionalEnvValue(process.env.GOOGLE_CLIENT_ID),

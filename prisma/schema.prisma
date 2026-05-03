@@ -63,8 +63,9 @@ model DevicePushToken {
   user_id          String
   platform         String
   token            String   @unique
-  bundle_id        String
-  apns_environment String
+  bundle_id        String?
+  apns_environment String?
+  package_name     String?
   is_active        Boolean  @default(true)
   last_seen_at     DateTime @default(now())
   created_at       DateTime @default(now())
@@ -222,6 +223,25 @@ model Notification {
   @@unique([user_id, run_id, trigger_stop_id])
   @@index([user_id, is_read])
   @@map("notifications")
+}
+
+model NotificationDeliveryAttempt {
+  id              String   @id @default(cuid())
+  notification_id String
+  user_id         String
+  channel         String
+  target_hash     String?
+  status          String
+  status_code     Int?
+  reason          String?
+  attempted_at    DateTime @default(now())
+  completed_at    DateTime?
+  metadata        Json?
+
+  @@index([notification_id])
+  @@index([user_id, attempted_at])
+  @@index([channel, status])
+  @@map("notification_delivery_attempts")
 }
 
 model Schedule {

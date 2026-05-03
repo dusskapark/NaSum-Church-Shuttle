@@ -20,8 +20,8 @@ the source change under `shared/`, then run the generator.
   `public/manifest.json`, and `src/locales/*.ts`.
 - iOS: `ios/NaSumShuttle/Resources/Assets.xcassets/Logo.imageset`,
   `AppIcon.appiconset`, and `ios/NaSumShuttle/Generated/RiderStringsGenerated.swift`.
-- Android: `android/app/src/main/res/...` when an Android project exists. The
-  current generator skips Android output until that target is present.
+- Android: `android/app/src/main/res/...` and
+  `android/app/src/main/assets/logo.svg` when an Android project exists.
 
 Generated outputs are committed so each platform can be opened and built without
 running setup first.

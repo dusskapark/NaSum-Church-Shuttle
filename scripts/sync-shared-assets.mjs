@@ -263,11 +263,15 @@ function generateAndroidIfPresent() {
     xxxhdpi: 192,
   };
   for (const [density, size] of Object.entries(densityIcons)) {
+    const mipmapDir = path.join(androidRes, `mipmap-${density}`);
+    if (existsSync(path.join(mipmapDir, 'ic_launcher.xml'))) {
+      rmSync(path.join(mipmapDir, 'ic_launcher.xml'));
+    }
     resizePng(iconSource, path.join(androidRes, `mipmap-${density}/ic_launcher.png`), size, {
       background: 'transparent',
     });
   }
-  copyText(path.join(brandDir, 'logo.svg'), path.join(androidRes, 'drawable/logo.svg'));
+  copyText(path.join(brandDir, 'logo.svg'), path.join(root, 'android/app/src/main/assets/logo.svg'));
 
   for (const locale of locales) {
     const valuesDir = locale === 'en' ? 'values' : `values-${locale}`;
@@ -291,7 +295,11 @@ function renderSwiftStrings(data) {
 }
 
 function renderAndroidStrings(strings) {
-  const rows = Object.entries(strings)
+  const androidStrings = {
+    app_name: metadata.shortName,
+    ...strings,
+  };
+  const rows = Object.entries(androidStrings)
     .filter(([, value]) => typeof value === 'string')
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `    <string name="${androidName(key)}">${escapeXml(value)}</string>`)
@@ -384,7 +392,7 @@ function runGitDiffCheck() {
     'ios/NaSumShuttle/Resources/Assets.xcassets/AppIcon.appiconset',
   ];
   if (existsSync(path.join(root, 'android'))) {
-    paths.push('android/app/src/main/res');
+    paths.push('android/app/src/main/res', 'android/app/src/main/assets');
   }
   const result = spawnSync('git', ['diff', '--exit-code', '--', ...paths], {
     cwd: root,

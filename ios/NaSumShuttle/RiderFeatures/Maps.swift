@@ -158,7 +158,7 @@ private struct GoogleRouteMapView: UIViewRepresentable {
 
         if path.count() > 1 {
             let polyline = GMSPolyline(path: path)
-            polyline.strokeColor = activeStates.isEmpty ? UIColor.shuttleSecondary : UIColor.shuttlePrimary
+            polyline.strokeColor = activeStates.isEmpty ? UIColor.shuttlePrimary : UIColor.shuttlePrimaryBold
             polyline.strokeWidth = 4
             polyline.map = mapView
         }
@@ -248,8 +248,8 @@ private struct GoogleRouteMapView: UIViewRepresentable {
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { context in
             let rect = CGRect(origin: .zero, size: size).insetBy(dx: 2, dy: 2)
-            let fill = isSelected ? UIColor.shuttlePrimary : UIColor.white
-            let stroke = runActive ? UIColor.shuttlePrimary : UIColor.shuttleSecondary
+            let stroke = runActive ? UIColor.shuttlePrimaryBold : UIColor.shuttlePrimary
+            let fill = isSelected ? stroke : UIColor.white
             fill.setFill()
             stroke.setStroke()
             let path = UIBezierPath(ovalIn: rect)
@@ -361,8 +361,20 @@ private struct GoogleSingleStopMapView: UIViewRepresentable {
 }
 
 private extension UIColor {
-    static let shuttlePrimary = UIColor(red: 31 / 255, green: 111 / 255, blue: 235 / 255, alpha: 1)
-    static let shuttleSecondary = UIColor(red: 140 / 255, green: 149 / 255, blue: 159 / 255, alpha: 1)
-    static let shuttleSuccess = UIColor(red: 26 / 255, green: 127 / 255, blue: 55 / 255, alpha: 1)
+    static let shuttlePrimary = dynamic(light: 0x1f6feb, dark: 0x58a6ff)
+    static let shuttlePrimaryBold = dynamic(light: 0x0969da, dark: 0x388bfd)
+    static let shuttleSuccess = dynamic(light: 0x1a7f37, dark: 0x3fb950)
+
+    private static func dynamic(light: UInt32, dark: UInt32) -> UIColor {
+        UIColor { trait in
+            let value = trait.userInterfaceStyle == .dark ? dark : light
+            return UIColor(
+                red: CGFloat((value >> 16) & 0xff) / 255,
+                green: CGFloat((value >> 8) & 0xff) / 255,
+                blue: CGFloat(value & 0xff) / 255,
+                alpha: 1
+            )
+        }
+    }
 }
 #endif

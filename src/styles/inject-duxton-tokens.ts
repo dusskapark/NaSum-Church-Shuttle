@@ -23,6 +23,7 @@ function buildCssRule(selector: string, vars: Record<string, string>): string {
 
 const lightVars: Record<string, string> = {
   '--adm-color-primary': '#1f6feb',
+  '--adm-color-primary-bold': '#0969da',
   '--adm-color-success': '#1a7f37',
   '--adm-color-danger': '#cf222e',
   '--adm-color-warning': '#9a6700',
@@ -38,6 +39,7 @@ const lightVars: Record<string, string> = {
 
 const darkVars: Record<string, string> = {
   '--adm-color-primary': '#58a6ff',
+  '--adm-color-primary-bold': '#388bfd',
   '--adm-color-success': '#3fb950',
   '--adm-color-danger': '#f85149',
   '--adm-color-warning': '#d29922',

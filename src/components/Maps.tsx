@@ -41,14 +41,28 @@ function MapSkeleton() {
 function useResolvedColors() {
   return useMemo(() => {
     if (typeof window === 'undefined') {
-      return { primary: '#1f6feb', secondary: '#8c959f' };
+      return { primary: '#1f6feb', primaryBold: '#0969da' };
     }
     const style = getComputedStyle(document.documentElement);
+    const cssColor = (...values: string[]) =>
+      values.find((value) => {
+        const color = value.trim();
+        return color && !color.startsWith('var(');
+      })?.trim();
+    const primary =
+      cssColor(
+        style.getPropertyValue('--adm-color-primary'),
+        style.getPropertyValue('--app-map-marker-primary'),
+      ) ?? '#1f6feb';
+
     return {
-      primary: style.getPropertyValue('--adm-color-primary').trim() || '#1f6feb',
-      secondary:
-        style.getPropertyValue('--adm-color-text-secondary').trim() ||
-        '#8c959f',
+      primary,
+      primaryBold:
+        cssColor(
+          style.getPropertyValue('--adm-color-primary-bold'),
+          style.getPropertyValue('--app-map-marker-active'),
+        ) ||
+        primary,
     };
   }, []);
 }
@@ -244,6 +258,7 @@ export function ShuttleMap({
     ? { lat: myStop.place.lat, lng: myStop.place.lng }
     : points[0] ?? DEFAULT_CENTER;
   const runActive = (stopStates ?? []).length > 0;
+  const routeStatusColor = runActive ? colors.primaryBold : colors.primary;
 
   return (
     <MapFrame defaultCenter={center}>
@@ -254,8 +269,8 @@ export function ShuttleMap({
       />
       <Polyline
         path={path}
-        strokeColor={runActive ? colors.primary : colors.secondary}
-        strokeOpacity={runActive ? 0.8 : 0.6}
+        strokeColor={routeStatusColor}
+        strokeOpacity={runActive ? 0.9 : 0.75}
       />
       {stops.map((stop, index) => {
         const boarded = stopStateByStopId[stop.id];
@@ -267,8 +282,8 @@ export function ShuttleMap({
             position={{ lat: stop.place.lat, lng: stop.place.lng }}
           >
             <MarkerBadge
-              borderColor={runActive ? colors.primary : colors.secondary}
-              color={runActive ? colors.primary : colors.secondary}
+              borderColor={routeStatusColor}
+              color={routeStatusColor}
               filled={myStop?.id === stop.id}
               label={Number(label)}
             />

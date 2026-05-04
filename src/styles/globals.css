@@ -41,9 +41,9 @@ body {
   --app-shadow-raised: 0 12px 28px color-mix(in srgb, var(--adm-color-text) 8%, transparent);
   --app-shadow-toolbar: 0 -8px 24px color-mix(in srgb, var(--adm-color-text) 12%, transparent);
   --app-map-marker-primary: var(--adm-color-primary);
-  --app-map-marker-muted: var(--adm-color-light);
+  --app-map-marker-muted: var(--adm-color-primary);
   --app-map-marker-danger: var(--adm-color-danger);
-  --app-map-marker-active: color-mix(in srgb, var(--adm-color-primary) 82%, var(--adm-color-background));
+  --app-map-marker-active: var(--adm-color-primary-bold);
   --app-map-overlay: color-mix(in srgb, var(--app-color-surface) 92%, transparent);
 
   /* Layout Constants */
